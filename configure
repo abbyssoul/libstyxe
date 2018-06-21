@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+project_name=$(basename $DIR)
+prefix=/usr/local
+debugsym=true
+sanitizer=true
+
+for arg in "$@"; do
+    case "$arg" in
+    --prefix=*)
+        prefix=`echo $arg | sed 's/--prefix=//'`
+        ;;
+
+    --enable-debug )
+        debugsym=true
+        ;;
+    --disable-debug )
+        debugsym=false
+        ;;
+
+    --enable-sanitizer )
+        sanitizer=true
+        ;;
+    --disable-sanitizer )
+        sanitizer=false
+        ;;
+
+    --help)
+        echo 'usage: ./configure [options]'
+        echo 'options:'
+        echo '  --prefix=<path>: installation prefix'
+        echo '  --enable-debug include debug symbols'
+        echo '  --disable-debug do not include debug symbols'
+        echo '  --enable-sanitizer To enable -fsanitize compiler option'
+        echo '  --disable-sanitizer To disable -fsanitize compiler option'
+        echo ''
+        echo 'all invalid options are silently ignored'
+        exit 0
+        ;;
+
+    *)
+        echo "Unexpected option '$arg'"
+        exit 0
+        ;;
+    esac
+done
+
+echo "Generating Makefile for ${project_name}..."
+echo "# Generated Makefile for ${project_name}: $(date)" > Makefile
+echo "PREFIX ?= ${prefix}" >> Makefile
+
+if $debugsym; then
+    echo 'dbg = -g' >> Makefile
+fi
+
+if $sanitizer; then
+    echo 'sanitize = address,undefined,leak' >> Makefile
+fi
+
+
+echo '' >> Makefile
+cat Makefile.in >> Makefile
+echo "Configuration complete, type 'make' to build ${project_name}."

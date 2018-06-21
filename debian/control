@@ -1,0 +1,24 @@
+Source: libstyxe
+Section: libs
+Priority: optional
+Maintainer: Ivan Ryabov <abbyssoul@gmail.com>
+Build-Depends: debhelper (>= 9),
+ dh-autoreconf,
+ libtool
+Standards-Version: 3.9.8
+Vcs-Browser: https://github.com/abbyssoul/libstyxe
+Vcs-Git: https://github.com/abbyssoul/libstyxe.git
+Homepage: https://github.com/abbyssoul/libstyxe
+
+
+Package: libstyxe-dev
+Architecture: any
+Section: libdevel
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+    libc6-dev
+    libsolace-dev
+Description: Implementation of 9P2000 protocol -- development files
+ This is a collection of classes to work with 9P2000 messages.
+ .
+ This package contains the development library and header files.

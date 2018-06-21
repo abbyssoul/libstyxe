@@ -1,0 +1,57 @@
+language: cpp
+compiler:
+  - clang
+  - gcc
+os:
+  - linux
+addons:
+ apt:
+   sources:
+   - ubuntu-toolchain-r-test
+   - llvm-toolchain-trusty-5.0
+   packages:
+   - clang-5.0
+   - gcc-7
+   - g++-7
+   - binutils-2.26
+   - doxygen
+   - python-pip
+   - valgrind
+   - ggcov
+   - lcov
+   - curl
+ coverity_scan:
+  project:
+      name: "abbyssoul/libstyxe"
+      description: "9P2000 protocol implementation"
+  notification_email: abbyssoul@gmail.com
+  build_command: make
+  branch_pattern: coverity_scan
+
+before_install:
+  - pip install --user cpp-coveralls
+  - pip install --user cpplint
+  - gem install coveralls-lcov
+install:
+  - gcov --version
+  - lcov --version
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 90 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+  - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-7 90
+  - if [ "$CXX" = "clang++" ]; then export CXX="clang++-5.0" CC="clang-5.0"; fi
+  - echo $CXX
+  - $CXX --version
+  - ld --version
+
+script:
+  - ./configure --enable-sanitizer
+  - make clean
+  - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make codecheck; fi
+  - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make -j2 test; fi
+  - make clean
+  - ./configure --disable-sanitizer --enable-debug
+  - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make verify ; fi
+
+after_success:
+  - make clean && make coverage_report
+  - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+  - coveralls-lcov --repo-token ${COVERALLS_TOKEN} coverage.info  # uploads to coveralls

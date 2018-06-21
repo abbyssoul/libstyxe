@@ -1,0 +1,285 @@
+# Project name
+export PROJECT = styxe
+
+# Compiler config:
+CXX ?= g++
+RANLIB ?= /bin/true
+
+ifeq (clang++, $(findstring clang++,$(CXX)))
+endif
+
+ifeq (g++, $(findstring g++,$(CXX)))
+	AR=gcc-ar
+endif
+
+#ifeq (clang++, $(findstring g++,$(CXX)))
+#	AR=llvm-ar
+#endif
+
+# Project directory layout
+TARGET_DIR = lib
+TARGET_NAME = lib$(PROJECT).a
+export TARGET = $(TARGET_DIR)/$(TARGET_NAME)
+
+export PUBLIC_HEADERS = include
+export BUILD_DIR = build
+SRC_DIR = src
+
+# Google test framework:
+GTEST_LIB = gtest
+GTEST_DIR = external/gtest/googletest
+GTEST_TARGET = $(BUILD_DIR)/lib/lib$(GTEST_LIB).a
+
+# Project Test Suit
+TEST_SRC_DIR = test
+TEST_NAME = test_$(PROJECT)
+TEST_TARGET_DIR = $(BUILD_DIR)/bin
+TEST_TAGRET = $(TEST_TARGET_DIR)/$(TEST_NAME)
+
+export EXAMPLES_SRC_DIR = examples
+
+
+src = $(wildcard $(SRC_DIR)/*.cpp)
+
+test_src =	$(wildcard $(TEST_SRC_DIR)/*.cpp) \
+			$(wildcard $(TEST_SRC_DIR)/ci/*.cpp) \
+
+
+obj = $(addprefix $(BUILD_DIR)/, $(src:.cpp=.o))
+test_obj = $(addprefix $(BUILD_DIR)/, $(test_src:.cpp=.o))
+dep = $(obj:.o=.d)  # one dependency file for each source
+
+
+CXXFLAGS += -std=c++14 -pipe -ftemplate-depth=128
+CXXFLAGS += -pedantic -Wall -Wextra -Wabi -Wfloat-equal \
+-Wshadow -Wno-missing-field-initializers -Wno-missing-braces \
+-Wcast-qual -Wno-sign-compare -Wno-multichar
+
+# Add debug or release flags as required
+# FIXME: Can't use -D_GLIBCXX_DEBUG until libsolace use it, subject to move from CppUnit to GTest
+ifdef dbg
+	CXXFLAGS += -O0 -ggdb3 -DDEBUG -D _DEBUG
+	CXXFLAGS += -fstack-protector-all -fsanitize=address,undefined,leak -fno-omit-frame-pointer
+	# FIXME: Doesn't work ????	CXXFLAGS += -fvtable-verify=std
+	CXXFLAGS += -fsanitize-address-use-after-scope
+else # Release optimizations
+	CXXFLAGS += -Ofast -flto
+	CXXFLAGS += -fstack-protector-strong
+	CXXFLAGS += -march=native -mtune=native
+endif
+
+
+CPPFLAGS += -I$(PUBLIC_HEADERS) -D_FORTIFY_SOURCE=2
+CPPFLAGS += -I../libsolace/include
+
+# LD flags and LIBS only make sense for tests and example when building a library project
+LDFLAGS +=  -L$(TARGET_DIR) \
+			-L../libsolace/build/src
+
+LDLIBS += -l$(PROJECT) -lsolace -pthread
+ifdef dbg
+	LDLIBS += -fsanitize=address -llsan -lubsan
+endif
+
+test_CPPFLAGS += -isystem ${GTEST_DIR}/include
+test_LDLIBS += -L$(BUILD_DIR)/lib -l$(GTEST_LIB)
+
+
+# Export compiler options and extra libs for examples and tests
+export CXXFLAGS
+export CPPFLAGS
+export LDFLAGS
+export LDLIBS
+
+
+$(PROJECT): $(TARGET)
+all: $(PROJECT) $(TEST_TAGRET) examples
+
+
+#-------------------------------------------------------------------------------
+# Build the project
+#-------------------------------------------------------------------------------
+$(BUILD_DIR):
+	mkdir -p $@
+
+$(TARGET_DIR):
+	mkdir -p $@
+
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) -o $@ $<
+
+
+$(TARGET): $(obj)
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+	$(RANLIB) $@
+
+
+#-------------------------------------------------------------------------------
+# Build examples
+#-------------------------------------------------------------------------------
+.PHONY: examples
+examples: $(TARGET)
+	if test -d $(EXAMPLES_SRC_DIR); then $(MAKE) -C $(EXAMPLES_SRC_DIR) -f Makefile.in; fi
+
+
+
+#-------------------------------------------------------------------------------
+# Build unit tests
+#-------------------------------------------------------------------------------
+$(BUILD_DIR)/gtest-all.o: ${GTEST_DIR}/src/gtest-all.cc
+	@mkdir -p $(dir $@)
+	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $(test_CPPFLAGS) -I${GTEST_DIR} -pthread -o $@ ${GTEST_DIR}/src/gtest-all.cc
+
+$(GTEST_TARGET): $(BUILD_DIR)/gtest-all.o
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+$(TEST_TARGET_DIR):
+	@mkdir -p $@
+
+$(BUILD_DIR)/$(TEST_SRC_DIR)/%.o: $(TEST_SRC_DIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $(test_CPPFLAGS) -o $@ $<
+
+$(TEST_TAGRET): $(TARGET) $(TEST_TARGET_DIR) $(GTEST_TARGET)
+
+
+$(TEST_TAGRET): $(test_obj)
+	$(CXX) -o $@ $(CXXFLAGS) $(test_obj) $(LDFLAGS) $(LDLIBS) $(test_LDLIBS)
+
+test: $(TEST_TAGRET)
+	./$(TEST_TAGRET)
+
+.PHONY: test
+
+
+#-------------------------------------------------------------------------------
+# Include files dependencies
+#-------------------------------------------------------------------------------
+-include $(dep)   # include all dep files in the makefile
+
+# rule to generate a dep file by using the C preprocessor
+# (see man cpp for details on the -MM and -MT options)
+$(BUILD_DIR)/%.d: %.cpp
+	@echo "Building dep for $<"
+	@mkdir -p $(dir $@)
+	$(CPP) $(CXXFLAGS) $(CPPFLAGS) $< -MM -MT $(@:.d=.o) >$@
+
+#-------------------------------------------------------------------------------
+# Build docxygen documentation
+#-------------------------------------------------------------------------------
+$(DOC_TARGET):
+	doxygen doc/Doxyfile
+
+# Build project doxygen docs doxyfile.inc
+doc: $(MODULE_HEADERS) $(MODULE_SRC) $(DOC_TARGET)
+
+
+#-------------------------------------------------------------------------------
+# Install
+#-------------------------------------------------------------------------------
+
+.PHONY: install
+install: $(TARGET)
+	@install -m 644 -v -D -t $(DESTDIR)$(PREFIX)/$(TARGET_DIR) $(TARGET)
+	@for i in $(shell find $(PUBLIC_HEADERS)/$(PROJECT) -type d); do \
+		install -m 755 -v -d $(DESTDIR)$(PREFIX)/$$i; \
+		install -m 644 -v -D -t $(DESTDIR)$(PREFIX)/$$i $$i/*.hpp; \
+	done
+
+
+.PHONY: uninstall
+uninstall:
+	$(RM) -f $(DESTDIR)$(PREFIX)/$(TARGET_DIR)/$(TARGET_NAME)
+	$(RM) -rf $(DESTDIR)$(PREFIX)/include/$(PROJECT)
+
+
+#-------------------------------------------------------------------------------
+# Packaging
+#-------------------------------------------------------------------------------
+
+.PHONY: debian
+debian:
+	dpkg-buildpackage -d
+
+.PHONY: debian-clean
+debian-clean:
+	dpkg-buildpackage -d -T clean
+
+
+#-------------------------------------------------------------------------------
+# Cleanup
+#-------------------------------------------------------------------------------
+
+.PHONY: clean
+clean:
+	$(RM) -rf $(TARGET_DIR) $(BUILD_DIR) $(DOC_TARGET) $(GEN_SRC_DIR)
+
+#-------------------------------------------------------------------------------
+# Code Quality Assurance
+#-------------------------------------------------------------------------------
+tools/cppcheck:
+	# Get the latest cppcheck
+	git clone --depth 1 https://github.com/danmar/cppcheck.git tools/cppcheck
+
+tools/cppcheck/cppcheck: tools/cppcheck
+	git -C tools/cppcheck pull
+	$(MAKE) -j2 -C tools/cppcheck cppcheck
+
+
+cpplint: $(MODULE_HEADERS) $(MODULE_SRC)
+	cpplint --recursive --exclude=${TEST_SRC_DIR}/ci/* ${PUBLIC_HEADERS} ${SRC_DIR} ${TEST_SRC_DIR} $(EXAMPLES_SRC_DIR)
+
+cppcheck: $(MODULE_HEADERS) $(MODULE_SRC) tools/cppcheck/cppcheck
+	tools/cppcheck/cppcheck --std=c++11 --std=posix -D __linux__ --inline-suppr -q --error-exitcode=2 \
+	--enable=warning,performance,portability,missingInclude,information,unusedFunction \
+	-I include -i test/ci ${SRC_DIR} ${TEST_SRC_DIR} $(EXAMPLES_SRC_DIR)
+
+scan-build: ANALYZE_MAKE
+	cd $(ANALYZE_DIR) && scan-build $(MAKE)
+
+tidy:
+	clang-tidy -checks=llvm-*,modernize-*,clang-analyzer-*,-modernize-pass-by-value -header-filter=.* \
+	${SRC_DIR}/*.cpp -- -I$(PUBLIC_HEADERS) -std=c++14
+
+
+
+codecheck: cpplint cppcheck #scan-build
+
+
+
+#-------------------------------------------------------------------------------
+# Runtime Quality Control
+#-------------------------------------------------------------------------------
+
+valgrind-sgcheck: $(TEST_TAGRET)
+	# > 3.10 (not avaliable on trusty) --expensive-definedness-checks=yes --read-var-info=yes
+	valgrind --trace-children=yes --track-fds=yes --redzone-size=128 --error-exitcode=4 \
+	--tool=exp-sgcheck $(TEST_TAGRET)
+
+valgrind-memcheck: $(TEST_TAGRET)
+	valgrind --trace-children=yes --track-fds=yes --redzone-size=128 --error-exitcode=3 \
+	--tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --partial-loads-ok=no \
+	$(TEST_TAGRET)
+
+
+# valgrind-sgcheck is broken for now :'(
+verify: valgrind-memcheck
+
+
+$(COVERAGE_REPORT): $(BUILD_DIR)/build_coverage
+	cd ${BUILD_DIR} && ./${TEST_DIR}/$(TESTNAME)
+
+	# capture coverage info
+	lcov --directory . --capture --output-file $@
+	# filter out system and test code
+	lcov --remove coverage.info 'test/*' '/usr/*' 'external/*' --output-file $@
+
+coverage: $(COVERAGE_REPORT)
+
+
+coverage_report: $(COVERAGE_REPORT)
+	lcov --list $(COVERAGE_REPORT)
+
