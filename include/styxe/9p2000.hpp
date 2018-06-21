@@ -45,7 +45,7 @@ public:
 
     /**
      * Maximum frame size that can transmitted by the protocol.
-     * (Note: server/client can negotiate actual frame size to be less then that.
+     * @note: server/client can negotiate actual frame size to be less then that.
      */
     static const size_type MAX_MESSAGE_SIZE;
 
