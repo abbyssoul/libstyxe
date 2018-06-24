@@ -36,6 +36,10 @@ TEST_NAME = test_$(PROJECT)
 TEST_TARGET_DIR = $(BUILD_DIR)/bin
 TEST_TAGRET = $(TEST_TARGET_DIR)/$(TEST_NAME)
 
+DOC_DIR = docs
+DOC_TARGET_HTML = $(DOC_DIR)/html
+
+
 export EXAMPLES_SRC_DIR = examples
 
 
@@ -170,11 +174,11 @@ $(BUILD_DIR)/%.d: %.cpp
 #-------------------------------------------------------------------------------
 # Build docxygen documentation
 #-------------------------------------------------------------------------------
-$(DOC_TARGET):
-	doxygen doc/Doxyfile
+$(DOC_TARGET_HTML):
+	doxygen $(DOC_DIR)/Doxyfile
 
 # Build project doxygen docs doxyfile.inc
-doc: $(MODULE_HEADERS) $(MODULE_SRC) $(DOC_TARGET)
+doc: $(MODULE_HEADERS) $(MODULE_SRC) $(DOC_TARGET_HTML)
 
 
 #-------------------------------------------------------------------------------
@@ -215,7 +219,7 @@ debian-clean:
 
 .PHONY: clean
 clean:
-	$(RM) -rf $(TARGET_DIR) $(BUILD_DIR) $(DOC_TARGET) $(GEN_SRC_DIR)
+	$(RM) -rf $(TARGET_DIR) $(BUILD_DIR) $(DOC_TARGET_HTML) $(GEN_SRC_DIR)
 
 #-------------------------------------------------------------------------------
 # Code Quality Assurance

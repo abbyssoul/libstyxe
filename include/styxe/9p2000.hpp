@@ -39,8 +39,11 @@ namespace styxe {
  */
 class P9Protocol {
 public:
+    /** Network protocol uses fixed width int32 to represent size of data in bytes */
     using size_type = Solace::uint32;
+    /** Type of message Tag */
     using Tag = Solace::uint16;
+    /** Type of file identifiers client uses to identify a ``current file'' on the server*/
     using Fid = Solace::uint32;
 
     /**
@@ -64,8 +67,13 @@ public:
      * Special value of a message tag representing 'no tag'.
      */
     static const Tag NO_TAG;
+
+    /**
+     * Special value of a message FID representing 'no Fid'.
+     */
     static const Fid NOFID;
 
+    /** Compile time constants (probably should be removed) */
     enum Consts {
         MAX_WELEM = 16
     };
@@ -279,11 +287,11 @@ public:
          * initializes the connection for I/O.
          */
         struct Version {
-            size_type           msize;      /// The client suggested maximum message size in bytes.
-            Solace::StringView  version;    /// The version string identifies the level of the protocol.
+            size_type           msize;      //!< The client suggested maximum message size in bytes.
+            Solace::StringView  version;    //!< The version string identifies the level of the protocol.
         };
 
-        /** Messages to establish a connection
+        /** Messages to establish a connection.
          *
          */
         struct Auth {
@@ -296,7 +304,7 @@ public:
          * Abort a message
          */
         struct Flush {
-            Tag        oldtag;
+            Tag        oldtag;              //!< Tag of the message to abort.
         };
 
         /**
@@ -309,69 +317,112 @@ public:
             Solace::StringView  aname;      //!< Selected file-tree to attach to.
         };
 
+        /**
+         * A message to causes the server to change the current file
+         * associated with a fid to be a file in the directory that is the old current file,
+         * or one of its subdirectories.
+         */
         struct Walk {
-            Fid             fid;
-            Fid             newfid;
-            Solace::Path    path;
+            Fid             fid;            //!< Fid of the directory where to start walk from.
+            Fid             newfid;         //!< A client provided new fid representing resulting file.
+            Solace::Path    path;           //!< A path to walk from the fid.
         };
 
+        /**
+         * The open request asks the file server to check permissions and
+         * prepare a fid for I/O with subsequent read and write messages.
+         */
         struct Open {
-            Fid         fid;
-            OpenMode    mode;
+            Fid         fid;    //!< Client provided Fid to represent the newly opened file.
+            OpenMode    mode;   //!< The mode determines the type of I/O. @see OpenMode
         };
 
+        /**
+         * The create request asks the file server to create a new file with the name supplied,
+         * in the directory (dir) represented by fid, and requires write permission in the directory.
+         * The owner of the file is the implied user id of the request.
+         */
         struct Create {
-            Fid                 fid;
-            Solace::StringView  name;
-            Solace::uint32      perm;
-            OpenMode            mode;
+            Fid                 fid;    //!< Fid of the directory where the file should be created.
+            Solace::StringView  name;   //!< Name of the file to be created.
+            Solace::uint32      perm;   //!< Permissions to the newly created file.
+            OpenMode            mode;   //!< The mode the file will be opened in. @see OpenMode
         };
 
+        /**
+         * The read request asks for count bytes of data from the file.
+         * The file must be opened for reading.
+         */
         struct Read {
-            Fid             fid;
-            Solace::uint64  offset;
-            Solace::uint32  count;
+            Fid             fid;        //!< The file to read from, which must be opened for reading.
+            Solace::uint64  offset;     //!< Starting offset bytes after the beginning of the file to read from.
+            Solace::uint32  count;      //!< Number of bytes to read.
         };
 
+        /**
+         * The write request asks that count bytes of data be recorded in the file.
+         * The file must be opened for writing.
+         */
         struct Write {
-            Fid                         fid;
-            Solace::uint64              offset;
-            Solace::ImmutableMemoryView data;
+            Fid                         fid;        //!< The file to write into.
+            Solace::uint64              offset;     //!< Starting offset bytes after the beginning of the file.
+            Solace::ImmutableMemoryView data;       //!< A data to be written into the file.
         };
 
+        /**
+         * The clunk request informs the file server that the current file is no longer needed by the client.
+         */
         struct Clunk {
-            Fid        fid;
+            Fid        fid;     //!< File to foget about.
         };
 
+        /**
+         * The remove request asks the file server both to remove the file represented by fid and
+         * to clunk the fid, even if the remove fails.
+         */
         struct Remove {
-            Fid        fid;
+            Fid        fid;     //!< File to remove.
         };
 
+        /**
+         * The stat transaction inquires about the file identified by fid.
+         */
         struct StatRequest {
-            Fid        fid;
+            Fid        fid;     //!< File to enquire about.
         };
 
+        /**
+         * A request to update file stat fields.
+         */
         struct WStat {
-            Fid         fid;
-            Stat        stat;
+            Fid         fid;    //!< Fid of the file to update stats on.
+            Stat        stat;   //!< New stats to update file info to.
         };
 
 
+        /**
+         * A request to re-establish a session.
+         */
         struct Session {
-            Solace::ImmutableMemoryView key;
+            Solace::ImmutableMemoryView key;    //!< A key of the previously established session.
         };
 
+        /**
+         * A request to read entire file contents.
+         */
         struct SRead {
-            Fid             fid;
-            Solace::Path    path;
+            Fid             fid;    //!< Fid of the root directory to walk the path from.
+            Solace::Path    path;   //!< A path to the file to be read.
         };
 
+        /**
+         * A request to overwrite file contents.
+         */
         struct SWrite {
-            Fid                         fid;
-            Solace::Path                path;
-            Solace::ImmutableMemoryView data;
+            Fid                         fid;    //!< Fid of the root directory to walk the path from.
+            Solace::Path                path;   //!< A path to the file to be read.
+            Solace::ImmutableMemoryView data;   //!< A data to be written into the file.
         };
-
 
 
         Request(MessageType rtype, Tag tag);
@@ -649,24 +700,51 @@ public:
 
 public:
 
+    /**
+     * Construct a new instance of the protocol.
+     * Usually one would create an instance per connection as protocol stores state per estanblished session.
+     * @param maxMassageSize Maximum message size in bytes.
+     * This is advertized by the protocol during version/size negotiation.
+     * @param version Supported protocol version. This is advertized by the protocol during version/size negotiation.
+     */
     P9Protocol(size_type maxMassageSize = MAX_MESSAGE_SIZE,
                const Solace::StringView& version = PROTOCOL_VERSION);
 
-
+    /**
+     * Get maximum message size supported by the protocol instance.
+     * @return Maximum message size in bytes.
+     */
     size_type maxPossibleMessageSize() const noexcept {
         return _maxMassageSize;
     }
 
+    /**
+     * Get negotiated message size to be used in an established session.
+     * @return Negotiated message size in bytes.
+     */
     size_type maxNegotiatedMessageSize() const noexcept {
         return _maxNegotiatedMessageSize;
     }
 
+    /**
+     * Set negotiated message size.
+     * @param newMessageSize Size of the message in bytes. This is maximum size of the message that will be communicated
+     * @return Actually set message size which may be less then requested if requested message size was more then max.
+     */
     size_type maxNegotiatedMessageSize(size_type newMessageSize);
 
+    /**
+     * Get negotiated protocol version effective for the estanblished session.
+     * @return Negotiated version string.
+     */
     const Solace::String& getNegotiatedVersion() const noexcept {
         return _negotiatedVersion;
     }
 
+    /**
+     * Set negotiated protocol version.
+     * @param version A new negotited protocol version.
+     */
     void setNegotiatedVersion(const Solace::String& version) noexcept {
         _negotiatedVersion = version;
     }
@@ -675,21 +753,38 @@ public:
     // Create protocol requests
     //---------------------------------------------------------
 
+    /**
+     * Parse 9P message header from a byte byffer.
+     * @param buffer Byte buffer to read message header from.
+     * @return Resulting message header if parsed successfully or an error otherwise.
+     */
     Solace::Result<MessageHeader, Solace::Error>
     parseMessageHeader(Solace::ReadBuffer& buffer) const;
 
+    /**
+     * Parse 9P Response type message from a byte byffer.
+     * @param header Message header.
+     * @param data Byte buffer to read message content from.
+     * @return Resulting message if parsed successfully or an error otherwise.
+     */
     Solace::Result<Response, Solace::Error>
     parseResponse(const MessageHeader& header, Solace::ReadBuffer& data) const;
 
+    /**
+     * Parse 9P Request type message from a byte byffer.
+     * @param header Message header.
+     * @param data Byte buffer to read message content from.
+     * @return Resulting message if parsed successfully or an error otherwise.
+     */
     Solace::Result<Request, Solace::Error>
     parseRequest(const MessageHeader& header, Solace::ReadBuffer& data) const;
 
 private:
 
-    size_type       _maxMassageSize;
+    const size_type       _maxMassageSize;
     size_type       _maxNegotiatedMessageSize;
 
-    Solace::String  _initialVersion;
+    const Solace::String  _initialVersion;
     Solace::String  _negotiatedVersion;
 };
 
