@@ -59,7 +59,7 @@ TEST_F(P9MessageBuilder, payloadResizing) {
 
     // Write extra data:
     const byte extraData[] = {1, 3, 2, 45, 18};
-    builder.buffer().write(extraData, 5);
+    builder.buffer().write(wrapMemory(extraData, 5));
 
     builder.updatePayloadSize();
     ASSERT_EQ(5 + 4, builder.payloadSize());

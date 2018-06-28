@@ -49,16 +49,16 @@ void encode9P(ByteBuffer& dest, const Protocol::Stat& stat) {
     dest << stat.length;
 
     dest << static_cast<uint16>(stat.name.size());
-    dest.write(stat.name.data(), stat.name.size());
+    dest.write(stat.name.view());
 
     dest << static_cast<uint16>(stat.uid.size());
-    dest.write(stat.uid.data(), stat.uid.size());
+    dest.write(stat.uid.view());
 
     dest << static_cast<uint16>(stat.gid.size());
-    dest.write(stat.gid.data(), stat.gid.size());
+    dest.write(stat.gid.view());
 
     dest << static_cast<uint16>(stat.muid.size());
-    dest.write(stat.muid.data(), stat.muid.size());
+    dest.write(stat.muid.view());
 }
 
 
@@ -274,7 +274,7 @@ TEST_F(P9Messages, parseVersionRespose) {
     _buffer << Protocol::Tag(1);
     _buffer << int32(512);
     _buffer << int16(2);
-    _buffer.write("9P", 2);
+    _buffer.write(StringLiteral("9P").view());
 
     auto headerResult = proc.parseMessageHeader(_buffer.flip());
     ASSERT_TRUE(headerResult.isOk());
@@ -755,8 +755,8 @@ TEST_F(P9Messages, createReadRespose) {
 TEST_F(P9Messages, parseReadRespose) {
     Protocol proc;
 
-    const char* messageData = "This is a very important data d-_^b";
-    const uint32 dataLen = static_cast<uint32>(strlen(messageData));
+    StringLiteral messageData = "This is a very important data d-_^b";
+    const uint32 dataLen = messageData.size();
     const auto messageSize = proc.headerSize() + sizeof(uint32) + dataLen;
 
     // Set declared message size to be more then negotiated message size
@@ -765,7 +765,7 @@ TEST_F(P9Messages, parseReadRespose) {
     _buffer << Protocol::Tag(1);
     // iounit
     _buffer << dataLen;
-    _buffer.write(messageData, dataLen);
+    _buffer.write(messageData.view());
 
     auto headerResult = proc.parseMessageHeader(_buffer.flip());
     ASSERT_TRUE(headerResult.isOk());
@@ -778,7 +778,7 @@ TEST_F(P9Messages, parseReadRespose) {
 
     auto response = message.moveResult();
     EXPECT_EQ(dataLen, response.read.data.size());
-    EXPECT_EQ(0, memcmp(response.read.data.dataAddress(), messageData, dataLen));
+    EXPECT_EQ(response.read.data, messageData.view());
 }
 
 
@@ -1396,8 +1396,8 @@ TEST_F(P9E_Messages, createShortReadRespose) {
 TEST_F(P9E_Messages, parseShortReadRespose) {
     Protocol proc;
 
-    const char* messageData = "This is a very important data d-_^b";
-    const uint32 dataLen = static_cast<uint32>(strlen(messageData));
+    StringLiteral messageData = "This is a very important data d-_^b";
+    const uint32 dataLen = messageData.size();
     const auto messageSize = proc.headerSize() + sizeof(uint32) + dataLen;
 
     // Set declared message size to be more then negotiated message size
@@ -1406,7 +1406,7 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
     _buffer << Protocol::Tag(1);
     // iounit
     _buffer << dataLen;
-    _buffer.write(messageData, dataLen);
+    _buffer.write(messageData.view());
 
     auto headerResult = proc.parseMessageHeader(_buffer.flip());
     ASSERT_TRUE(headerResult.isOk());
@@ -1419,7 +1419,7 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
 
     auto response = message.moveResult();
     EXPECT_EQ(dataLen, response.read.data.size());
-    EXPECT_EQ(0, memcmp(response.read.data.dataAddress(), messageData, dataLen));
+    EXPECT_EQ(response.read.data, messageData.view());
 }
 
 

@@ -5,7 +5,7 @@ LOCAL_CPPFLAGS = $(patsubst -I%,-I../%,$(CPPFLAGS))
 LOCAL_LDFLAGS = $(patsubst -L%,-L../%,$(LDFLAGS))
 
 
-all: $(EXAMPLES_BIN)/corpus_generator $(EXAMPLES_BIN)/fuzz-request $(EXAMPLES_BIN)/fuzz-response
+all: $(EXAMPLES_BIN)/corpus_generator $(EXAMPLES_BIN)/9pdecode $(EXAMPLES_BIN)/fuzz-request $(EXAMPLES_BIN)/fuzz-response
 
 
 $(EXAMPLES_BUILD):
@@ -32,4 +32,8 @@ $(EXAMPLES_BIN)/fuzz-response: $(EXAMPLES_BUILD)/fuzz-response.o $(EXAMPLES_BIN)
 
 # corpus_generator
 $(EXAMPLES_BIN)/corpus_generator: $(EXAMPLES_BUILD)/corpus_generator.o $(EXAMPLES_BIN)
+	$(CXX) -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)
+
+# corpus_generator
+$(EXAMPLES_BIN)/9pdecode: $(EXAMPLES_BUILD)/9pdecode.o $(EXAMPLES_BIN)
 	$(CXX) -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)
