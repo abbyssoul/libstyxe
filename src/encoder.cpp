@@ -17,40 +17,47 @@
 #include "styxe/9p2000.hpp"
 
 
+#include <limits>
+
+
+
 using namespace Solace;
 using namespace styxe;
 
 
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const uint8& value) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const uint8& value) {
     return sizeof(value);
 }
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const uint16& value) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const uint16& value) {
     return sizeof(value);
 }
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const uint32& value) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const uint32& value) {
     return sizeof(value);
 }
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const uint64& value) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const uint64& value) {
     return sizeof(value);
 }
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const StringView& str) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const StringView& str) {
     return sizeof(uint16) +         // Space for string var size
             str.size();             // Space for the actual string bytes
 }
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const Path& path) {
-    P9Protocol::size_type payloadSize = 0;
+Protocol::size_type
+Protocol::Encoder::protocolSize(const Path& path) {
+    assertIndexInRange(path.getComponentsCount(), 0,
+                       static_cast<Path::size_type>(std::numeric_limits<uint16>::max()));
+
+    Protocol::size_type payloadSize = 0;
     for (auto& segment : path) {
         payloadSize += protocolSize(segment.view());
     }
@@ -60,20 +67,21 @@ P9Protocol::Encoder::protocolSize(const Path& path) {
 }
 
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const Qid&) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const Qid&) {
     static constexpr size_type kQidSize = sizeof(Qid::type) +
             sizeof(Qid::version) +
             sizeof(Qid::path);
 
+    // Qid has a fixed size of 13 bytes, lets keep it that way
     static_assert(kQidSize == 13, "Incorrect Qid struct size");
 
     return kQidSize;
 }
 
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const Stat& stat) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const Stat& stat) {
     return  protocolSize(stat.size) +
             protocolSize(stat.type) +
             protocolSize(stat.dev) +
@@ -89,8 +97,11 @@ P9Protocol::Encoder::protocolSize(const Stat& stat) {
 }
 
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const Array<Qid>& qids) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const Array<Qid>& qids) {
+    assertIndexInRange(qids.size(), 0,
+                       static_cast<Array<Qid>::size_type>(std::numeric_limits<uint16>::max()));
+
     Qid uselessQid;
 
     return sizeof(uint16) +  // Var number of elements
@@ -98,65 +109,66 @@ P9Protocol::Encoder::protocolSize(const Array<Qid>& qids) {
 }
 
 
-P9Protocol::size_type
-P9Protocol::Encoder::protocolSize(const ImmutableMemoryView& data) {
+Protocol::size_type
+Protocol::Encoder::protocolSize(const ImmutableMemoryView& data) {
+    assertIndexInRange(data.size(), 0,
+                       static_cast<ImmutableMemoryView::size_type>(std::numeric_limits<size_type>::max()));
+
     return sizeof(size_type) +  // Var number of elements
             data.size();
 }
 
 
-/**
- * P9 protocol helper class to encode data into a protocol message format.
- */
-P9Protocol::Encoder&
-P9Protocol::Encoder::header(P9Protocol::MessageType type, P9Protocol::Tag tag, P9Protocol::size_type payloadSize) {
-    return encode(P9Protocol::headerSize() + payloadSize)
+
+Protocol::Encoder&
+Protocol::Encoder::header(MessageType type, Tag tag, size_type payloadSize) {
+    return encode(Protocol::headerSize() + payloadSize)
             .encode(static_cast<byte>(type))
             .encode(tag);
 }
 
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(uint8 value) {
+Protocol::Encoder&
+Protocol::Encoder::encode(uint8 value) {
     _dest.writeLE(value);
     return (*this);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(uint16 value) {
+Protocol::Encoder&
+Protocol::Encoder::encode(uint16 value) {
     _dest.writeLE(value);
     return (*this);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(uint32 value) {
+Protocol::Encoder&
+Protocol::Encoder::encode(uint32 value) {
     _dest.writeLE(value);
     return (*this);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(uint64 value) {
+Protocol::Encoder&
+Protocol::Encoder::encode(uint64 value) {
     _dest.writeLE(value);
     return (*this);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(const StringView& str) {
+Protocol::Encoder&
+Protocol::Encoder::encode(const StringView& str) {
     encode(str.size());
     _dest.write(str.view());
 
     return (*this);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(const P9Protocol::Qid& qid) {
+Protocol::Encoder&
+Protocol::Encoder::encode(const Protocol::Qid& qid) {
     return encode(qid.type)
             .encode(qid.version)
             .encode(qid.path);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(const Array<P9Protocol::Qid>& qids) {
+Protocol::Encoder&
+Protocol::Encoder::encode(const Array<Protocol::Qid>& qids) {
     encode(static_cast<uint16>(qids.size()));
     for (auto qid : qids) {
         encode(qid);
@@ -165,8 +177,8 @@ P9Protocol::Encoder::encode(const Array<P9Protocol::Qid>& qids) {
     return (*this);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(const P9Protocol::Stat& stat) {
+Protocol::Encoder&
+Protocol::Encoder::encode(const Protocol::Stat& stat) {
     return encode(stat.size)
             .encode(stat.type)
             .encode(stat.dev)
@@ -181,16 +193,16 @@ P9Protocol::Encoder::encode(const P9Protocol::Stat& stat) {
             .encode(stat.muid);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(const ImmutableMemoryView& data) {
-    encode(static_cast<P9Protocol::size_type>(data.size()));
+Protocol::Encoder&
+Protocol::Encoder::encode(const ImmutableMemoryView& data) {
+    encode(static_cast<Protocol::size_type>(data.size()));
     _dest.write(data);
 
     return (*this);
 }
 
-P9Protocol::Encoder&
-P9Protocol::Encoder::encode(const Path& path) {
+Protocol::Encoder&
+Protocol::Encoder::encode(const Path& path) {
     encode(static_cast<uint16>(path.getComponentsCount()));
 
     for (const auto& component : path) {

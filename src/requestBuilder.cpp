@@ -24,7 +24,7 @@ using namespace styxe;
 
 
 ByteBuffer&
-P9Protocol::RequestBuilder::build() {
+Protocol::RequestBuilder::build() {
     if (type() < MessageType::_beginSupportedMessageCode ||
         type() > MessageType::_endSupportedMessageCode) {
         Solace::raise<IOException>("Unexpected message type");
@@ -34,8 +34,8 @@ P9Protocol::RequestBuilder::build() {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::version(const StringView& version, size_type maxMessageSize) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::version(const StringView& version, size_type maxMessageSize) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -54,8 +54,8 @@ P9Protocol::RequestBuilder::version(const StringView& version, size_type maxMess
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::auth(Fid afid, const StringView& userName, const StringView& attachName) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::auth(Fid afid, const StringView& userName, const StringView& attachName) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -74,8 +74,8 @@ P9Protocol::RequestBuilder::auth(Fid afid, const StringView& userName, const Str
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::attach(Fid fid, Fid afid, const StringView& userName, const StringView& attachName) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::attach(Fid fid, Fid afid, const StringView& userName, const StringView& attachName) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -96,8 +96,8 @@ P9Protocol::RequestBuilder::attach(Fid fid, Fid afid, const StringView& userName
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::clunk(Fid fid) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::clunk(Fid fid) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -112,8 +112,8 @@ P9Protocol::RequestBuilder::clunk(Fid fid) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::flush(Tag oldTransation) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::flush(Tag oldTransation) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -128,8 +128,8 @@ P9Protocol::RequestBuilder::flush(Tag oldTransation) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::remove(Fid fid) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::remove(Fid fid) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -144,8 +144,8 @@ P9Protocol::RequestBuilder::remove(Fid fid) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::open(Fid fid, P9Protocol::OpenMode mode) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::open(Fid fid, Protocol::OpenMode mode) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -162,8 +162,8 @@ P9Protocol::RequestBuilder::open(Fid fid, P9Protocol::OpenMode mode) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::create(Fid fid, const StringView& name, uint32 permissions, P9Protocol::OpenMode mode) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::create(Fid fid, const StringView& name, uint32 permissions, Protocol::OpenMode mode) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -184,8 +184,8 @@ P9Protocol::RequestBuilder::create(Fid fid, const StringView& name, uint32 permi
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -204,8 +204,8 @@ P9Protocol::RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::write(Fid fid, uint64 offset, const ImmutableMemoryView& data) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::write(Fid fid, uint64 offset, const ImmutableMemoryView& data) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -224,8 +224,8 @@ P9Protocol::RequestBuilder::write(Fid fid, uint64 offset, const ImmutableMemoryV
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::walk(Fid fid, Fid nfid, const Path& path) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::walk(Fid fid, Fid nfid, const Path& path) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -244,8 +244,8 @@ P9Protocol::RequestBuilder::walk(Fid fid, Fid nfid, const Path& path) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::stat(Fid fid) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::stat(Fid fid) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -260,8 +260,8 @@ P9Protocol::RequestBuilder::stat(Fid fid) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::writeStat(Fid fid, const Stat& stat) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::writeStat(Fid fid, const Stat& stat) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -278,8 +278,8 @@ P9Protocol::RequestBuilder::writeStat(Fid fid, const Stat& stat) {
 }
 
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::session(const ImmutableMemoryView& key) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::session(const ImmutableMemoryView& key) {
     // Compute message size first:
     _payloadSize =
             8;  // Key size is fixed to be 8 bites.
@@ -294,8 +294,8 @@ P9Protocol::RequestBuilder::session(const ImmutableMemoryView& key) {
     return (*this);
 }
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::shortRead(Fid rootFid, const Path& path) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::shortRead(Fid rootFid, const Path& path) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -311,8 +311,8 @@ P9Protocol::RequestBuilder::shortRead(Fid rootFid, const Path& path) {
     return (*this);
 }
 
-P9Protocol::RequestBuilder&
-P9Protocol::RequestBuilder::shortWrite(Fid rootFid, const Path& path, const ImmutableMemoryView& data) {
+Protocol::RequestBuilder&
+Protocol::RequestBuilder::shortWrite(Fid rootFid, const Path& path, const ImmutableMemoryView& data) {
     Encoder encode(buffer());
 
     // Compute message size first:

@@ -23,8 +23,8 @@ using namespace Solace;
 using namespace styxe;
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::updatePayloadSize(size_type payloadSize) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::updatePayloadSize(size_type payloadSize) {
     _payloadSize = payloadSize;
     _buffer.reset(_initialPosition);
 
@@ -37,8 +37,8 @@ P9Protocol::ResponseBuilder::updatePayloadSize(size_type payloadSize) {
 
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::updatePayloadSize() {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::updatePayloadSize() {
     const auto dataLoad = _buffer.position() - _initialPosition;
     if (dataLoad < headerSize()) {
         Solace::raise<IOException>("Message header has not been written.");
@@ -51,7 +51,7 @@ P9Protocol::ResponseBuilder::updatePayloadSize() {
 
 
 ByteBuffer&
-P9Protocol::ResponseBuilder::build(bool recalcPayloadSize) {
+Protocol::ResponseBuilder::build(bool recalcPayloadSize) {
     if (type() < MessageType::_beginSupportedMessageCode ||
         type() > MessageType::_endSupportedMessageCode) {
         Solace::raise<IOException>("Unexpected message type");
@@ -65,8 +65,8 @@ P9Protocol::ResponseBuilder::build(bool recalcPayloadSize) {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::version(const StringView& version, size_type maxMessageSize) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::version(const StringView& version, size_type maxMessageSize) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -84,8 +84,8 @@ P9Protocol::ResponseBuilder::version(const StringView& version, size_type maxMes
     return (*this);
 }
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::auth(const Qid& qid) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::auth(const Qid& qid) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -100,8 +100,8 @@ P9Protocol::ResponseBuilder::auth(const Qid& qid) {
     return (*this);
 }
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::error(const StringView& message) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::error(const StringView& message) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -116,8 +116,8 @@ P9Protocol::ResponseBuilder::error(const StringView& message) {
     return (*this);
 }
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::flush() {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::flush() {
     buffer().reset(_initialPosition);
     _type = MessageType::RFlush;
     _payloadSize = 0;
@@ -129,8 +129,8 @@ P9Protocol::ResponseBuilder::flush() {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::attach(const Qid& qid) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::attach(const Qid& qid) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -145,8 +145,8 @@ P9Protocol::ResponseBuilder::attach(const Qid& qid) {
     return (*this);
 }
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::walk(const Array<Qid>& qids) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::walk(const Array<Qid>& qids) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -161,8 +161,8 @@ P9Protocol::ResponseBuilder::walk(const Array<Qid>& qids) {
     return (*this);
 }
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::open(const Qid& qid, size_type iounit) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::open(const Qid& qid, size_type iounit) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -180,8 +180,8 @@ P9Protocol::ResponseBuilder::open(const Qid& qid, size_type iounit) {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::create(const Qid& qid, size_type iounit) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::create(const Qid& qid, size_type iounit) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -199,8 +199,8 @@ P9Protocol::ResponseBuilder::create(const Qid& qid, size_type iounit) {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::read(const ImmutableMemoryView& data) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::read(const ImmutableMemoryView& data) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -216,8 +216,8 @@ P9Protocol::ResponseBuilder::read(const ImmutableMemoryView& data) {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::write(size_type count) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::write(size_type count) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -233,8 +233,8 @@ P9Protocol::ResponseBuilder::write(size_type count) {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::clunk() {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::clunk() {
     buffer().reset(_initialPosition);
     _type = MessageType::RClunk;
     _payloadSize = 0;
@@ -246,8 +246,8 @@ P9Protocol::ResponseBuilder::clunk() {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::remove() {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::remove() {
     buffer().reset(_initialPosition);
     _type = MessageType::RRemove;
     _payloadSize = 0;
@@ -259,8 +259,8 @@ P9Protocol::ResponseBuilder::remove() {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::stat(const Stat& data) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::stat(const Stat& data) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -278,8 +278,8 @@ P9Protocol::ResponseBuilder::stat(const Stat& data) {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::wstat() {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::wstat() {
     buffer().reset(_initialPosition);
     _type = MessageType::RWStat;
     _payloadSize = 0;
@@ -291,8 +291,8 @@ P9Protocol::ResponseBuilder::wstat() {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::session() {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::session() {
     buffer().reset(_initialPosition);
     _type = MessageType::RSession;
     _payloadSize = 0;
@@ -305,8 +305,8 @@ P9Protocol::ResponseBuilder::session() {
 
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::shortRead(const ImmutableMemoryView& data) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::shortRead(const ImmutableMemoryView& data) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -322,8 +322,8 @@ P9Protocol::ResponseBuilder::shortRead(const ImmutableMemoryView& data) {
 }
 
 
-P9Protocol::ResponseBuilder&
-P9Protocol::ResponseBuilder::shortWrite(size_type count) {
+Protocol::ResponseBuilder&
+Protocol::ResponseBuilder::shortWrite(size_type count) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 

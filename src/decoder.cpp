@@ -21,98 +21,110 @@ using namespace Solace;
 using namespace styxe;
 
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(uint8* dest) {
-    _src.readLE(*dest);
-    return *this;
+Result<void, Error>
+Protocol::Decoder::read(uint8* dest) {
+    return _src.readLE(*dest);
 }
 
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(uint16* dest) {
-    _src.readLE(*dest);
-    return *this;
+Result<void, Error>
+Protocol::Decoder::read(uint16* dest) {
+    return _src.readLE(*dest);
 }
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(uint32* dest) {
-    _src.readLE(*dest);
-    return *this;
+Result<void, Error>
+Protocol::Decoder::read(uint32* dest) {
+    return _src.readLE(*dest);
 }
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(uint64* dest) {
-    _src.readLE(*dest);
-    return *this;
+Result<void, Error>
+Protocol::Decoder::read(uint64* dest) {
+    return _src.readLE(*dest);
 }
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(StringView* dest) {
+Result<void, Error>
+Protocol::Decoder::read(StringView* dest) {
     uint16 dataSize = 0;
-    _src.readLE(dataSize);
 
-    StringView view(_src.viewRemaining().dataAs<const char>(), dataSize);
-    _src.advance(dataSize);
-    *dest = view;
-
-    return *this;
+    return _src.readLE(dataSize)
+            .then([&]() {
+                StringView view(_src.viewRemaining().dataAs<const char>(), dataSize);
+                return _src.advance(dataSize)
+                        .then([dest, &view]() {
+                            *dest = view;
+                        });
+            });
 }
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(P9Protocol::Qid* qid) {
-    return read(&qid->type)
-            .read(&qid->version)
-            .read(&qid->path);
+Result<void, Error>
+Protocol::Decoder::read(Protocol::Qid* qid) {
+    return read(&qid->type, &qid->version, &qid->path);
 }
 
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(P9Protocol::Stat* stat) {
-    return read(&stat->size)
-            .read(&stat->type)
-            .read(&stat->dev)
-            .read(&(stat->qid))
-            .read(&stat->mode)
-            .read(&stat->atime)
-            .read(&stat->mtime)
-            .read(&stat->length)
-            .read(&(stat->name))
-            .read(&(stat->uid))
-            .read(&(stat->gid))
-            .read(&(stat->muid));
+Result<void, Error>
+Protocol::Decoder::read(Protocol::Stat* stat) {
+    return read(&stat->size,
+                &stat->type,
+                &stat->dev,
+                &(stat->qid),
+                &stat->mode,
+                &stat->atime,
+                &stat->mtime,
+                &stat->length,
+                &(stat->name),
+                &(stat->uid),
+                &(stat->gid),
+                &(stat->muid));
 }
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(ImmutableMemoryView* data) {
-    P9Protocol::size_type dataSize = 0;
+
+Result<void, Error>
+Protocol::Decoder::read(ImmutableMemoryView* data) {
+    Protocol::size_type dataSize = 0;
     // Read size of the following data.
-    read(&dataSize);
+    return read(&dataSize)
+            .then([&]() {
+                if (dataSize <= _src.remaining()) {
+                    // Read the data. Note we only take a view into the actual message buffer.
+                    *data = _src.viewRemaining().slice(0, dataSize);
+                }
 
-    // Read the data. Note we only take a view into the actual message buffer.
-    *data = _src.viewRemaining().slice(0, dataSize);
-    _src.advance(dataSize);
-
-    return (*this);
+                return _src.advance(dataSize);
+            });
 }
 
-P9Protocol::Decoder&
-P9Protocol::Decoder::read(Path* path) {
+
+Result<void, Error>
+Protocol::Decoder::read(MemoryView* data) {
+    return read(static_cast<ImmutableMemoryView*>(data));
+}
+
+
+Result<void, Error>
+Protocol::Decoder::read(Path* path) {
     uint16 componentsCount = 0;
-    read(&componentsCount);
 
-    // FIXME: This is where PathBuilder will be handy.
-    std::vector<String> components;
-    components.reserve(componentsCount);
+    return read(&componentsCount)
+            .then([&]() -> Result<void, Error> {
+                // FIXME: This is where PathBuilder will be handy.
+                std::vector<String> components;
+                components.reserve(componentsCount);
 
-    for (uint16 i = 0; i < componentsCount; ++i) {
-        StringView component;
-        read(&component);
+                for (uint16 i = 0; i < componentsCount; ++i) {
+                    StringView component;
+                    auto result = read(&component);
+                    if (!result)
+                        return result;
 
-        // FIXME: Performance kick in the nuts!
-        components.emplace_back(component);
-    }
+                    // FIXME: Performance kick in the nuts!
+                    components.emplace_back(component);
+                }
 
-    *path = Path(std::move(components));
-    return (*this);
+                *path = Path(std::move(components));
+
+                return Ok();
+            });
+
 }
 

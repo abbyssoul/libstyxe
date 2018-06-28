@@ -32,14 +32,14 @@ using namespace styxe;
 class P9MessageBuilder : public ::testing::Test {
 public:
     P9MessageBuilder() :
-        _memManager(P9Protocol::MAX_MESSAGE_SIZE)
+        _memManager(Protocol::MAX_MESSAGE_SIZE)
     {}
 
 
 protected:
 
     void SetUp() override {
-        _buffer = _memManager.create(P9Protocol::MAX_MESSAGE_SIZE);
+        _buffer = _memManager.create(Protocol::MAX_MESSAGE_SIZE);
         _buffer.viewRemaining().fill(0xFE);
     }
 
@@ -51,11 +51,11 @@ protected:
 
 TEST_F(P9MessageBuilder, payloadResizing) {
     ImmutableMemoryView emptyBuffer;
-    P9Protocol::ResponseBuilder builder(_buffer, P9Protocol::NO_TAG);
+    Protocol::ResponseBuilder builder(_buffer, Protocol::NO_TAG);
 
     builder.read(emptyBuffer);
     ASSERT_EQ(4, builder.payloadSize());
-    ASSERT_EQ(P9Protocol::headerSize() + 4 + 0, _buffer.position());
+    ASSERT_EQ(Protocol::headerSize() + 4 + 0, _buffer.position());
 
     // Write extra data:
     const byte extraData[] = {1, 3, 2, 45, 18};
@@ -63,22 +63,22 @@ TEST_F(P9MessageBuilder, payloadResizing) {
 
     builder.updatePayloadSize();
     ASSERT_EQ(5 + 4, builder.payloadSize());
-    ASSERT_EQ(P9Protocol::headerSize() + 4 + 5, _buffer.position());
+    ASSERT_EQ(Protocol::headerSize() + 4 + 5, _buffer.position());
 
     builder.updatePayloadSize(3);
     ASSERT_EQ(3, builder.payloadSize());
-    ASSERT_EQ(P9Protocol::headerSize() + 3, _buffer.position());
+    ASSERT_EQ(Protocol::headerSize() + 3, _buffer.position());
 }
 
 
 
 TEST_F(P9MessageBuilder, messageChanging) {
     ImmutableMemoryView emptyBuffer;
-    P9Protocol::ResponseBuilder builder(_buffer, P9Protocol::NO_TAG);
+    Protocol::ResponseBuilder builder(_buffer, Protocol::NO_TAG);
 
     builder.read(emptyBuffer);
-    ASSERT_EQ(P9Protocol::headerSize() + 4 + 0, _buffer.position());
-    ASSERT_EQ(P9Protocol::MessageType::RRead, builder.type());
+    ASSERT_EQ(Protocol::headerSize() + 4 + 0, _buffer.position());
+    ASSERT_EQ(Protocol::MessageType::RRead, builder.type());
 
     // Change message type
     const char* message = "Nothing to read";
@@ -86,6 +86,6 @@ TEST_F(P9MessageBuilder, messageChanging) {
     builder.error(message);
 
     ASSERT_EQ(payloadSize, builder.payloadSize());
-    ASSERT_EQ(P9Protocol::headerSize() + payloadSize, _buffer.position());
-    ASSERT_EQ(P9Protocol::MessageType::RError, builder.type());
+    ASSERT_EQ(Protocol::headerSize() + payloadSize, _buffer.position());
+    ASSERT_EQ(Protocol::MessageType::RError, builder.type());
 }

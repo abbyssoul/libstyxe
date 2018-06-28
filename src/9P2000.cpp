@@ -26,143 +26,153 @@ using namespace styxe;
 
 
 
-const P9Protocol::size_type P9Protocol::MAX_MESSAGE_SIZE = 8*1024;      // 8k should be enough for everyone, am I right?
-const StringLiteral         P9Protocol::PROTOCOL_VERSION = "9P2000.e";  // By default we want to talk via 9P2000.e proc
-const StringLiteral         P9Protocol::UNKNOWN_PROTOCOL_VERSION = "unknown";
-const P9Protocol::Tag       P9Protocol::NO_TAG = static_cast<P9Protocol::Tag>(~0);
-const P9Protocol::Fid       P9Protocol::NOFID = static_cast<P9Protocol::Fid>(~0);
+const Protocol::size_type   Protocol::MAX_MESSAGE_SIZE = 8*1024;      // 8k should be enough for everyone, am I right?
+const StringLiteral         Protocol::PROTOCOL_VERSION = "9P2000.e";  // By default we want to talk via 9P2000.e proc
+const StringLiteral         Protocol::UNKNOWN_PROTOCOL_VERSION = "unknown";
+const Protocol::Tag         Protocol::NO_TAG = static_cast<Protocol::Tag>(~0);
+const Protocol::Fid         Protocol::NOFID = static_cast<Protocol::Fid>(~0);
 
 
+struct OkRespose {
+    Result<Protocol::Response, Error>
+    operator() () { return {types::Ok<Protocol::Response>{std::move(fcall)}}; }
+
+    Protocol::Response& fcall;
+
+    OkRespose(Protocol::Response& f) : fcall(f)
+    {}
+};
+
+struct OkRequest {
+    Result<Protocol::Request, Error>
+    operator() () { return {types::Ok<Protocol::Request>{std::move(fcall)}}; }
+
+    Protocol::Request& fcall;
+
+    OkRequest(Protocol::Request& f) : fcall(f)
+    {}
+};
 
 
-
-Result<P9Protocol::Response, Error>
-parseNoDataResponse(const P9Protocol::MessageHeader& header, ReadBuffer& SOLACE_UNUSED(data)) {
-    P9Protocol::Response fcall(header.type, header.tag);
-
-    return Ok(std::move(fcall));
+Result<Protocol::Response, Error>
+parseNoDataResponse(Protocol::MessageHeader const& header, ReadBuffer& SOLACE_UNUSED(data)) {
+    return Result<Protocol::Response, Error>(types::Ok<Protocol::Response>({header.type, header.tag}));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseErrorResponse(const P9Protocol::MessageHeader& SOLACE_UNUSED(header), ReadBuffer& data) {
-    StringView errorMessage;
+Result<Protocol::Response, Error>
+parseErrorResponse(Protocol::MessageHeader const& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&errorMessage);
+    return Protocol::Decoder(data)
+            .read(&fcall.error.ename)
+            .then(OkRespose(fcall));
 
-    return Err(Error(errorMessage));
+//    return Result<Protocol::Response, Error>(types::Err<Error>({std::move(errorMessage)}));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseVersionResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseVersionResponse(Protocol::MessageHeader const& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&fcall.version.msize)
-            .read(&fcall.version.version);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&fcall.version.msize, &fcall.version.version)
+            .then(OkRespose(fcall));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseAuthResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseAuthResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&fcall.auth.qid);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&fcall.auth.qid)
+            .then(OkRespose(fcall));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseAttachResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseAttachResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&fcall.attach.qid);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&fcall.attach.qid)
+            .then(OkRespose(fcall));
 }
 
 
 
-Result<P9Protocol::Response, Error>
-parseOpenResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseOpenResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&fcall.open.qid)
-            .read(&fcall.open.iounit);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&fcall.open.qid, &fcall.open.iounit)
+            .then(OkRespose(fcall));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseCreateResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseCreateResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&fcall.create.qid)
-            .read(&fcall.open.iounit);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&fcall.create.qid, &fcall.open.iounit)
+            .then(OkRespose(fcall));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseReadResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseReadResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&fcall.read.data);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&fcall.read.data)
+            .then(OkRespose(fcall));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseWriteResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseWriteResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder(data)
-            .read(&fcall.write.count);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&fcall.write.count)
+            .then(OkRespose(fcall));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseStatResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseStatResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
     uint16 dummySize;
-    P9Protocol::Decoder(data)
-            .read(&dummySize)
-            .read(&fcall.stat);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&dummySize, &fcall.stat)
+            .then(OkRespose(fcall));
 }
 
 
-Result<P9Protocol::Response, Error>
-parseWalkResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::Response, Error>
+parseWalkResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Response fcall(header.type, header.tag);
 
-    P9Protocol::Decoder decoder(data);
+    Protocol::Decoder decoder(data);
 
     // FIXME: Non-sense!
-    decoder.read(&fcall.walk.nqids);
-    for (decltype(fcall.walk.nqids) i = 0; i < fcall.walk.nqids; ++i) {
-        decoder.read(&fcall.walk.qids[i]);
-    }
+    return decoder.read(&fcall.walk.nqids)
+            .then([&decoder, &fcall]() -> Result<void, Error> {
+                for (decltype(fcall.walk.nqids) i = 0; i < fcall.walk.nqids; ++i) {
+                    auto r = decoder.read(&fcall.walk.qids[i]);
+                    if (!r) {
+                        return Err<Error>(r.moveError());
+                    }
+                }
 
-    return Ok(std::move(fcall));
-}
+                return Ok();
+            })
+            .then(OkRespose(fcall));}
 
 
 
@@ -170,235 +180,199 @@ parseWalkResponse(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
 /// Request parser
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Result<P9Protocol::Request, Error>
-parseVersionRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseVersionRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asVersion();
-    P9Protocol::Decoder(data)
-            .read(&msg.msize)
-            .read(&msg.version);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.msize, &msg.version)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseAuthRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseAuthRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asAuth();
-    P9Protocol::Decoder(data)
-            .read(&msg.afid)
-            .read(&msg.uname)
-            .read(&msg.aname);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.afid, &msg.uname, &msg.aname)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseFlushRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseFlushRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asFlush();
-    P9Protocol::Decoder(data)
-            .read(&msg.oldtag);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.oldtag)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseAttachRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseAttachRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asAttach();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.afid)
-            .read(&msg.uname)
-            .read(&msg.aname);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.afid, &msg.uname, &msg.aname)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseWalkRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseWalkRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asWalk();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.newfid)
-            .read(&msg.path);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.newfid, &msg.path)
+            .then(OkRequest(fcall));
 }
 
 
-
-Result<P9Protocol::Request, Error>
-parseOpenRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseOpenRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asOpen();
     byte openMode;
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&openMode);
 
-    msg.mode = static_cast<P9Protocol::OpenMode>(openMode);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &openMode)
+            .then([&msg, &openMode]() { msg.mode = static_cast<Protocol::OpenMode>(openMode); })
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseCreateRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseCreateRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asCreate();
     byte openMode;
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.name)
-            .read(&msg.perm)
-            .read(&openMode);
 
-    msg.mode = static_cast<P9Protocol::OpenMode>(openMode);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.name, &msg.perm, &openMode)
+            .then([&msg, &openMode]() { msg.mode = static_cast<Protocol::OpenMode>(openMode); })
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseReadRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseReadRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asRead();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.offset)
-            .read(&msg.count);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.offset, &msg.count)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseWriteRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseWriteRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asWrite();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.offset)
-            .read(&msg.data);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.offset, &msg.data)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseClunkRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseClunkRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asClunk();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseRemoveRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseRemoveRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asRemove();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseStatRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseStatRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asStat();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid)
+            .then(OkRequest(fcall));
 }
 
 
-Result<P9Protocol::Request, Error>
-parseWStatRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseWStatRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asWstat();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.stat);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.stat)
+            .then(OkRequest(fcall));
 }
 
 
 
-Result<P9Protocol::Request, Error>
-parseSessionRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseSessionRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asSession();
-//    P9Protocol::Decoder(data);
-//            .read(&fcall.session.key);
 
-    msg.key = data.viewRemaining().slice(0, 8);
-    data.advance(8);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&(msg.key[0]), &(msg.key[1]), &(msg.key[2]), &(msg.key[3]),
+                  &(msg.key[4]), &(msg.key[5]), &(msg.key[6]), &(msg.key[7]))
+            .then(OkRequest(fcall));
 }
 
-Result<P9Protocol::Request, Error>
-parseShortReadRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseShortReadRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asShortRead();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.path);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.path)
+            .then(OkRequest(fcall));
 }
 
-Result<P9Protocol::Request, Error>
-parseShortWriteRequest(const P9Protocol::MessageHeader& header, ReadBuffer& data) {
-    P9Protocol::Request fcall(header.type, header.tag);
+Result<Protocol::Request, Error>
+parseShortWriteRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+    Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asShortWrite();
-    P9Protocol::Decoder(data)
-            .read(&msg.fid)
-            .read(&msg.path)
-            .read(&msg.data);
-
-    return Ok(std::move(fcall));
+    return Protocol::Decoder(data)
+            .read(&msg.fid, &msg.path, &msg.data)
+            .then(OkRequest(fcall));
 }
 
 
 
-Result<P9Protocol::MessageHeader, Error>
-P9Protocol::parseMessageHeader(ReadBuffer& buffer) const {
-//    Solace::assertIndexInRange(buffer.viewWritten().size(), 0, headerSize());
+Result<Protocol::MessageHeader, Error>
+Protocol::parseMessageHeader(ReadBuffer& buffer) const {
     const auto mandatoryHeaderSize = headerSize();
     const auto dataAvailliable = buffer.remaining();
-    if (dataAvailliable < mandatoryHeaderSize)
+
+    // Check that we have enough data to read mandatory message header
+    if (dataAvailliable < mandatoryHeaderSize) {
         return Err(Error("Ill-formed message header. Not enough data to read a header"));
+    }
 
     MessageHeader header;
     buffer.readLE(header.size);
@@ -427,8 +401,8 @@ P9Protocol::parseMessageHeader(ReadBuffer& buffer) const {
 }
 
 
-Result<P9Protocol::Response, Error>
-P9Protocol::parseResponse(const MessageHeader& header, ReadBuffer& data) const {
+Result<Protocol::Response, Error>
+Protocol::parseResponse(const MessageHeader& header, ReadBuffer& data) const {
     const auto expectedData = header.size - headerSize();
 
     // Message data sanity check
@@ -467,8 +441,8 @@ P9Protocol::parseResponse(const MessageHeader& header, ReadBuffer& data) const {
     }
 }
 
-Result<P9Protocol::Request, Solace::Error>
-P9Protocol::parseRequest(const MessageHeader& header, ReadBuffer& data) const {
+Result<Protocol::Request, Solace::Error>
+Protocol::parseRequest(const MessageHeader& header, ReadBuffer& data) const {
     // Just paranoid about huge messages exciding frame size getting through.
     if (header.size > maxNegotiatedMessageSize())
         return Err(Error("Ill-formed message: Declared frame size greater than negotiated message size"));
@@ -508,7 +482,7 @@ P9Protocol::parseRequest(const MessageHeader& header, ReadBuffer& data) const {
     }
 }
 
-P9Protocol::size_type P9Protocol::maxNegotiatedMessageSize(size_type newMessageSize) {
+Protocol::size_type Protocol::maxNegotiatedMessageSize(size_type newMessageSize) {
     Solace::assertIndexInRange(newMessageSize, 0, maxPossibleMessageSize() + 1);
     _maxNegotiatedMessageSize = std::min(newMessageSize, maxPossibleMessageSize());
 
@@ -516,7 +490,7 @@ P9Protocol::size_type P9Protocol::maxNegotiatedMessageSize(size_type newMessageS
 }
 
 
-P9Protocol::P9Protocol(size_type maxMassageSize, const Solace::StringView& version) :
+Protocol::Protocol(size_type maxMassageSize, const Solace::StringView& version) :
     _maxMassageSize(maxMassageSize),
     _maxNegotiatedMessageSize(maxMassageSize),
     _initialVersion(version),
@@ -528,7 +502,7 @@ P9Protocol::P9Protocol(size_type maxMassageSize, const Solace::StringView& versi
 
 
 
-P9Protocol::Request::Request(MessageType msgType, Tag msgTag) :
+Protocol::Request::Request(MessageType msgType, Tag msgTag) :
     _tag(msgTag),
     _type(msgType)
 {
@@ -558,7 +532,7 @@ P9Protocol::Request::Request(MessageType msgType, Tag msgTag) :
     }
 }
 
-P9Protocol::Request::Request(Request&& rhs) :
+Protocol::Request::Request(Request&& rhs) :
     _tag(std::move(rhs._tag)),
     _type(std::move(rhs._type))
 {
@@ -588,7 +562,7 @@ P9Protocol::Request::Request(Request&& rhs) :
     }
 }
 
-P9Protocol::Request::~Request() {
+Protocol::Request::~Request() {
     switch (_type) {
     case MessageType::TVersion: (&version)->~Version();     break;
     case MessageType::TAuth:    (&auth)->~Auth();           break;
@@ -616,128 +590,128 @@ P9Protocol::Request::~Request() {
 }
 
 
-P9Protocol::Request::Version&
-P9Protocol::Request::asVersion() {
+Protocol::Request::Version&
+Protocol::Request::asVersion() {
     if (_type != MessageType::TVersion)
         Solace::raise<IOException>("Incorrect message type");
 
     return version;
 }
 
-P9Protocol::Request::Auth&
-P9Protocol::Request::asAuth(){
+Protocol::Request::Auth&
+Protocol::Request::asAuth(){
     if (_type != MessageType::TAuth)
         Solace::raise<IOException>("Incorrect message type");
 
     return auth;
 }
 
-P9Protocol::Request::Flush&
-P9Protocol::Request::asFlush(){
+Protocol::Request::Flush&
+Protocol::Request::asFlush(){
     if (_type != MessageType::TFlush)
         Solace::raise<IOException>("Incorrect message type");
 
     return flush;
 }
 
-P9Protocol::Request::Attach&
-P9Protocol::Request::asAttach(){
+Protocol::Request::Attach&
+Protocol::Request::asAttach(){
     if (_type != MessageType::TAttach)
         Solace::raise<IOException>("Incorrect message type");
 
     return attach;
 }
 
-P9Protocol::Request::Walk&
-P9Protocol::Request::asWalk(){
+Protocol::Request::Walk&
+Protocol::Request::asWalk(){
     if (_type != MessageType::TWalk)
         Solace::raise<IOException>("Incorrect message type");
 
     return walk;
 }
 
-P9Protocol::Request::Open&
-P9Protocol::Request::asOpen(){
+Protocol::Request::Open&
+Protocol::Request::asOpen(){
     if (_type != MessageType::TOpen)
         Solace::raise<IOException>("Incorrect message type");
 
     return open;
 }
 
-P9Protocol::Request::Create&
-P9Protocol::Request::asCreate(){
+Protocol::Request::Create&
+Protocol::Request::asCreate(){
     if (_type != MessageType::TCreate)
         Solace::raise<IOException>("Incorrect message type");
 
     return create;
 }
 
-P9Protocol::Request::Read&
-P9Protocol::Request::asRead(){
+Protocol::Request::Read&
+Protocol::Request::asRead(){
     if (_type != MessageType::TRead)
         Solace::raise<IOException>("Incorrect message type");
 
     return read;
 }
 
-P9Protocol::Request::Write&
-P9Protocol::Request::asWrite(){
+Protocol::Request::Write&
+Protocol::Request::asWrite(){
     if (_type != MessageType::TWrite)
         Solace::raise<IOException>("Incorrect message type");
 
     return write;
 }
 
-P9Protocol::Request::Clunk&
-P9Protocol::Request::asClunk(){
+Protocol::Request::Clunk&
+Protocol::Request::asClunk(){
     if (_type != MessageType::TClunk)
         Solace::raise<IOException>("Incorrect message type");
 
     return clunk;
 }
 
-P9Protocol::Request::Remove&
-P9Protocol::Request::asRemove(){
+Protocol::Request::Remove&
+Protocol::Request::asRemove(){
     if (_type != MessageType::TRemove)
         Solace::raise<IOException>("Incorrect message type");
 
     return remove;
 }
 
-P9Protocol::Request::StatRequest&
-P9Protocol::Request::asStat(){
+Protocol::Request::StatRequest&
+Protocol::Request::asStat(){
     if (_type != MessageType::TStat)
         Solace::raise<IOException>("Incorrect message type");
 
     return stat;
 }
 
-P9Protocol::Request::WStat&
-P9Protocol::Request::asWstat(){
+Protocol::Request::WStat&
+Protocol::Request::asWstat(){
     if (_type != MessageType::TWStat)
         Solace::raise<IOException>("Incorrect message type");
 
     return wstat;
 }
 
-P9Protocol::Request::Session&
-P9Protocol::Request::asSession(){
+Protocol::Request::Session&
+Protocol::Request::asSession(){
     if (_type != MessageType::TSession)
         Solace::raise<IOException>("Incorrect message type");
 
     return session;
 }
 
-P9Protocol::Request::SRead&
-P9Protocol::Request::asShortRead(){
+Protocol::Request::SRead&
+Protocol::Request::asShortRead(){
     if (_type != MessageType::TSRead)
         Solace::raise<IOException>("Incorrect message type");
 
     return shortRead;
 }
 
-P9Protocol::Request::SWrite&
-P9Protocol::Request::asShortWrite(){
+Protocol::Request::SWrite&
+Protocol::Request::asShortWrite(){
     if (_type != MessageType::TSWrite)
         Solace::raise<IOException>("Incorrect message type");
 
@@ -747,7 +721,7 @@ P9Protocol::Request::asShortWrite(){
 
 
 
-P9Protocol::Response::Response(MessageType msgType, Tag msgTag) :
+Protocol::Response::Response(MessageType msgType, Tag msgTag) :
     type(msgType),
     tag(msgTag)
 {
@@ -777,7 +751,7 @@ P9Protocol::Response::Response(MessageType msgType, Tag msgTag) :
     }
 }
 
-P9Protocol::Response::Response(Response&& rhs) :
+Protocol::Response::Response(Response&& rhs) :
     type(rhs.type),
     tag(rhs.tag)
 {
@@ -808,7 +782,7 @@ P9Protocol::Response::Response(Response&& rhs) :
 }
 
 
-P9Protocol::Response::~Response() {
+Protocol::Response::~Response() {
     switch (type) {
     case MessageType::RError:   (&error)->~Error();     break;
     case MessageType::RVersion: (&version)->~Version(); break;

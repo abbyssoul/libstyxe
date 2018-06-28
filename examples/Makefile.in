@@ -1,0 +1,35 @@
+EXAMPLES_BIN = ../$(BUILD_DIR)/bin
+EXAMPLES_BUILD = ../$(BUILD_DIR)/examples
+
+LOCAL_CPPFLAGS = $(patsubst -I%,-I../%,$(CPPFLAGS))
+LOCAL_LDFLAGS = $(patsubst -L%,-L../%,$(LDFLAGS))
+
+
+all: $(EXAMPLES_BIN)/corpus_generator $(EXAMPLES_BIN)/fuzz-request $(EXAMPLES_BIN)/fuzz-response
+
+
+$(EXAMPLES_BUILD):
+	@mkdir -p $@
+
+$(EXAMPLES_BIN):
+	@mkdir -p $@
+
+$(EXAMPLES_BUILD)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -c $(CXXFLAGS) $(LOCAL_CPPFLAGS) -o $@ $<
+
+
+# fuzzers
+#	$(CXX) -g -O1 -fsanitize=fuzzer,signed-integer-overflow -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)
+
+$(EXAMPLES_BIN)/fuzz-request: $(EXAMPLES_BUILD)/fuzz-request.o $(EXAMPLES_BIN)
+	$(CXX) -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)
+
+
+$(EXAMPLES_BIN)/fuzz-response: $(EXAMPLES_BUILD)/fuzz-response.o $(EXAMPLES_BIN)
+	$(CXX) -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)
+
+
+# corpus_generator
+$(EXAMPLES_BIN)/corpus_generator: $(EXAMPLES_BUILD)/corpus_generator.o $(EXAMPLES_BIN)
+	$(CXX) -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)

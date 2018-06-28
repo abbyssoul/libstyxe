@@ -35,9 +35,16 @@ namespace styxe {
  * Thus this info must be preserved during communication. Instance of this class serves this purpose as well as
  * helps with message parsing.
  *
+ * @note The implementation of the protocol does not allocate memory for any operation.
+ * Message parser acts on an instanc of the user provided Solace::ReadBuffer and any message data such as
+ * name string or data read from a file is actually a pointer to the underlying ReadBuffer storage.
+ * Thus it is user's responsibility to manage lifetime of that buffer.
+ * (That is not technically correct as current implementation does allocate memory when dealing with Solace::Path
+ * objects as there is no currently availiable PathView version)
+ *
  * In order to create 9P2000 messages please @see P9Protocol::RequestBuilder.
  */
-class P9Protocol {
+class Protocol {
 public:
     /** Network protocol uses fixed width int32 to represent size of data in bytes */
     using size_type = Solace::uint32;
@@ -212,15 +219,25 @@ public:
             _src(src)
         {}
 
-        Decoder& read(Solace::uint8* dest);
-        Decoder& read(Solace::uint16* dest);
-        Decoder& read(Solace::uint32* dest);
-        Decoder& read(Solace::uint64* dest);
-        Decoder& read(Solace::StringView* dest);
-        Decoder& read(Solace::ImmutableMemoryView* data);
-        Decoder& read(Solace::Path* path);
-        Decoder& read(Qid* qid);
-        Decoder& read(Stat* stat);
+        Decoder(Decoder const&) = delete;
+        Decoder& operator= (Decoder const&) = delete;
+
+        Solace::Result<void, Solace::Error> read(Solace::uint8* dest);
+        Solace::Result<void, Solace::Error> read(Solace::uint16* dest);
+        Solace::Result<void, Solace::Error> read(Solace::uint32* dest);
+        Solace::Result<void, Solace::Error> read(Solace::uint64* dest);
+        Solace::Result<void, Solace::Error> read(Solace::StringView* dest);
+        Solace::Result<void, Solace::Error> read(Solace::ImmutableMemoryView* dest);
+        Solace::Result<void, Solace::Error> read(Solace::MemoryView* dest);
+        Solace::Result<void, Solace::Error> read(Solace::Path* path);
+        Solace::Result<void, Solace::Error> read(Qid* qid);
+        Solace::Result<void, Solace::Error> read(Stat* stat);
+
+        template<typename T, typename... Args>
+        Solace::Result<void, Solace::Error> read(T* t, Args&&... args) {
+            return read(t)
+                    .then([this, &args...]() { return read(std::forward<Args>(args)...); });
+        }
 
     private:
         Solace::ReadBuffer& _src;
@@ -232,35 +249,94 @@ public:
      */
     class Encoder {
     public:
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::uint8 const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::uint16 const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::uint32 const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::uint64 const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::StringView const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::String const& value) = delete;
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::Path const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Qid const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Stat const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::Array<Qid> const& value);
+        /**
+         * Compute the number of bytes in the buffer required to store a given value.
+         * @param value Value to store in the message.
+         * @return Number of bytes required to represent the value given.
+         */
+        static size_type protocolSize(Solace::ImmutableMemoryView const& value);
+
+    public:
 
         Encoder(Solace::ByteBuffer& dest) :
             _dest(dest)
         {}
+
+        Encoder(Encoder const&) = delete;
+        Encoder& operator= (Encoder const&) = delete;
 
         Encoder& header(MessageType type, Tag tag, size_type payloadSize = 0);
         Encoder& encode(Solace::uint8 value);
         Encoder& encode(Solace::uint16 value);
         Encoder& encode(Solace::uint32 value);
         Encoder& encode(Solace::uint64 value);
-        Encoder& encode(const Solace::StringView& str);
-        Encoder& encode(const Solace::String& str) = delete;
-        Encoder& encode(const P9Protocol::Qid& qid);
-        Encoder& encode(const Solace::Array<P9Protocol::Qid>& qids);
-        Encoder& encode(const P9Protocol::Stat& stat);
-        Encoder& encode(const Solace::ImmutableMemoryView& data);
-        Encoder& encode(const Solace::Path& path);
-
-        size_type protocolSize(const Solace::uint8& value);
-        size_type protocolSize(const Solace::uint16& value);
-        size_type protocolSize(const Solace::uint32& value);
-        size_type protocolSize(const Solace::uint64& value);
-        size_type protocolSize(const Solace::StringView& str);
-        size_type protocolSize(const Solace::String& str) = delete;
-        size_type protocolSize(const Solace::Path& path);
-        size_type protocolSize(const P9Protocol::Qid&);
-        size_type protocolSize(const P9Protocol::Stat& stat);
-        size_type protocolSize(const Solace::Array<P9Protocol::Qid>& qids);
-        size_type protocolSize(const Solace::ImmutableMemoryView& data);
+        Encoder& encode(Solace::StringView const& str);
+        Encoder& encode(Solace::String const& str) = delete;
+        Encoder& encode(Qid const& qid);
+        Encoder& encode(Solace::Array<Qid> const& qids);
+        Encoder& encode(Stat const& stat);
+        Encoder& encode(Solace::ImmutableMemoryView const& data);
+        Encoder& encode(Solace::Path const& path);
 
     private:
         Solace::ByteBuffer& _dest;
@@ -404,7 +480,7 @@ public:
          * A request to re-establish a session.
          */
         struct Session {
-            Solace::ImmutableMemoryView key;    //!< A key of the previously established session.
+            Solace::byte key[8];    //!< A key of the previously established session.
         };
 
         /**
@@ -516,29 +592,29 @@ public:
          * @param maxMessageSize Suggest maximum size of the protocol message, including mandatory message header.
          * @return Ref to this for fluent interface.
          */
-        RequestBuilder& version(const Solace::StringView& version = PROTOCOL_VERSION,
+        RequestBuilder& version(Solace::StringView const& version = PROTOCOL_VERSION,
                                 size_type maxMessageSize = MAX_MESSAGE_SIZE);
-        RequestBuilder& auth(Fid afid, const Solace::StringView& userName, const Solace::StringView& attachName);
+        RequestBuilder& auth(Fid afid, Solace::StringView const& userName, Solace::StringView const& attachName);
         RequestBuilder& flush(Tag oldTransation);
         RequestBuilder& attach(Fid fid, Fid afid,
-                                const Solace::StringView& userName, const Solace::StringView& attachName);
-        RequestBuilder& walk(Fid fid, Fid nfid, const Solace::Path& path);
+                                Solace::StringView const& userName, Solace::StringView const& attachName);
+        RequestBuilder& walk(Fid fid, Fid nfid, Solace::Path const& path);
         RequestBuilder& open(Fid fid, OpenMode mode);
         RequestBuilder& create(Fid fid,
-                                const Solace::StringView& name,
+                                Solace::StringView const& name,
                                 Solace::uint32 permissions,
                                 OpenMode mode);
         RequestBuilder& read(Fid fid, Solace::uint64 offset, size_type count);
-        RequestBuilder& write(Fid fid, Solace::uint64 offset, const Solace::ImmutableMemoryView& data);
+        RequestBuilder& write(Fid fid, Solace::uint64 offset, Solace::ImmutableMemoryView const& data);
         RequestBuilder& clunk(Fid fid);
         RequestBuilder& remove(Fid fid);
         RequestBuilder& stat(Fid fid);
-        RequestBuilder& writeStat(Fid fid, const Stat& stat);
+        RequestBuilder& writeStat(Fid fid, Stat const& stat);
 
         /* 9P2000.e extention */
-        RequestBuilder& session(const Solace::ImmutableMemoryView& key);
-        RequestBuilder& shortRead(Fid rootFid, const Solace::Path& path);
-        RequestBuilder& shortWrite(Fid rootFid, const Solace::Path& path, const Solace::ImmutableMemoryView& data);
+        RequestBuilder& session(Solace::ImmutableMemoryView const& key);
+        RequestBuilder& shortRead(Fid rootFid, Solace::Path const& path);
+        RequestBuilder& shortWrite(Fid rootFid, Solace::Path const& path, Solace::ImmutableMemoryView const& data);
 
     private:
         Tag                     _tag;
@@ -651,28 +727,28 @@ public:
         ResponseBuilder& updatePayloadSize(size_type payloadSize);
 
 
-        ResponseBuilder& version(const Solace::StringView& version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
-        ResponseBuilder& auth(const Qid& qid);
-        ResponseBuilder& error(const Solace::StringView& message);
-        ResponseBuilder& error(const Solace::Error& err) {
-            return error(err.toString());
+        ResponseBuilder& version(Solace::StringView const& version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
+        ResponseBuilder& auth(Qid const& qid);
+        ResponseBuilder& error(Solace::StringView const& message);
+        ResponseBuilder& error(Solace::Error const& err) {
+            return error(err.toString().view());
         }
 
         ResponseBuilder& flush();
-        ResponseBuilder& attach(const Qid& qid);
-        ResponseBuilder& walk(const Solace::Array<Qid>& qids);
-        ResponseBuilder& open(const Qid& qid, size_type iounit);
-        ResponseBuilder& create(const Qid& qid, size_type iounit);
-        ResponseBuilder& read(const Solace::ImmutableMemoryView& data);
+        ResponseBuilder& attach(Qid const& qid);
+        ResponseBuilder& walk(Solace::Array<Qid> const& qids);
+        ResponseBuilder& open(Qid const& qid, size_type iounit);
+        ResponseBuilder& create(Qid const& qid, size_type iounit);
+        ResponseBuilder& read(Solace::ImmutableMemoryView const& data);
         ResponseBuilder& write(size_type iounit);
         ResponseBuilder& clunk();
         ResponseBuilder& remove();
-        ResponseBuilder& stat(const Stat& value);
+        ResponseBuilder& stat(Stat const& value);
         ResponseBuilder& wstat();
 
         /* 9P2000.e extention */
         ResponseBuilder& session();
-        ResponseBuilder& shortRead(const Solace::ImmutableMemoryView& data);
+        ResponseBuilder& shortRead(Solace::ImmutableMemoryView const& data);
         ResponseBuilder& shortWrite(size_type iounit);
 
     private:
@@ -700,6 +776,12 @@ public:
 
 public:
 
+    /// Default destructor
+    ~Protocol() noexcept = default;
+
+    Protocol(Protocol const& ) = delete;
+    Protocol& operator= (Protocol const& ) = delete;
+
     /**
      * Construct a new instance of the protocol.
      * Usually one would create an instance per connection as protocol stores state per estanblished session.
@@ -707,8 +789,8 @@ public:
      * This is advertized by the protocol during version/size negotiation.
      * @param version Supported protocol version. This is advertized by the protocol during version/size negotiation.
      */
-    P9Protocol(size_type maxMassageSize = MAX_MESSAGE_SIZE,
-               const Solace::StringView& version = PROTOCOL_VERSION);
+    Protocol(size_type maxMassageSize = MAX_MESSAGE_SIZE,
+               Solace::StringView const& version = PROTOCOL_VERSION);
 
     /**
      * Get maximum message size supported by the protocol instance.
@@ -737,7 +819,7 @@ public:
      * Get negotiated protocol version effective for the estanblished session.
      * @return Negotiated version string.
      */
-    const Solace::String& getNegotiatedVersion() const noexcept {
+    Solace::String const& getNegotiatedVersion() const noexcept {
         return _negotiatedVersion;
     }
 
@@ -745,13 +827,9 @@ public:
      * Set negotiated protocol version.
      * @param version A new negotited protocol version.
      */
-    void setNegotiatedVersion(const Solace::String& version) noexcept {
+    void setNegotiatedVersion(Solace::String const& version) noexcept {
         _negotiatedVersion = version;
     }
-
-    //---------------------------------------------------------
-    // Create protocol requests
-    //---------------------------------------------------------
 
     /**
      * Parse 9P message header from a byte byffer.
@@ -763,34 +841,38 @@ public:
 
     /**
      * Parse 9P Response type message from a byte byffer.
+     * This is the primiry method used by a client to parse response from the server.
+     *
      * @param header Message header.
      * @param data Byte buffer to read message content from.
      * @return Resulting message if parsed successfully or an error otherwise.
      */
     Solace::Result<Response, Solace::Error>
-    parseResponse(const MessageHeader& header, Solace::ReadBuffer& data) const;
+    parseResponse(MessageHeader const& header, Solace::ReadBuffer& data) const;
 
     /**
      * Parse 9P Request type message from a byte byffer.
+     * This is the primiry method used by a server implementation to parse requests from a client.
+
      * @param header Message header.
      * @param data Byte buffer to read message content from.
      * @return Resulting message if parsed successfully or an error otherwise.
      */
     Solace::Result<Request, Solace::Error>
-    parseRequest(const MessageHeader& header, Solace::ReadBuffer& data) const;
+    parseRequest(MessageHeader const& header, Solace::ReadBuffer& data) const;
 
 private:
 
-    const size_type       _maxMassageSize;
-    size_type       _maxNegotiatedMessageSize;
+    const size_type         _maxMassageSize;                /// Initial value of the maximum message size in bytes.
+    size_type               _maxNegotiatedMessageSize;      /// Negotiated value of the maximum message size in bytes.
 
-    const Solace::String  _initialVersion;
-    Solace::String  _negotiatedVersion;
+    const Solace::String  _initialVersion;                  /// Initial value of the used protocol version.
+    Solace::String  _negotiatedVersion;                     /// Negotiated value of the protocol version.
 };
 
 
 inline
-bool operator == (const P9Protocol::Qid& lhs, const P9Protocol::Qid& rhs) {
+bool operator == (Protocol::Qid const& lhs, Protocol::Qid const& rhs) {
     return (lhs.path == rhs.path &&
             lhs.version == rhs.version &&
             lhs.type == rhs.type);
@@ -798,7 +880,7 @@ bool operator == (const P9Protocol::Qid& lhs, const P9Protocol::Qid& rhs) {
 
 
 inline
-bool operator == (const P9Protocol::Stat& lhs, const P9Protocol::Stat& rhs) {
+bool operator == (Protocol::Stat const& lhs, Protocol::Stat const& rhs) {
     return (lhs.atime == rhs.atime &&
             lhs.dev == rhs.dev &&
             lhs.gid == rhs.gid &&

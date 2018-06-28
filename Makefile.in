@@ -1,8 +1,6 @@
 # Project name
 export PROJECT = styxe
 
-# Compiler config:
-CXX ?= g++
 RANLIB ?= /bin/true
 
 ifeq (clang++, $(findstring clang++,$(CXX)))
@@ -63,9 +61,8 @@ CXXFLAGS += -pedantic -Wall -Wextra -Wabi -Wfloat-equal \
 # FIXME: Can't use -D_GLIBCXX_DEBUG until libsolace use it, subject to move from CppUnit to GTest
 ifdef dbg
 	CXXFLAGS += -O0 -ggdb3 -DDEBUG -D _DEBUG
-	CXXFLAGS += -fstack-protector-all -fsanitize=address,undefined,leak -fno-omit-frame-pointer
+	CXXFLAGS += -fstack-protector-all -fno-omit-frame-pointer
 	# FIXME: Doesn't work ????	CXXFLAGS += -fvtable-verify=std
-	CXXFLAGS += -fsanitize-address-use-after-scope
 else # Release optimizations
 	CXXFLAGS += -Ofast -flto
 	CXXFLAGS += -fstack-protector-strong
@@ -80,13 +77,15 @@ CPPFLAGS += -I../libsolace/include
 LDFLAGS +=  -L$(TARGET_DIR) \
 			-L../libsolace/build/src
 
-LDLIBS += -l$(PROJECT) -lsolace -pthread
-ifdef dbg
+LDLIBS += -l$(PROJECT) -lsolace
+
+ifdef sanitize
+	CXXFLAGS += -fsanitize-address-use-after-scope -fsanitize=address,undefined,leak,signed-integer-overflow
 	LDLIBS += -fsanitize=address -llsan -lubsan
 endif
 
 test_CPPFLAGS += -isystem ${GTEST_DIR}/include
-test_LDLIBS += -L$(BUILD_DIR)/lib -l$(GTEST_LIB)
+test_LDLIBS += -L$(BUILD_DIR)/lib -l$(GTEST_LIB) -pthread
 
 
 # Export compiler options and extra libs for examples and tests
@@ -153,10 +152,12 @@ $(TEST_TAGRET): $(TARGET) $(TEST_TARGET_DIR) $(GTEST_TARGET)
 $(TEST_TAGRET): $(test_obj)
 	$(CXX) -o $@ $(CXXFLAGS) $(test_obj) $(LDFLAGS) $(LDLIBS) $(test_LDLIBS)
 
+tests: tests
+
+# Do the actual testing
+.PHONY: test
 test: $(TEST_TAGRET)
 	./$(TEST_TAGRET)
-
-.PHONY: test
 
 
 #-------------------------------------------------------------------------------
@@ -219,7 +220,7 @@ debian-clean:
 
 .PHONY: clean
 clean:
-	$(RM) -rf $(TARGET_DIR) $(BUILD_DIR) $(DOC_TARGET_HTML) $(GEN_SRC_DIR)
+	$(RM) -rf $(TARGET_DIR) $(BUILD_DIR) $(DOC_TARGET_HTML)
 
 #-------------------------------------------------------------------------------
 # Code Quality Assurance
@@ -231,7 +232,6 @@ tools/cppcheck:
 tools/cppcheck/cppcheck: tools/cppcheck
 	git -C tools/cppcheck pull
 	$(MAKE) -j2 -C tools/cppcheck cppcheck
-
 
 cpplint: $(MODULE_HEADERS) $(MODULE_SRC)
 	cpplint --recursive --exclude=${TEST_SRC_DIR}/ci/* ${PUBLIC_HEADERS} ${SRC_DIR} ${TEST_SRC_DIR} $(EXAMPLES_SRC_DIR)
@@ -249,9 +249,8 @@ tidy:
 	${SRC_DIR}/*.cpp -- -I$(PUBLIC_HEADERS) -std=c++14
 
 
-
+.PHONY: clean
 codecheck: cpplint cppcheck #scan-build
-
 
 
 #-------------------------------------------------------------------------------
