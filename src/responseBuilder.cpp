@@ -66,7 +66,7 @@ Protocol::ResponseBuilder::build(bool recalcPayloadSize) {
 
 
 Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::version(const StringView& version, size_type maxMessageSize) {
+Protocol::ResponseBuilder::version(StringView version, size_type maxMessageSize) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -101,7 +101,7 @@ Protocol::ResponseBuilder::auth(const Qid& qid) {
 }
 
 Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::error(const StringView& message) {
+Protocol::ResponseBuilder::error(StringView message) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 

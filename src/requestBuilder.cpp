@@ -35,7 +35,7 @@ Protocol::RequestBuilder::build() {
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::version(const StringView& version, size_type maxMessageSize) {
+Protocol::RequestBuilder::version(StringView version, size_type maxMessageSize) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -55,7 +55,7 @@ Protocol::RequestBuilder::version(const StringView& version, size_type maxMessag
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::auth(Fid afid, const StringView& userName, const StringView& attachName) {
+Protocol::RequestBuilder::auth(Fid afid, StringView userName, StringView attachName) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -75,7 +75,7 @@ Protocol::RequestBuilder::auth(Fid afid, const StringView& userName, const Strin
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::attach(Fid fid, Fid afid, const StringView& userName, const StringView& attachName) {
+Protocol::RequestBuilder::attach(Fid fid, Fid afid, StringView userName, StringView attachName) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -163,7 +163,7 @@ Protocol::RequestBuilder::open(Fid fid, Protocol::OpenMode mode) {
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::create(Fid fid, const StringView& name, uint32 permissions, Protocol::OpenMode mode) {
+Protocol::RequestBuilder::create(Fid fid, StringView name, uint32 permissions, Protocol::OpenMode mode) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -205,7 +205,7 @@ Protocol::RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::write(Fid fid, uint64 offset, const ImmutableMemoryView& data) {
+Protocol::RequestBuilder::write(Fid fid, uint64 offset, ImmutableMemoryView data) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -225,7 +225,7 @@ Protocol::RequestBuilder::write(Fid fid, uint64 offset, const ImmutableMemoryVie
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::walk(Fid fid, Fid nfid, const Path& path) {
+Protocol::RequestBuilder::walk(Fid fid, Fid nfid, Path const& path) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -261,7 +261,7 @@ Protocol::RequestBuilder::stat(Fid fid) {
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::writeStat(Fid fid, const Stat& stat) {
+Protocol::RequestBuilder::writeStat(Fid fid, Stat const& stat) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -279,7 +279,7 @@ Protocol::RequestBuilder::writeStat(Fid fid, const Stat& stat) {
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::session(const ImmutableMemoryView& key) {
+Protocol::RequestBuilder::session(ImmutableMemoryView key) {
     // Compute message size first:
     _payloadSize =
             8;  // Key size is fixed to be 8 bites.
@@ -295,7 +295,7 @@ Protocol::RequestBuilder::session(const ImmutableMemoryView& key) {
 }
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::shortRead(Fid rootFid, const Path& path) {
+Protocol::RequestBuilder::shortRead(Fid rootFid, Path const& path) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -312,7 +312,7 @@ Protocol::RequestBuilder::shortRead(Fid rootFid, const Path& path) {
 }
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::shortWrite(Fid rootFid, const Path& path, const ImmutableMemoryView& data) {
+Protocol::RequestBuilder::shortWrite(Fid rootFid, Path const& path, ImmutableMemoryView data) {
     Encoder encode(buffer());
 
     // Compute message size first:

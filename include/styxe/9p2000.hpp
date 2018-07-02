@@ -330,7 +330,7 @@ public:
         Encoder& encode(Solace::uint16 value);
         Encoder& encode(Solace::uint32 value);
         Encoder& encode(Solace::uint64 value);
-        Encoder& encode(Solace::StringView const& str);
+        Encoder& encode(Solace::StringView str);
         Encoder& encode(Solace::String const& str) = delete;
         Encoder& encode(Qid const& qid);
         Encoder& encode(Solace::Array<Qid> const& qids);
@@ -592,29 +592,29 @@ public:
          * @param maxMessageSize Suggest maximum size of the protocol message, including mandatory message header.
          * @return Ref to this for fluent interface.
          */
-        RequestBuilder& version(Solace::StringView const& version = PROTOCOL_VERSION,
+        RequestBuilder& version(Solace::StringView version = PROTOCOL_VERSION,
                                 size_type maxMessageSize = MAX_MESSAGE_SIZE);
-        RequestBuilder& auth(Fid afid, Solace::StringView const& userName, Solace::StringView const& attachName);
+        RequestBuilder& auth(Fid afid, Solace::StringView userName, Solace::StringView attachName);
         RequestBuilder& flush(Tag oldTransation);
         RequestBuilder& attach(Fid fid, Fid afid,
-                                Solace::StringView const& userName, Solace::StringView const& attachName);
+                                Solace::StringView userName, Solace::StringView attachName);
         RequestBuilder& walk(Fid fid, Fid nfid, Solace::Path const& path);
         RequestBuilder& open(Fid fid, OpenMode mode);
         RequestBuilder& create(Fid fid,
-                                Solace::StringView const& name,
+                                Solace::StringView name,
                                 Solace::uint32 permissions,
                                 OpenMode mode);
         RequestBuilder& read(Fid fid, Solace::uint64 offset, size_type count);
-        RequestBuilder& write(Fid fid, Solace::uint64 offset, Solace::ImmutableMemoryView const& data);
+        RequestBuilder& write(Fid fid, Solace::uint64 offset, Solace::ImmutableMemoryView data);
         RequestBuilder& clunk(Fid fid);
         RequestBuilder& remove(Fid fid);
         RequestBuilder& stat(Fid fid);
         RequestBuilder& writeStat(Fid fid, Stat const& stat);
 
         /* 9P2000.e extention */
-        RequestBuilder& session(Solace::ImmutableMemoryView const& key);
+        RequestBuilder& session(Solace::ImmutableMemoryView key);
         RequestBuilder& shortRead(Fid rootFid, Solace::Path const& path);
-        RequestBuilder& shortWrite(Fid rootFid, Solace::Path const& path, Solace::ImmutableMemoryView const& data);
+        RequestBuilder& shortWrite(Fid rootFid, Solace::Path const& path, Solace::ImmutableMemoryView data);
 
     private:
         Tag                     _tag;
@@ -727,9 +727,9 @@ public:
         ResponseBuilder& updatePayloadSize(size_type payloadSize);
 
 
-        ResponseBuilder& version(Solace::StringView const& version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
+        ResponseBuilder& version(Solace::StringView version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
         ResponseBuilder& auth(Qid const& qid);
-        ResponseBuilder& error(Solace::StringView const& message);
+        ResponseBuilder& error(Solace::StringView message);
         ResponseBuilder& error(Solace::Error const& err) {
             return error(err.toString().view());
         }
@@ -790,7 +790,7 @@ public:
      * @param version Supported protocol version. This is advertized by the protocol during version/size negotiation.
      */
     Protocol(size_type maxMassageSize = MAX_MESSAGE_SIZE,
-               Solace::StringView const& version = PROTOCOL_VERSION);
+               Solace::StringView version = PROTOCOL_VERSION);
 
     /**
      * Get maximum message size supported by the protocol instance.
@@ -863,11 +863,11 @@ public:
 
 private:
 
-    const size_type         _maxMassageSize;                /// Initial value of the maximum message size in bytes.
+    size_type const         _maxMassageSize;                /// Initial value of the maximum message size in bytes.
     size_type               _maxNegotiatedMessageSize;      /// Negotiated value of the maximum message size in bytes.
 
-    const Solace::String  _initialVersion;                  /// Initial value of the used protocol version.
-    Solace::String  _negotiatedVersion;                     /// Negotiated value of the protocol version.
+    Solace::String const    _initialVersion;                  /// Initial value of the used protocol version.
+    Solace::String          _negotiatedVersion;                     /// Negotiated value of the protocol version.
 };
 
 

@@ -490,7 +490,7 @@ Protocol::size_type Protocol::maxNegotiatedMessageSize(size_type newMessageSize)
 }
 
 
-Protocol::Protocol(size_type maxMassageSize, const Solace::StringView& version) :
+Protocol::Protocol(size_type maxMassageSize, StringView version) :
     _maxMassageSize(maxMassageSize),
     _maxNegotiatedMessageSize(maxMassageSize),
     _initialVersion(version),

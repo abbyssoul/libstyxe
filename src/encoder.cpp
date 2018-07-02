@@ -153,7 +153,7 @@ Protocol::Encoder::encode(uint64 value) {
 }
 
 Protocol::Encoder&
-Protocol::Encoder::encode(const StringView& str) {
+Protocol::Encoder::encode(StringView str) {
     encode(str.size());
     _dest.write(str.view());
 
