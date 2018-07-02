@@ -5,7 +5,7 @@ LOCAL_CPPFLAGS = $(patsubst -I%,-I../%,$(CPPFLAGS))
 LOCAL_LDFLAGS = $(patsubst -L%,-L../%,$(LDFLAGS))
 
 
-all: $(EXAMPLES_BIN)/corpus_generator $(EXAMPLES_BIN)/9pdecode $(EXAMPLES_BIN)/fuzz-request $(EXAMPLES_BIN)/fuzz-response
+all: $(EXAMPLES_BIN)/corpus_generator $(EXAMPLES_BIN)/9pdecode $(EXAMPLES_BIN)/fuzz-response
 
 
 $(EXAMPLES_BUILD):
@@ -21,10 +21,6 @@ $(EXAMPLES_BUILD)/%.o: %.cpp
 
 # fuzzers
 #	$(CXX) -g -O1 -fsanitize=fuzzer,signed-integer-overflow -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)
-
-$(EXAMPLES_BIN)/fuzz-request: $(EXAMPLES_BUILD)/fuzz-request.o $(EXAMPLES_BIN)
-	$(CXX) -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)
-
 
 $(EXAMPLES_BIN)/fuzz-response: $(EXAMPLES_BUILD)/fuzz-response.o $(EXAMPLES_BIN)
 	$(CXX) -o $@ $(LOCAL_CXXFLAGS) $< $(LOCAL_LDFLAGS) $(LDLIBS)

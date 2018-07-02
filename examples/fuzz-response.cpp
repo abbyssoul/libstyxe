@@ -13,7 +13,20 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 */
-#include "fuzzer_utils.hpp"
+
+#include "styxe/9p2000.hpp"
+#include "styxe/print.hpp"
+
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+
+using namespace Solace;
+using namespace styxe;
+
+
+void dispayRequest(styxe::Protocol::Request&&) { /*no-op*/ }
+void dispayResponse(styxe::Protocol::Response&&) { /*no-op*/ }
 
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
@@ -21,15 +34,50 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     // Case1: parse message header
     styxe::Protocol proc;
+
     proc.parseMessageHeader(reader)
             .then([&](styxe::Protocol::MessageHeader&& header) {
-                return proc.parseResponse(header, reader);
+                bool const isRequest = (static_cast<Solace::byte>(header.type) % 2) == 0;
+                if (isRequest) {
+                    proc.parseRequest(header, reader)
+                            .then(dispayRequest);
+                } else {
+                    proc.parseResponse(header, reader)
+                            .then(dispayResponse);
+                }
             });
 
     return 0;  // Non-zero return values are reserved for future use.
 }
 
-#if !defined (__AFL_COMPILER)
+
+inline
+void readDataAndTest(std::istream& in) {
+    std::vector<uint8_t> buf(styxe::Protocol::MAX_MESSAGE_SIZE);
+    in.read((char*)buf.data(), buf.size());
+    size_t const got = in.gcount();
+
+    buf.resize(got);
+    buf.shrink_to_fit();
+
+    LLVMFuzzerTestOneInput(buf.data(), got);
+}
+
+
+
+#if defined(__AFL_COMPILER)
+
+int main(int argc, char* argv[]) {
+#if defined(__AFL_LOOP)
+   while(__AFL_LOOP(1000))
+#endif
+    {
+        readDataAndTest(std::cin);
+   }
+}
+
+#else  // __AFL_COMPILER
+
 int main(int argc, const char **argv) {
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << "fuzz <input file>..." << std::endl;
@@ -43,4 +91,4 @@ int main(int argc, const char **argv) {
 
     return EXIT_SUCCESS;
 }
-#endif
+#endif  // __AFL_COMPILER

@@ -18,6 +18,8 @@
 #include "styxe/print.hpp"
 
 #include <solace/base16.hpp>
+#include <solace/cli/parser.hpp>
+
 
 #include <iostream>
 #include <fstream>
@@ -272,6 +274,8 @@ void dispayResponse(Protocol::Response&& resp) {
 }
 
 
+
+
 void readAndPrintMessage(std::istream& in, ByteBuffer& buffer, styxe::Protocol& proc) {
 
     // Message header is fixed size - so it is safe to attempt to read it.
@@ -308,16 +312,39 @@ void readAndPrintMessage(std::istream& in, ByteBuffer& buffer, styxe::Protocol& 
  */
 int main(int argc, const char **argv) {
 
-    styxe::Protocol::size_type maxMessageSize = styxe::Protocol::MAX_MESSAGE_SIZE;
-    // TODO: Parse cmd line options for usage, msize, procVersion
+    Optional<uint> inputFiles;
+    auto maxMessageSize = Protocol::MAX_MESSAGE_SIZE;
+    auto requiredVersion = Protocol::PROTOCOL_VERSION;
 
-    styxe::Protocol proc(maxMessageSize);
+    auto const parseArgs = cli::Parser("Decoded and print 9P message")
+            .options({
+                         cli::Parser::printVersion("9pdecode", {1, 0, 0}),
+                         cli::Parser::printHelp(),
+                         {{"m", "msize"}, "Maximum message size", &maxMessageSize},
+                         {{"p", "proc"}, "Protocol version", &requiredVersion}
+            })
+            .arguments({{"*", "Files", [&inputFiles] (StringView, cli::Parser::Context const& c) -> Optional<Error> {
+
+                             if (!inputFiles) {
+                                inputFiles = Optional<uint>::of(c.offset);
+                             }
+
+                             return None();
+                         }}})
+            .parse(argc, argv);
+
+    if (!parseArgs) {
+        std::cerr << "Error: " << parseArgs.getError().toString() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    Protocol proc(maxMessageSize);
     MemoryManager memManager(proc.maxPossibleMessageSize());
     ByteBuffer buffer(memManager.create(proc.maxPossibleMessageSize()));
 
 
-    if (argc > 1) {
-        for (int i = 1; i < argc; ++i) {
+    if (inputFiles) {
+        for (uint i = inputFiles.get(); i < argc; ++i) {
             std::ifstream input(argv[i]);
             if (!input) {
                 std::cerr << "Failed to open file: " << std::quoted(argv[i]) << std::endl;
