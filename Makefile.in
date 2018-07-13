@@ -52,7 +52,7 @@ test_obj = $(addprefix $(BUILD_DIR)/, $(test_src:.cpp=.o))
 dep = $(obj:.o=.d)  # one dependency file for each source
 
 
-CXXFLAGS += -std=c++14 -pipe -ftemplate-depth=128
+CXXFLAGS += -std=c++17 -pipe -ftemplate-depth=128
 CXXFLAGS += -pedantic -Wall -Wextra -Wabi -Wfloat-equal \
 -Wshadow -Wno-missing-field-initializers -Wno-missing-braces \
 -Wcast-qual -Wno-sign-compare -Wno-multichar
@@ -80,8 +80,8 @@ LDFLAGS +=  -L$(TARGET_DIR) \
 LDLIBS += -l$(PROJECT) -lsolace
 
 ifdef sanitize
-	CXXFLAGS += -fsanitize-address-use-after-scope -fsanitize=address,undefined,leak,signed-integer-overflow
-	LDLIBS += -fsanitize=address -llsan -lubsan
+	CXXFLAGS += -fsanitize=$(sanitize),signed-integer-overflow -fsanitize-address-use-after-scope
+	LDLIBS += -fsanitize=$(sanitize) -llsan -lubsan
 endif
 
 test_CPPFLAGS += -isystem ${GTEST_DIR}/include

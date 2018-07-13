@@ -1480,7 +1480,7 @@ TEST_F(P9E_Messages, parseShortWriteRespose) {
     // Set declared message size to be more then negotiated message size
     Protocol::Encoder(_buffer)
             .header(Protocol::MessageType::RSWrite, 1, sizeof(uint32))
-            .encode(uint32(81177));
+            .encode(static_cast<uint32>(81177));
 
     auto headerResult = proc.parseMessageHeader(_buffer.flip());
     ASSERT_TRUE(headerResult.isOk());

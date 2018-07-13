@@ -12,6 +12,62 @@ An implementation of 9P2000 protocol.
 
 It also includes 9P2000.e extention. To learn more about the extention please see http://erlangonxen.org/more/9p2000e
 
+# Using this library
+
+### To create 9P message:
+The library use Solace::WriteBuffer / Solace::ReadBuffer to provide a writer / reader interface.
+Note that this adaptors do not allocate memory. So the user is responsible for creating a
+buffer of appropriate size to write the resulting message to.
+Note that the size of the target buffer should be no more then negotiated message size for the current session.
+
+
+```
+#include "styxe/9p2000.hpp"
+
+...
+Solace::WriteBuffer buffer(...);
+
+// Write TVersion request into the beffer
+styxe::Protocol::RequestBuilder(buffer)
+            .version();
+...
+// Write TOpen request into the buffer
+styxe::Protocol::RequestBuilder(buffer)
+            .open(42, styxe::Protocol::OpenMode::READ));
+
+```
+
+### Parsing 9P message from a byte buffer:
+Parsing of 9P protocol messages differ slightly depending on if you are implementing server - expecting request type messages - or a client - parsing server responses.
+
+### Parsing requests (server side):
+```
+
+styxe::Protocol proc(...);
+...
+proc.parseMessageHeader(buffer)
+    .then([&](Protocol::MessageHeader&& header) {
+        return proc.parseRequest(header, buffer)
+            .then(handleRequest);
+    })
+    .orElse([](Error&& err) {
+        std::cerr << "Error parsing request: " << err.toString() << std::endl;
+    });
+```
+### Parsing response (client side):
+```
+styxe::Protocol proc(...);
+...
+proc.parseMessageHeader(buffer)
+    .then([&](Protocol::MessageHeader&& header) {
+        return proc.parseResponse(header, buffer)
+            .then(handleRequest);
+    })
+    .orElse([](Error&& err) {
+        std::cerr << "Error parsing response: " << err.toString() << std::endl;
+    });
+```
+
 
 ## Dependencies
 Please note that this library depends on [libsolace](https://github.com/abbyssoul/libsolace).
@@ -89,4 +145,3 @@ Please see LICENSE file for details
 
 ## Authors
 Please see AUTHORS file for the list of contributors
-

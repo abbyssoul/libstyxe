@@ -54,7 +54,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 inline
 void readDataAndTest(std::istream& in) {
     std::vector<uint8_t> buf(styxe::Protocol::MAX_MESSAGE_SIZE);
-    in.read((char*)buf.data(), buf.size());
+    in.read(reinterpret_cast<char*>(buf.data()), buf.size());
     size_t const got = in.gcount();
 
     buf.resize(got);
@@ -69,7 +69,7 @@ void readDataAndTest(std::istream& in) {
 
 int main(int argc, char* argv[]) {
 #if defined(__AFL_LOOP)
-   while(__AFL_LOOP(1000))
+   while (__AFL_LOOP(1000))
 #endif
     {
         readDataAndTest(std::cin);

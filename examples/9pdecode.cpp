@@ -35,7 +35,7 @@ std::ostream& operator<< (std::ostream& ostr, ImmutableMemoryView const& view) {
         // We use custom output printing each byte as \0 bytest and \n are not printable otherwise.
         auto i = base16Encode_begin(view);
         auto end = base16Encode_end(view);
-        for (;i != end; ++i) {
+        for (; i != end; ++i) {
             ostr << *i;
         }
     } else {
@@ -144,7 +144,7 @@ void onWalkRequest(Protocol::Request::Walk& req) {
               << req.newfid << " "
               << req.path.getComponentsCount() << " [";
 
-    for (auto& c: req.path) {
+    for (auto& c : req.path) {
         std::cout << std::quoted(c.c_str()) << " ";
     }
     std::cout << "]" << std::endl;
@@ -240,7 +240,7 @@ void dispayRequest(Protocol::Request&& req) {
 
     case Protocol::MessageType::TSession:     onSessionRequest(req.asSession());  break;
     case Protocol::MessageType::TSRead:       onShortReadRequest(req.asShortRead());    break;
-    case Protocol::MessageType::TSWrite:      onShortWriteRequest(req.asShortWrite());break;
+    case Protocol::MessageType::TSWrite:      onShortWriteRequest(req.asShortWrite());  break;
 
     default:
         std::cerr << "<Unknown message type>" << std::endl;
@@ -290,12 +290,16 @@ void readAndPrintMessage(std::istream& in, ByteBuffer& buffer, styxe::Protocol& 
 
                 bool const isRequest = (static_cast<byte>(header.type) % 2) == 0;
                 if (isRequest) {
-                    std::cout << "→ [" << std::setw(5) << header.size << "] <" << header.tag << ">" << header.type << ": ";
+                    std::cout << "→ [" << std::setw(5) << header.size
+                              << "] <" << header.tag << ">"
+                              << header.type << ": ";
 
                     proc.parseRequest(header, buffer)
                             .then(dispayRequest);
                 } else {
-                    std::cout << "→ [" << std::setw(5) << header.size << "] " << header.type << " " << header.tag << ": ";
+                    std::cout << "→ [" << std::setw(5) << header.size << "] "
+                              << header.type << " "
+                              << header.tag << ": ";
 
                     proc.parseResponse(header, buffer)
                             .then(dispayResponse);
