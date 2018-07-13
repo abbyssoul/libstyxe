@@ -68,6 +68,8 @@ proc.parseMessageHeader(buffer)
     });
 ```
 
+See [examples](docs/examples.md) for other example usage of this library.
+
 
 ## Dependencies
 Please note that this library depends on [libsolace](https://github.com/abbyssoul/libsolace).
