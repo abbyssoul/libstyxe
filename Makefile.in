@@ -52,7 +52,7 @@ test_obj = $(addprefix $(BUILD_DIR)/, $(test_src:.cpp=.o))
 dep = $(obj:.o=.d)  # one dependency file for each source
 
 
-CXXFLAGS += -std=c++17 -pipe -ftemplate-depth=128
+CXXFLAGS += -std=c++14 -pipe -ftemplate-depth=128
 CXXFLAGS += -pedantic -Wall -Wextra -Wabi -Wfloat-equal \
 -Wshadow -Wno-missing-field-initializers -Wno-missing-braces \
 -Wcast-qual -Wno-sign-compare -Wno-multichar
@@ -152,11 +152,11 @@ $(TEST_TAGRET): $(TARGET) $(TEST_TARGET_DIR) $(GTEST_TARGET)
 $(TEST_TAGRET): $(test_obj)
 	$(CXX) -o $@ $(CXXFLAGS) $(test_obj) $(LDFLAGS) $(LDLIBS) $(test_LDLIBS)
 
-tests: tests
+tests: $(TEST_TAGRET)
 
 # Do the actual testing
 .PHONY: test
-test: $(TEST_TAGRET)
+test: tests
 	./$(TEST_TAGRET)
 
 

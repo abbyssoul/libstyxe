@@ -72,6 +72,10 @@ proc.parseMessageHeader(buffer)
 ## Dependencies
 Please note that this library depends on [libsolace](https://github.com/abbyssoul/libsolace).
 
+### GTest
+Note test framawork used is gtest and it is managed via git modules.
+Don't forget to do `git submodule update --init --recursive` on a new checkout to pull submodule dependencies.
+
 
 ## Contributing changes
 The framework is work in progress and contributions are very welcomed.
