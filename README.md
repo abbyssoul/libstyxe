@@ -10,7 +10,7 @@ libstyxe
 
 An implementation of 9P2000 protocol.
 
-It also includes 9P2000.e extention. To learn more about the extention please see http://erlangonxen.org/more/9p2000e
+It also includes 9P2000.e extension. To learn more about the extension please see http://erlangonxen.org/more/9p2000e
 
 # Using this library
 
@@ -75,8 +75,8 @@ See [examples](docs/examples.md) for other example usage of this library.
 Please note that this library depends on [libsolace](https://github.com/abbyssoul/libsolace).
 
 ### GTest
-Note test framawork used is gtest and it is managed via git modules.
-Don't forget to do `git submodule update --init --recursive` on a new checkout to pull submodule dependencies.
+Note test framework used is gtest and it is managed via git modules.
+Don't forget to do `git submodule update --init --recursive` on a new checkout to pull sub-module dependencies.
 
 
 ## Contributing changes
@@ -85,7 +85,7 @@ Please see  [`CONTRIBUTING.md`](CONTRIBUTING.md) for details on how to contribut
 this project.
 
 Please note that in order to maintain code quality a set of static code analysis tools is used as part of the build process.
-Thus all contributions must be verifyed by this tools before PR can be accepted.
+Thus all contributions must be verified by this tools before PR can be accepted.
 
 
 # Building
@@ -99,7 +99,7 @@ In order to build this project following tools must be present in the system:
 * valgrind (for runtime code quality verification)
 
 This project is using C++14 features extensively. The minimal tested/required version of gcc is gcc-4.9.
-CI is using clang-5 and gcc-7.
+[CI](https://travis-ci.org/abbyssoul/libstyxe) is using clang-5 and gcc-7.
 To install build tools on Debian based Linux distribution:
 ```shell
 sudo apt-get update -qq
@@ -108,7 +108,7 @@ sudo pip install cpplint
 ```
 
 The library has one external dependency: [libsolace](https://github.com/abbyssoul/libsolace).
-Please make sure it is installed and avaliable in the build path before building the project.
+Please make sure it is installed and available in the build path before building the project.
 
 ## Building the project
 ```shell

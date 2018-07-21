@@ -731,7 +731,7 @@ public:
         ResponseBuilder& auth(Qid const& qid);
         ResponseBuilder& error(Solace::StringView message);
         ResponseBuilder& error(Solace::Error const& err) {
-            return error(err.toString().view());
+            return error(err.toString());
         }
 
         ResponseBuilder& flush();

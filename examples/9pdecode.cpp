@@ -30,22 +30,6 @@ using namespace Solace;
 using namespace styxe;
 
 
-std::ostream& operator<< (std::ostream& ostr, ImmutableMemoryView const& view) {
-    if (view.size() > 0) {
-        // We use custom output printing each byte as \0 bytest and \n are not printable otherwise.
-        auto i = base16Encode_begin(view);
-        auto end = base16Encode_end(view);
-        for (; i != end; ++i) {
-            ostr << *i;
-        }
-    } else {
-        ostr << "<null>";
-    }
-
-    return ostr;
-}
-
-
 std::ostream& operator<< (std::ostream& ostr, Protocol::OpenMode mode) {
     switch (mode) {
     case Protocol::OpenMode::READ: ostr << "READ"; break;
@@ -330,10 +314,10 @@ int main(int argc, const char **argv) {
             .arguments({{"*", "Files", [&inputFiles] (StringView, cli::Parser::Context const& c) -> Optional<Error> {
 
                              if (!inputFiles) {
-                                inputFiles = Optional<uint>::of(c.offset);
+                                inputFiles = Optional<uint>(c.offset);
                              }
 
-                             return None();
+                             return none;
                          }}})
             .parse(argc, argv);
 

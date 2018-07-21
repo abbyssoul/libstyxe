@@ -83,7 +83,7 @@ TEST_F(P9MessageBuilder, messageChanging) {
     // Change message type
     const char* message = "Nothing to read";
     const auto payloadSize = strlen(message) + 2;
-    builder.error(message);
+    builder.error(StringView{message});
 
     ASSERT_EQ(payloadSize, builder.payloadSize());
     ASSERT_EQ(Protocol::headerSize() + payloadSize, _buffer.position());

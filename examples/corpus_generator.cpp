@@ -149,7 +149,7 @@ int main(int argc, char const **argv) {
                 .auth({1, 543, 939938}));
 
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
-                .error("This is a test error. Please move on."));
+                .error(StringView{"This is a test error. Please move on."}));
 
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
                 .flush());
