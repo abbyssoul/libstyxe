@@ -28,8 +28,9 @@ Protocol::ResponseBuilder::updatePayloadSize(size_type payloadSize) {
     _payloadSize = payloadSize;
     _buffer.reset(_initialPosition);
 
-    Encoder encode(buffer());
-    encode.header(type(), _tag, _payloadSize);
+    Encoder(_buffer)
+            .header(type(), _tag, _payloadSize);
+
     _buffer.advance(_payloadSize);
 
     return (*this);
@@ -50,7 +51,7 @@ Protocol::ResponseBuilder::updatePayloadSize() {
 }
 
 
-ByteBuffer&
+ByteWriter&
 Protocol::ResponseBuilder::build(bool recalcPayloadSize) {
     if (type() < MessageType::_beginSupportedMessageCode ||
         type() > MessageType::_endSupportedMessageCode) {
@@ -200,7 +201,7 @@ Protocol::ResponseBuilder::create(const Qid& qid, size_type iounit) {
 
 
 Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::read(const ImmutableMemoryView& data) {
+Protocol::ResponseBuilder::read(const MemoryView& data) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 
@@ -306,7 +307,7 @@ Protocol::ResponseBuilder::session() {
 
 
 Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::shortRead(const ImmutableMemoryView& data) {
+Protocol::ResponseBuilder::shortRead(const MemoryView& data) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 

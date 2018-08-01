@@ -19,8 +19,8 @@
 
 #include <solace/stringView.hpp>
 #include <solace/string.hpp>
-#include <solace/readBuffer.hpp>
-#include <solace/byteBuffer.hpp>
+#include <solace/byteReader.hpp>
+#include <solace/byteWriter.hpp>
 
 #include <solace/result.hpp>
 #include <solace/error.hpp>
@@ -215,7 +215,7 @@ public:
     class Decoder {
     public:
 
-        Decoder(Solace::ReadBuffer& src) :
+        Decoder(Solace::ByteReader& src) :
             _src(src)
         {}
 
@@ -227,8 +227,8 @@ public:
         Solace::Result<void, Solace::Error> read(Solace::uint32* dest);
         Solace::Result<void, Solace::Error> read(Solace::uint64* dest);
         Solace::Result<void, Solace::Error> read(Solace::StringView* dest);
-        Solace::Result<void, Solace::Error> read(Solace::ImmutableMemoryView* dest);
         Solace::Result<void, Solace::Error> read(Solace::MemoryView* dest);
+        Solace::Result<void, Solace::Error> read(Solace::MutableMemoryView* dest);
         Solace::Result<void, Solace::Error> read(Solace::Path* path);
         Solace::Result<void, Solace::Error> read(Qid* qid);
         Solace::Result<void, Solace::Error> read(Stat* stat);
@@ -240,7 +240,7 @@ public:
         }
 
     private:
-        Solace::ReadBuffer& _src;
+        Solace::ByteReader& _src;
     };
 
 
@@ -314,11 +314,11 @@ public:
          * @param value Value to store in the message.
          * @return Number of bytes required to represent the value given.
          */
-        static size_type protocolSize(Solace::ImmutableMemoryView const& value);
+        static size_type protocolSize(Solace::MemoryView const& value);
 
     public:
 
-        Encoder(Solace::ByteBuffer& dest) :
+        Encoder(Solace::ByteWriter& dest) :
             _dest(dest)
         {}
 
@@ -335,11 +335,11 @@ public:
         Encoder& encode(Qid const& qid);
         Encoder& encode(Solace::Array<Qid> const& qids);
         Encoder& encode(Stat const& stat);
-        Encoder& encode(Solace::ImmutableMemoryView const& data);
+        Encoder& encode(Solace::MemoryView const& data);
         Encoder& encode(Solace::Path const& path);
 
     private:
-        Solace::ByteBuffer& _dest;
+        Solace::ByteWriter& _dest;
     };
 
     /**
@@ -442,7 +442,7 @@ public:
         struct Write {
             Fid                         fid;        //!< The file to write into.
             Solace::uint64              offset;     //!< Starting offset bytes after the beginning of the file.
-            Solace::ImmutableMemoryView data;       //!< A data to be written into the file.
+            Solace::MemoryView data;       //!< A data to be written into the file.
         };
 
         /**
@@ -497,7 +497,7 @@ public:
         struct SWrite {
             Fid                         fid;    //!< Fid of the root directory to walk the path from.
             Solace::Path                path;   //!< A path to the file to be read.
-            Solace::ImmutableMemoryView data;   //!< A data to be written into the file.
+            Solace::MemoryView data;   //!< A data to be written into the file.
         };
 
 
@@ -560,17 +560,17 @@ public:
     class RequestBuilder {
     public:
 
-        RequestBuilder(Solace::ByteBuffer& dest) noexcept :
+        RequestBuilder(Solace::ByteWriter& dest) noexcept :
             _tag(1),
             _payloadSize(0),
             _buffer(dest)
         {}
 
-        Solace::ByteBuffer& buffer() noexcept {
+        Solace::ByteWriter& buffer() noexcept {
             return _buffer;
         }
 
-        Solace::ByteBuffer& build();
+        Solace::ByteWriter& build();
 
         /**
          * Set response message tag
@@ -605,23 +605,23 @@ public:
                                 Solace::uint32 permissions,
                                 OpenMode mode);
         RequestBuilder& read(Fid fid, Solace::uint64 offset, size_type count);
-        RequestBuilder& write(Fid fid, Solace::uint64 offset, Solace::ImmutableMemoryView data);
+        RequestBuilder& write(Fid fid, Solace::uint64 offset, Solace::MemoryView data);
         RequestBuilder& clunk(Fid fid);
         RequestBuilder& remove(Fid fid);
         RequestBuilder& stat(Fid fid);
         RequestBuilder& writeStat(Fid fid, Stat const& stat);
 
         /* 9P2000.e extention */
-        RequestBuilder& session(Solace::ImmutableMemoryView key);
+        RequestBuilder& session(Solace::MemoryView key);
         RequestBuilder& shortRead(Fid rootFid, Solace::Path const& path);
-        RequestBuilder& shortWrite(Fid rootFid, Solace::Path const& path, Solace::ImmutableMemoryView data);
+        RequestBuilder& shortWrite(Fid rootFid, Solace::Path const& path, Solace::MemoryView data);
 
     private:
         Tag                     _tag;
         MessageType             _type;
         size_type               _payloadSize;
 
-        Solace::ByteBuffer&     _buffer;
+        Solace::ByteWriter&     _buffer;
     };
 
 
@@ -664,7 +664,7 @@ public:
         };
 
         struct Read {
-            Solace::MemoryView data;
+            Solace::MutableMemoryView data;
         };
 
 
@@ -695,7 +695,7 @@ public:
     class ResponseBuilder {
     public:
 
-        ResponseBuilder(Solace::ByteBuffer& dest, Tag tag) :
+        ResponseBuilder(Solace::ByteWriter& dest, Tag tag) :
             _tag(tag),
             _type(),
             _payloadSize(0),
@@ -703,11 +703,11 @@ public:
             _buffer(dest)
         {}
 
-        Solace::ByteBuffer& buffer() noexcept {
+        Solace::ByteWriter& buffer() noexcept {
             return _buffer;
         }
 
-        Solace::ByteBuffer& build(bool recalcPayloadSize = false);
+        Solace::ByteWriter& build(bool recalcPayloadSize = false);
 
         /**
          * Set response message tag
@@ -739,7 +739,7 @@ public:
         ResponseBuilder& walk(Solace::Array<Qid> const& qids);
         ResponseBuilder& open(Qid const& qid, size_type iounit);
         ResponseBuilder& create(Qid const& qid, size_type iounit);
-        ResponseBuilder& read(Solace::ImmutableMemoryView const& data);
+        ResponseBuilder& read(Solace::MemoryView const& data);
         ResponseBuilder& write(size_type iounit);
         ResponseBuilder& clunk();
         ResponseBuilder& remove();
@@ -748,7 +748,7 @@ public:
 
         /* 9P2000.e extention */
         ResponseBuilder& session();
-        ResponseBuilder& shortRead(Solace::ImmutableMemoryView const& data);
+        ResponseBuilder& shortRead(Solace::MemoryView const& data);
         ResponseBuilder& shortWrite(size_type iounit);
 
     private:
@@ -756,8 +756,8 @@ public:
         MessageType             _type;
         size_type               _payloadSize;
 
-        Solace::ByteBuffer::size_type   _initialPosition;
-        Solace::ByteBuffer&             _buffer;
+        Solace::ByteWriter::size_type   _initialPosition;
+        Solace::ByteWriter&             _buffer;
     };
 
 
@@ -837,7 +837,7 @@ public:
      * @return Resulting message header if parsed successfully or an error otherwise.
      */
     Solace::Result<MessageHeader, Solace::Error>
-    parseMessageHeader(Solace::ReadBuffer& buffer) const;
+    parseMessageHeader(Solace::ByteReader& buffer) const;
 
     /**
      * Parse 9P Response type message from a byte byffer.
@@ -848,7 +848,7 @@ public:
      * @return Resulting message if parsed successfully or an error otherwise.
      */
     Solace::Result<Response, Solace::Error>
-    parseResponse(MessageHeader const& header, Solace::ReadBuffer& data) const;
+    parseResponse(MessageHeader const& header, Solace::ByteReader& data) const;
 
     /**
      * Parse 9P Request type message from a byte byffer.
@@ -859,7 +859,7 @@ public:
      * @return Resulting message if parsed successfully or an error otherwise.
      */
     Solace::Result<Request, Solace::Error>
-    parseRequest(MessageHeader const& header, Solace::ReadBuffer& data) const;
+    parseRequest(MessageHeader const& header, Solace::ByteReader& data) const;
 
 private:
 

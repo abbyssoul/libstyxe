@@ -55,13 +55,13 @@ struct OkRequest {
 
 
 Result<Protocol::Response, Error>
-parseNoDataResponse(Protocol::MessageHeader const& header, ReadBuffer& SOLACE_UNUSED(data)) {
+parseNoDataResponse(Protocol::MessageHeader const& header, ByteReader& SOLACE_UNUSED(data)) {
     return Result<Protocol::Response, Error>(types::Ok<Protocol::Response>({header.type, header.tag}));
 }
 
 
 Result<Protocol::Response, Error>
-parseErrorResponse(Protocol::MessageHeader const& header, ReadBuffer& data) {
+parseErrorResponse(Protocol::MessageHeader const& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -73,7 +73,7 @@ parseErrorResponse(Protocol::MessageHeader const& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseVersionResponse(Protocol::MessageHeader const& header, ReadBuffer& data) {
+parseVersionResponse(Protocol::MessageHeader const& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -83,7 +83,7 @@ parseVersionResponse(Protocol::MessageHeader const& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseAuthResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseAuthResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -93,7 +93,7 @@ parseAuthResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseAttachResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseAttachResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -104,7 +104,7 @@ parseAttachResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseOpenResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseOpenResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -114,7 +114,7 @@ parseOpenResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseCreateResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseCreateResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -124,7 +124,7 @@ parseCreateResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseReadResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseReadResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -134,7 +134,7 @@ parseReadResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseWriteResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseWriteResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     return Protocol::Decoder(data)
@@ -144,7 +144,7 @@ parseWriteResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseStatResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseStatResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     uint16 dummySize;
@@ -155,7 +155,7 @@ parseStatResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Response, Error>
-parseWalkResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseWalkResponse(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Response fcall(header.type, header.tag);
 
     Protocol::Decoder decoder(data);
@@ -181,7 +181,7 @@ parseWalkResponse(const Protocol::MessageHeader& header, ReadBuffer& data) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Result<Protocol::Request, Error>
-parseVersionRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseVersionRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asVersion();
@@ -192,7 +192,7 @@ parseVersionRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseAuthRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseAuthRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asAuth();
@@ -203,7 +203,7 @@ parseAuthRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseFlushRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseFlushRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asFlush();
@@ -214,7 +214,7 @@ parseFlushRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseAttachRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseAttachRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asAttach();
@@ -225,7 +225,7 @@ parseAttachRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseWalkRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseWalkRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asWalk();
@@ -236,7 +236,7 @@ parseWalkRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseOpenRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseOpenRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asOpen();
@@ -250,7 +250,7 @@ parseOpenRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseCreateRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseCreateRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asCreate();
@@ -264,7 +264,7 @@ parseCreateRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseReadRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseReadRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asRead();
@@ -275,7 +275,7 @@ parseReadRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseWriteRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseWriteRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asWrite();
@@ -286,7 +286,7 @@ parseWriteRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseClunkRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseClunkRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asClunk();
@@ -297,7 +297,7 @@ parseClunkRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseRemoveRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseRemoveRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asRemove();
@@ -308,7 +308,7 @@ parseRemoveRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseStatRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseStatRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asStat();
@@ -319,7 +319,7 @@ parseStatRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseWStatRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseWStatRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asWstat();
@@ -331,7 +331,7 @@ parseWStatRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 
 
 Result<Protocol::Request, Error>
-parseSessionRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseSessionRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asSession();
@@ -343,7 +343,7 @@ parseSessionRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 }
 
 Result<Protocol::Request, Error>
-parseShortReadRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseShortReadRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asShortRead();
@@ -353,7 +353,7 @@ parseShortReadRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
 }
 
 Result<Protocol::Request, Error>
-parseShortWriteRequest(const Protocol::MessageHeader& header, ReadBuffer& data) {
+parseShortWriteRequest(const Protocol::MessageHeader& header, ByteReader& data) {
     Protocol::Request fcall(header.type, header.tag);
 
     auto& msg = fcall.asShortWrite();
@@ -365,7 +365,7 @@ parseShortWriteRequest(const Protocol::MessageHeader& header, ReadBuffer& data) 
 
 
 Result<Protocol::MessageHeader, Error>
-Protocol::parseMessageHeader(ReadBuffer& buffer) const {
+Protocol::parseMessageHeader(ByteReader& buffer) const {
     const auto mandatoryHeaderSize = headerSize();
     const auto dataAvailliable = buffer.remaining();
 
@@ -379,10 +379,12 @@ Protocol::parseMessageHeader(ReadBuffer& buffer) const {
 
     // Sanity checks:
     // It is a serious error if server responded with the message of a size bigger than negotiated one.
-    if (header.size < headerSize())
+    if (header.size < headerSize()) {
         return Err(Error("Ill-formed message: Declared frame size less than header"));
-    if (header.size > maxNegotiatedMessageSize())
+    }
+    if (header.size > maxNegotiatedMessageSize()) {
         return Err(Error("Ill-formed message: Declared frame size greater than negotiated message size"));
+    }
 
     // Read message type:
     byte messageBytecode;
@@ -390,8 +392,9 @@ Protocol::parseMessageHeader(ReadBuffer& buffer) const {
     // don't want any funny messages.
     header.type = static_cast<MessageType>(messageBytecode);
     if (header.type < MessageType::_beginSupportedMessageCode ||
-        header.type >= MessageType::_endSupportedMessageCode)
+        header.type >= MessageType::_endSupportedMessageCode) {
         return Err(Error("Ill-formed message: Unsupported message type"));
+    }
 
     // Read message tag. Tags are provided by the client and can not be checked by the message parser.
     // Unless we are provided with the expected tag...
@@ -402,17 +405,19 @@ Protocol::parseMessageHeader(ReadBuffer& buffer) const {
 
 
 Result<Protocol::Response, Error>
-Protocol::parseResponse(const MessageHeader& header, ReadBuffer& data) const {
+Protocol::parseResponse(const MessageHeader& header, ByteReader& data) const {
     const auto expectedData = header.size - headerSize();
 
     // Message data sanity check
     // Make sure we have been given enough data to read a message as requested in the message size.
-    if (expectedData > data.remaining())
+    if (expectedData > data.remaining()) {
         return Err(Error("Ill-formed message: Declared frame size larger than message data received"));
+    }
 
     // Make sure there is no extra data in the buffer.
-    if (expectedData < data.remaining())
+    if (expectedData < data.remaining()) {
         return Err(Error("Ill-formed message: Declared frame size less than message data received"));
+    }
 
     switch (header.type) {
     case MessageType::RError:   return parseErrorResponse(header,   data);
@@ -442,21 +447,24 @@ Protocol::parseResponse(const MessageHeader& header, ReadBuffer& data) const {
 }
 
 Result<Protocol::Request, Solace::Error>
-Protocol::parseRequest(const MessageHeader& header, ReadBuffer& data) const {
+Protocol::parseRequest(const MessageHeader& header, ByteReader& data) const {
     // Just paranoid about huge messages exciding frame size getting through.
-    if (header.size > maxNegotiatedMessageSize())
+    if (header.size > maxNegotiatedMessageSize()) {
         return Err(Error("Ill-formed message: Declared frame size greater than negotiated message size"));
+    }
 
     const auto expectedData = header.size - headerSize();
 
     // Message data sanity check
     // Make sure we have been given enough data to read a message as requested in the message size.
-    if (expectedData > data.remaining())
+    if (expectedData > data.remaining()) {
         return Err(Error("Ill-formed message: Declared frame size larger than message data received"));
+    }
 
     // Make sure there is no extra unexpected data in the buffer.
-    if (expectedData < data.remaining())
+    if (expectedData < data.remaining()) {
         return Err(Error("Ill-formed message: Declared frame size less than message data received"));
+    }
 
     switch (header.type) {
     case MessageType::TVersion: return parseVersionRequest(header,      data);
@@ -592,128 +600,144 @@ Protocol::Request::~Request() {
 
 Protocol::Request::Version&
 Protocol::Request::asVersion() {
-    if (_type != MessageType::TVersion)
+    if (_type != MessageType::TVersion) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return version;
 }
 
 Protocol::Request::Auth&
 Protocol::Request::asAuth(){
-    if (_type != MessageType::TAuth)
+    if (_type != MessageType::TAuth) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return auth;
 }
 
 Protocol::Request::Flush&
 Protocol::Request::asFlush(){
-    if (_type != MessageType::TFlush)
+    if (_type != MessageType::TFlush) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return flush;
 }
 
 Protocol::Request::Attach&
 Protocol::Request::asAttach(){
-    if (_type != MessageType::TAttach)
+    if (_type != MessageType::TAttach) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return attach;
 }
 
 Protocol::Request::Walk&
 Protocol::Request::asWalk(){
-    if (_type != MessageType::TWalk)
+    if (_type != MessageType::TWalk) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return walk;
 }
 
 Protocol::Request::Open&
 Protocol::Request::asOpen(){
-    if (_type != MessageType::TOpen)
+    if (_type != MessageType::TOpen) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return open;
 }
 
 Protocol::Request::Create&
 Protocol::Request::asCreate(){
-    if (_type != MessageType::TCreate)
+    if (_type != MessageType::TCreate) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return create;
 }
 
 Protocol::Request::Read&
 Protocol::Request::asRead(){
-    if (_type != MessageType::TRead)
+    if (_type != MessageType::TRead) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return read;
 }
 
 Protocol::Request::Write&
 Protocol::Request::asWrite(){
-    if (_type != MessageType::TWrite)
+    if (_type != MessageType::TWrite) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return write;
 }
 
 Protocol::Request::Clunk&
 Protocol::Request::asClunk(){
-    if (_type != MessageType::TClunk)
+    if (_type != MessageType::TClunk) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return clunk;
 }
 
 Protocol::Request::Remove&
 Protocol::Request::asRemove(){
-    if (_type != MessageType::TRemove)
+    if (_type != MessageType::TRemove) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return remove;
 }
 
 Protocol::Request::StatRequest&
 Protocol::Request::asStat(){
-    if (_type != MessageType::TStat)
+    if (_type != MessageType::TStat) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return stat;
 }
 
 Protocol::Request::WStat&
 Protocol::Request::asWstat(){
-    if (_type != MessageType::TWStat)
+    if (_type != MessageType::TWStat) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return wstat;
 }
 
 Protocol::Request::Session&
 Protocol::Request::asSession(){
-    if (_type != MessageType::TSession)
+    if (_type != MessageType::TSession) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return session;
 }
 
 Protocol::Request::SRead&
 Protocol::Request::asShortRead(){
-    if (_type != MessageType::TSRead)
+    if (_type != MessageType::TSRead) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return shortRead;
 }
 
 Protocol::Request::SWrite&
 Protocol::Request::asShortWrite(){
-    if (_type != MessageType::TSWrite)
+    if (_type != MessageType::TSWrite) {
         Solace::raise<IOException>("Incorrect message type");
+    }
 
     return shortWrite;
 }

@@ -260,17 +260,20 @@ void dispayResponse(Protocol::Response&& resp) {
 
 
 
-void readAndPrintMessage(std::istream& in, ByteBuffer& buffer, styxe::Protocol& proc) {
+void readAndPrintMessage(std::istream& in, MemoryBuffer& buffer, styxe::Protocol& proc) {
 
     // Message header is fixed size - so it is safe to attempt to read it.
-    in.read(buffer.viewRemaining().dataAs<char>(), proc.headerSize());
-    buffer.limit(in.gcount());
+    in.read(buffer.view().dataAs<char>(), proc.headerSize());
 
-    proc.parseMessageHeader(buffer)
+    auto reader = ByteReader(buffer);
+    reader.limit(in.gcount());
+
+    proc.parseMessageHeader(reader)
             .then([&](Protocol::MessageHeader&& header) {
-                buffer.clear();
-                in.read(buffer.viewRemaining().dataAs<char>(), header.size - proc.headerSize());
-                buffer.limit(in.gcount());
+                in.read(buffer.view().dataAs<char>(), header.size - proc.headerSize());
+
+                reader.rewind()
+                        .limit(in.gcount());
 
                 bool const isRequest = (static_cast<byte>(header.type) % 2) == 0;
                 if (isRequest) {
@@ -278,14 +281,14 @@ void readAndPrintMessage(std::istream& in, ByteBuffer& buffer, styxe::Protocol& 
                               << "] <" << header.tag << ">"
                               << header.type << ": ";
 
-                    proc.parseRequest(header, buffer)
+                    proc.parseRequest(header, reader)
                             .then(dispayRequest);
                 } else {
                     std::cout << "→ [" << std::setw(5) << header.size << "] "
                               << header.type << " "
                               << header.tag << ": ";
 
-                    proc.parseResponse(header, buffer)
+                    proc.parseResponse(header, reader)
                             .then(dispayResponse);
                 }
             })
@@ -328,7 +331,7 @@ int main(int argc, const char **argv) {
 
     Protocol proc(maxMessageSize);
     MemoryManager memManager(proc.maxPossibleMessageSize());
-    ByteBuffer buffer(memManager.create(proc.maxPossibleMessageSize()));
+    auto buffer = memManager.create(proc.maxPossibleMessageSize());
 
 
     if (inputFiles) {
@@ -340,7 +343,6 @@ int main(int argc, const char **argv) {
             }
 
             readAndPrintMessage(input, buffer, proc);
-            buffer.clear();
         }
     } else {
         readAndPrintMessage(std::cin, buffer, proc);

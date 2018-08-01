@@ -23,7 +23,7 @@ using namespace Solace;
 using namespace styxe;
 
 
-ByteBuffer&
+ByteWriter&
 Protocol::RequestBuilder::build() {
     if (type() < MessageType::_beginSupportedMessageCode ||
         type() > MessageType::_endSupportedMessageCode) {
@@ -205,7 +205,7 @@ Protocol::RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::write(Fid fid, uint64 offset, ImmutableMemoryView data) {
+Protocol::RequestBuilder::write(Fid fid, uint64 offset, MemoryView data) {
     Encoder encode(buffer());
 
     // Compute message size first:
@@ -279,7 +279,9 @@ Protocol::RequestBuilder::writeStat(Fid fid, Stat const& stat) {
 
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::session(ImmutableMemoryView key) {
+Protocol::RequestBuilder::session(MemoryView key) {
+    assertIndexInRange(key.size(), 8, 9);
+
     // Compute message size first:
     _payloadSize =
             8;  // Key size is fixed to be 8 bites.
@@ -289,6 +291,7 @@ Protocol::RequestBuilder::session(ImmutableMemoryView key) {
     Encoder(buffer())
             .header(type(), _tag, _payloadSize);
 //            .encode(key);
+
     buffer().write(key, 8);
 
     return (*this);
@@ -312,7 +315,7 @@ Protocol::RequestBuilder::shortRead(Fid rootFid, Path const& path) {
 }
 
 Protocol::RequestBuilder&
-Protocol::RequestBuilder::shortWrite(Fid rootFid, Path const& path, ImmutableMemoryView data) {
+Protocol::RequestBuilder::shortWrite(Fid rootFid, Path const& path, MemoryView data) {
     Encoder encode(buffer());
 
     // Compute message size first:

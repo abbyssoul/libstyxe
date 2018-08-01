@@ -30,7 +30,7 @@ void dispayResponse(styxe::Protocol::Response&&) { /*no-op*/ }
 
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-    Solace::ReadBuffer reader(Solace::wrapMemory(data, size));
+    Solace::ByteReader reader(Solace::wrapMemory(data, size));
 
     // Case1: parse message header
     styxe::Protocol proc;

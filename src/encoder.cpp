@@ -16,7 +16,7 @@
 
 #include "styxe/9p2000.hpp"
 
-
+#include <solace/utils.hpp>  // narrow_cast
 #include <limits>
 
 
@@ -110,12 +110,12 @@ Protocol::Encoder::protocolSize(const Array<Qid>& qids) {
 
 
 Protocol::size_type
-Protocol::Encoder::protocolSize(const ImmutableMemoryView& data) {
+Protocol::Encoder::protocolSize(const MemoryView& data) {
     assertIndexInRange(data.size(), 0,
-                       static_cast<ImmutableMemoryView::size_type>(std::numeric_limits<size_type>::max()));
+                       static_cast<MemoryView::size_type>(std::numeric_limits<size_type>::max()));
 
     return sizeof(size_type) +  // Var number of elements
-            data.size();
+            narrow_cast<size_type>(data.size());
 }
 
 
@@ -194,7 +194,7 @@ Protocol::Encoder::encode(const Protocol::Stat& stat) {
 }
 
 Protocol::Encoder&
-Protocol::Encoder::encode(const ImmutableMemoryView& data) {
+Protocol::Encoder::encode(const MemoryView& data) {
     encode(static_cast<Protocol::size_type>(data.size()));
     _dest.write(data);
 

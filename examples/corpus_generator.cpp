@@ -17,6 +17,7 @@
 #include "styxe/9p2000.hpp"
 #include "styxe/print.hpp"
 
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -45,7 +46,7 @@ styxe::Protocol::Stat genStats() {
 }
 
 
-void dumpMessage(std::string const& dest, Solace::ByteBuffer& buffer) {
+void dumpMessage(std::string const& dest, ByteWriter& buffer) {
     std::ofstream output(dest);
 
     auto writenData = buffer.viewWritten();
@@ -85,12 +86,12 @@ int main(int argc, char const **argv) {
 
     byte data[25];
 
-    Solace::StringView userName(getenv("USER"));
+    StringView userName(getenv("USER"));
     std::string corpusDir = argv[1];
     styxe::Protocol proc;
 
-    Solace::MemoryManager memManager(proc.maxPossibleMessageSize());
-    Solace::ByteBuffer buffer(memManager.create(proc.maxPossibleMessageSize()));
+    MemoryManager memManager(proc.maxPossibleMessageSize());
+    ByteWriter buffer(memManager.create(proc.maxPossibleMessageSize()));
 
 
     /// Dump request messages

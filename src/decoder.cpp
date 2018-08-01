@@ -80,7 +80,7 @@ Protocol::Decoder::read(Protocol::Stat* stat) {
 
 
 Result<void, Error>
-Protocol::Decoder::read(ImmutableMemoryView* data) {
+Protocol::Decoder::read(MemoryView* data) {
     Protocol::size_type dataSize = 0;
     // Read size of the following data.
     return read(&dataSize)
@@ -96,8 +96,8 @@ Protocol::Decoder::read(ImmutableMemoryView* data) {
 
 
 Result<void, Error>
-Protocol::Decoder::read(MemoryView* data) {
-    return read(static_cast<ImmutableMemoryView*>(data));
+Protocol::Decoder::read(MutableMemoryView* data) {
+    return read(static_cast<MemoryView*>(data));
 }
 
 
@@ -114,8 +114,9 @@ Protocol::Decoder::read(Path* path) {
                 for (uint16 i = 0; i < componentsCount; ++i) {
                     StringView component;
                     auto result = read(&component);
-                    if (!result)
+                    if (!result) {
                         return result;
+                    }
 
                     // FIXME: Performance kick in the nuts!
                     components.emplace_back(component);

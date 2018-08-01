@@ -44,13 +44,13 @@ protected:
     }
 
     MemoryManager   _memManager;
-    ByteBuffer      _buffer;
+    ByteWriter     _buffer;
 };
 
 
 
 TEST_F(P9MessageBuilder, payloadResizing) {
-    ImmutableMemoryView emptyBuffer;
+    MemoryView emptyBuffer;
     Protocol::ResponseBuilder builder(_buffer, Protocol::NO_TAG);
 
     builder.read(emptyBuffer);
@@ -73,7 +73,7 @@ TEST_F(P9MessageBuilder, payloadResizing) {
 
 
 TEST_F(P9MessageBuilder, messageChanging) {
-    ImmutableMemoryView emptyBuffer;
+    MemoryView emptyBuffer;
     Protocol::ResponseBuilder builder(_buffer, Protocol::NO_TAG);
 
     builder.read(emptyBuffer);
