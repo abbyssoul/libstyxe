@@ -122,7 +122,7 @@ Protocol::Decoder::read(Path* path) {
                     components.emplace_back(component);
                 }
 
-                *path = Path(std::move(components));
+                *path = allocPath(std::move(components));
 
                 return Ok();
             });

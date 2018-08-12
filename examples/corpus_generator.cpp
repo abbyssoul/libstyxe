@@ -108,7 +108,7 @@ int main(int argc, char const **argv) {
             .attach(3, 18, userName, "someFile"));
 
     dumpMessage(corpusDir, styxe::Protocol::RequestBuilder(buffer)
-                .walk(18, 42, Path({"one", "two", "file"})));
+                .walk(18, 42, allocPath({"one", "two", "file"})));
 
     dumpMessage(corpusDir, styxe::Protocol::RequestBuilder(buffer)
                 .open(42, styxe::Protocol::OpenMode::READ));
@@ -137,9 +137,9 @@ int main(int argc, char const **argv) {
     dumpMessage(corpusDir, styxe::Protocol::RequestBuilder(buffer)
                 .session(wrapMemory(data)));
     dumpMessage(corpusDir, styxe::Protocol::RequestBuilder(buffer)
-                .shortRead(3, Path({"some", "location", "where", "file"})));
+                .shortRead(3, allocPath({"some", "location", "where", "file"})));
     dumpMessage(corpusDir, styxe::Protocol::RequestBuilder(buffer)
-                .shortWrite(7, Path({"some", "location", "where", "file"}), wrapMemory(data)));
+                .shortWrite(7, allocPath({"some", "location", "where", "file"}), wrapMemory(data)));
 
 
     /// Dump response messages
@@ -157,11 +157,11 @@ int main(int argc, char const **argv) {
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
                 .attach({21, 4884, 9047302}));
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
-                .walk({
+                .walk(allocArray<styxe::Protocol::Qid>({
                           {21, 4884, 9047302},
                           {22, 3242, 8488484},
                           {32, 9198, 8758379}
-                      }));
+                      })));
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
                 .open({21, 4884, 9047302}, 7277));
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)

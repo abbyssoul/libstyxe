@@ -22,6 +22,7 @@
 #include "styxe/9p2000.hpp"  // Class being tested
 
 #include <solace/exception.hpp>
+#include <solace/output_utils.hpp>
 
 #include "gtest/gtest.h"
 
@@ -201,7 +202,7 @@ TEST(P9_2000, parseIncorrectlySizedLargerResponse) {
 
     // Set declared message size to be more then negotiated message size
     writeHeader(writer, proc.headerSize() + sizeof(int32), Protocol::MessageType::RVersion, 1);
-    writer.writeLE(int64(999999));
+    writer.writeLE(static_cast<int64>(999999));
 
     auto reader = ByteReader{memBuffer};
     auto header = proc.parseMessageHeader(reader);
@@ -316,8 +317,8 @@ TEST_F(P9Messages, createVersionRespose) {
 TEST_F(P9Messages, parseVersionRespose) {
     // Set declared message size to be more then negotiated message size
     writeHeader(_writer, proc.headerSize() + sizeof(int32) + sizeof(int16) + 2, Protocol::MessageType::RVersion, 1);
-    _writer.writeLE(int32(512));
-    _writer.writeLE(int16(2));
+    _writer.writeLE(static_cast<int32>(512));
+    _writer.writeLE(static_cast<int16>(2));
     _writer.write(StringLiteral("9P").view());
     _writer.flip();
 
@@ -366,8 +367,8 @@ TEST_F(P9Messages, parseAuthRespose) {
     writeHeader(_writer, proc.headerSize() + 13, Protocol::MessageType::RAuth, 1);
 
     _writer.writeLE(byte(13));     // QID.type
-    _writer.writeLE(uint32(91));   // QID.version
-    _writer.writeLE(uint64(441));  // QID.path
+    _writer.writeLE(static_cast<uint32>(91));   // QID.version
+    _writer.writeLE(static_cast<uint64>(441));  // QID.path
     _writer.flip();
 
     getResponseOfFail(Protocol::MessageType::RAuth)
@@ -470,9 +471,9 @@ TEST_F(P9Messages, createAttachRespose) {
 TEST_F(P9Messages, parseAttachRespose) {
     writeHeader(_writer, proc.headerSize() + 13, Protocol::MessageType::RAttach, 1);
 
-    _writer.writeLE(byte(81));     // QID.type
-    _writer.writeLE(uint32(3));   // QID.version
-    _writer.writeLE(uint64(1049));  // QID.path
+    _writer.writeLE(byte(81));                      // QID.type
+    _writer.writeLE(static_cast<uint32>(3));        // QID.version
+    _writer.writeLE(static_cast<uint64>(1049));     // QID.path
     _writer.flip();
 
     getResponseOfFail(Protocol::MessageType::RAttach)
@@ -677,7 +678,7 @@ TEST_F(P9Messages, createWriteRespose) {
 TEST_F(P9Messages, parseWriteRespose) {
     writeHeader(_writer, proc.headerSize() + sizeof(uint32), Protocol::MessageType::RWrite, 1);
     // iounit
-    _writer.writeLE(uint32(81177));
+    _writer.writeLE(static_cast<uint32>(81177));
     _writer.flip();
 
     getResponseOfFail(Protocol::MessageType::RWrite)
@@ -860,15 +861,16 @@ TEST_F(P9Messages, parseWStatRespose) {
 
 
 TEST_F(P9Messages, createWalkRequest) {
+    auto const destPath = allocPath({"space", "knowhere"});
     Protocol::RequestBuilder(_writer)
-            .walk(213, 124, {"knowhere"})
+            .walk(213, 124, destPath)
             .build();
 
     getRequestOfFail(Protocol::MessageType::TWalk)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(213, request.asWalk().fid);
-                ASSERT_EQ(124, request.asWalk().newfid);
-                ASSERT_STREQ("knowhere", request.asWalk().path.toString().c_str());
+            .then([&destPath](Protocol::Request&& request) {
+                EXPECT_EQ(213, request.asWalk().fid);
+                EXPECT_EQ(124, request.asWalk().newfid);
+                EXPECT_EQ(destPath, request.asWalk().path);
             });
 }
 
@@ -887,7 +889,7 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
 
 
 TEST_F(P9Messages, createWalkRespose) {
-    Array<Protocol::Qid> qids(3);
+    auto qids = allocArray<Protocol::Qid>(3);
     qids[2].path = 21;
     qids[2].version = 117;
     qids[2].type = 81;
