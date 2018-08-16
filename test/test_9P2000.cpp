@@ -120,9 +120,9 @@ TEST(P9_2000, parsingMessageHeaderWithUnknownMessageType) {
     byte memBuffer[512];
     auto writer = ByteWriter{wrapMemory(memBuffer)};
 
-    writer.write(Protocol::size_type(4 + 1 + 2));
-    writer.write(static_cast<byte>(-1));
-    writer.write(Protocol::Tag(1));
+    writer.writeLE(Protocol::size_type(4 + 1 + 2));
+    writer.writeLE(static_cast<byte>(-1));
+    writer.writeLE(Protocol::Tag(1));
 
     auto reader = ByteReader{wrapMemory(memBuffer)};
     ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
@@ -136,7 +136,7 @@ TEST(P9_2000, testParsingHeaderWithInsufficientData) {
     auto writer = ByteWriter{memBuffer};
 
     // Only write one header field. Should be not enough data to read a header.
-    writer.write(Protocol::size_type(4 + 1 + 2));
+    writer.writeLE(Protocol::size_type(4 + 1 + 2));
 
     auto reader = ByteReader{memBuffer};
     auto res = proc.parseMessageHeader(reader);
