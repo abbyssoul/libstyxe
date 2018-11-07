@@ -98,7 +98,7 @@ TEST(P9_2000, testParsingMessageHeader) {
     Protocol proc;
 
     // Form a normal message with no data:
-    auto memBuffer = _mem.create(512);
+    auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
     writeHeader(writer, 4 + 1 + 2, Protocol::MessageType::TVersion, 1);
 
@@ -107,7 +107,7 @@ TEST(P9_2000, testParsingMessageHeader) {
     ASSERT_TRUE(res.isOk());
 
     auto header = res.unwrap();
-    ASSERT_EQ(4u + 1u + 2u, header.size);
+    ASSERT_EQ(4u + 1u + 2u, header.messageSize);
     ASSERT_EQ(Protocol::MessageType::TVersion, header.type);
     ASSERT_EQ(1_us, header.tag);
 }
@@ -132,7 +132,7 @@ TEST(P9_2000, testParsingHeaderWithInsufficientData) {
     MemoryManager _mem(1024);
     Protocol proc;
 
-    auto memBuffer = _mem.create(512);
+    auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
 
     // Only write one header field. Should be not enough data to read a header.
@@ -148,7 +148,7 @@ TEST(P9_2000, testParsingHeaderWithInsufficientData) {
 TEST(P9_2000, testParsingIllformedMessageHeader) {
     MemoryManager _mem(1024);
 
-    auto memBuffer = _mem.create(512);
+    auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
     // Set declared message size less then header size.
     writeHeader(writer, 1 + 2, Protocol::MessageType::TVersion, 1);
@@ -162,7 +162,7 @@ TEST(P9_2000, parsingIllFormedHeaderForMessagesLargerMTUShouldError) {
     MemoryManager _mem(1024);
     Protocol proc;
 
-    auto memBuffer = _mem.create(512);
+    auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
 
     proc.maxNegotiatedMessageSize(20);
@@ -178,7 +178,7 @@ TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
     MemoryManager _mem(1024);
     Protocol proc;
 
-    auto memBuffer = _mem.create(512);
+    auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
 
     // Set declared message size to be more then negotiated message size
@@ -197,7 +197,7 @@ TEST(P9_2000, parseIncorrectlySizedLargerResponse) {
     MemoryManager _mem(1024);
     Protocol proc;
 
-    auto memBuffer = _mem.create(proc.headerSize() + sizeof(int32)*2);
+    auto memBuffer = _mem.allocate(proc.headerSize() + sizeof(int32)*2);
     auto writer = ByteWriter{memBuffer};
 
     // Set declared message size to be more then negotiated message size
@@ -234,11 +234,9 @@ protected:
 
         return proc.parseMessageHeader(_reader)
                 .then([expectType](Protocol::MessageHeader&& header) {
-                    if (header.type != expectType) {
-                        return Result<Protocol::MessageHeader, Error>(Err(Error("unxpected message type")));
-                    } else {
-                        return Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
-                    }
+                    return (header.type != expectType)
+                            ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
+                            : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
                 })
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
@@ -258,11 +256,9 @@ protected:
 
         return proc.parseMessageHeader(_reader)
                 .then([expectType](Protocol::MessageHeader&& header) {
-                    if (header.type != expectType) {
-                        return Result<Protocol::MessageHeader, Error>(Err(Error("unxpected message type")));
-                    } else {
-                        return Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
-                    }
+                    return (header.type != expectType)
+                            ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
+                            : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
                 })
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
@@ -280,8 +276,8 @@ protected:
 
     Protocol        proc;
     MemoryManager   _memManager {Protocol::MAX_MESSAGE_SIZE};
-    MemoryBuffer    _memBuf{_memManager.create(Protocol::MAX_MESSAGE_SIZE)};
-    ByteWriter     _writer{_memBuf};
+    MemoryResource  _memBuf{_memManager.allocate(Protocol::MAX_MESSAGE_SIZE)};
+    ByteWriter      _writer{_memBuf};
     ByteReader      _reader{_memBuf};
 };
 
@@ -861,7 +857,7 @@ TEST_F(P9Messages, parseWStatRespose) {
 
 
 TEST_F(P9Messages, createWalkRequest) {
-    auto const destPath = allocPath({"space", "knowhere"});
+    auto const destPath = makePath("space", "knowhere");
     Protocol::RequestBuilder(_writer)
             .walk(213, 124, destPath)
             .build();
@@ -889,7 +885,7 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
 
 
 TEST_F(P9Messages, createWalkRespose) {
-    auto qids = allocArray<Protocol::Qid>(3);
+    auto qids = makeArray<Protocol::Qid>(3);
     qids[2].path = 21;
     qids[2].version = 117;
     qids[2].type = 81;

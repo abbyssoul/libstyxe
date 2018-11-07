@@ -17,6 +17,8 @@
 #include "styxe/9p2000.hpp"
 #include "styxe/print.hpp"
 
+#include <ostream>
+
 
 namespace styxe {
 

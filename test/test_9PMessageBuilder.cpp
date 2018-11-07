@@ -39,7 +39,7 @@ public:
 protected:
 
     void SetUp() override {
-        _buffer = _memManager.create(Protocol::MAX_MESSAGE_SIZE);
+        _buffer = _memManager.allocate(Protocol::MAX_MESSAGE_SIZE);
         _buffer.viewRemaining().fill(0xFE);
     }
 

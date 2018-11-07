@@ -17,9 +17,11 @@
 #include "styxe/9p2000.hpp"
 #include "styxe/print.hpp"
 
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+
 
 using namespace Solace;
 using namespace styxe;

@@ -19,7 +19,7 @@
 
 #include <solace/base16.hpp>
 #include <solace/output_utils.hpp>
-#include <solace/cli/parser.hpp>
+//#include <solace/cli/parser.hpp>
 
 
 #include <iostream>
@@ -125,14 +125,14 @@ void onWStatRequest(Protocol::Request::WStat& req) {
 
 
 void onWalkRequest(Protocol::Request::Walk& req) {
-    std::cout << req.fid << " "
-              << req.newfid << " "
-              << req.path.getComponentsCount() << " [";
+    std::cout << req.fid << ' '
+              << req.newfid << ' '
+              << req.path.getComponentsCount() << ' ' << '[';
 
     for (auto& c : req.path) {
-        std::cout << std::quoted(c.c_str()) << " ";
+        std::cout << '\''<< c << '\'' << ' ';
     }
-    std::cout << "]" << std::endl;
+    std::cout << ']' << std::endl;
 }
 
 
@@ -142,12 +142,15 @@ void onSessionRequest(Protocol::Request::Session& req) {
 
 
 void onShortReadRequest(Protocol::Request::SRead& req) {
-    std::cout << req.fid << " " << std::quoted(req.path.toString().to_str()) << std::endl;
+    std::cout << req.fid << ' '
+              << '\'' << req.path.toString() << '\''
+              << std::endl;
 }
 
 
 void onShortWriteRequest(Protocol::Request::SWrite& req) {
-    std::cout << req.fid << " " << std::quoted(req.path.toString().to_str())
+    std::cout << req.fid << ' '
+              << '\'' << req.path.toString() << '\''
               << " DATA[" << req.data << "]"
               << std::endl;
 }
@@ -159,7 +162,7 @@ void onVoidResponse() {
 
 void onReadResponse(Protocol::Response::Read const& resp) {
     std::cout << resp.data.size()
-              << " DATA[" << resp.data << "]"
+              << " DATA[" << resp.data << ']'
               << std::endl;
 }
 
@@ -189,20 +192,20 @@ void onAuthResponse(Protocol::Response::Auth const& resp) {
 }
 
 void onVersionResponse(Protocol::Response::Version const& resp) {
-    std::cout << resp.msize << " \"" << resp.version << "\"" <<std::endl;
+    std::cout << resp.msize << " \"" << resp.version << '\"' <<std::endl;
 }
 
 void onErrorResponse(Protocol::Response::Error const& resp) {
-    std::cout << " \"" << resp.ename << "\"" <<std::endl;
+    std::cout << " \"" << resp.ename << '\"' <<std::endl;
 }
 
 void onWalkResponse(Protocol::Response::Walk const& resp) {
     std::cout << resp.nqids
-              << "[";
+              << '[';
      for (uint i = 0; i < resp.nqids; ++i) {
-         std::cout << resp.qids[i] << " ";
+         std::cout << resp.qids[i] << ' ';
      }
-     std::cout << "]" << std::endl;
+     std::cout << ']' << std::endl;
 }
 
 
@@ -261,7 +264,7 @@ void dispayResponse(Protocol::Response&& resp) {
 
 
 
-void readAndPrintMessage(std::istream& in, MemoryBuffer& buffer, styxe::Protocol& proc) {
+void readAndPrintMessage(std::istream& in, MemoryResource& buffer, styxe::Protocol& proc) {
 
     // Message header is fixed size - so it is safe to attempt to read it.
     in.read(buffer.view().dataAs<char>(), proc.headerSize());
@@ -271,21 +274,21 @@ void readAndPrintMessage(std::istream& in, MemoryBuffer& buffer, styxe::Protocol
 
     proc.parseMessageHeader(reader)
             .then([&](Protocol::MessageHeader&& header) {
-                in.read(buffer.view().dataAs<char>(), header.size - proc.headerSize());
+                in.read(buffer.view().dataAs<char>(), header.messageSize - proc.headerSize());
 
                 reader.rewind()
                         .limit(in.gcount());
 
                 bool const isRequest = (static_cast<byte>(header.type) % 2) == 0;
                 if (isRequest) {
-                    std::cout << "→ [" << std::setw(5) << header.size
+                    std::cout << "→ [" << std::setw(5) << header.messageSize
                               << "] <" << header.tag << ">"
                               << header.type << ": ";
 
                     proc.parseRequest(header, reader)
                             .then(dispayRequest);
                 } else {
-                    std::cout << "→ [" << std::setw(5) << header.size << "] "
+                    std::cout << "→ [" << std::setw(5) << header.messageSize << "] "
                               << header.type << " "
                               << header.tag << ": ";
 
@@ -332,7 +335,7 @@ int main(int argc, const char **argv) {
 
     Protocol proc(maxMessageSize);
     MemoryManager memManager(proc.maxPossibleMessageSize());
-    auto buffer = memManager.create(proc.maxPossibleMessageSize());
+    auto buffer = memManager.allocate(proc.maxPossibleMessageSize());
 
 
     if (inputFiles) {

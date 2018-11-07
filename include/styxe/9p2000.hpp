@@ -29,6 +29,31 @@
 
 namespace styxe {
 
+
+/** Error category for protocol specific errors */
+extern Solace::AtomValue const kProtocolErrorCatergory;
+
+
+/**
+ * Enum class for protocol error codes.
+ */
+enum class CannedError : int {
+    IllFormedHeader = 0,
+    IllFormedHeader_FrameTooShort,
+    IllFormedHeader_TooBig,
+    UnsupportedMessageType,
+    NotEnoughData,
+    MoreThenExpectedData,
+};
+
+/**
+ * Get canned error from the protocol error code.
+ * @param errorId Error code of the canned error.
+ * @return Error object for the error category
+ */
+Solace::Error getCannedError(CannedError errorId);
+
+
 /**
  * An implementation of 9P2000 protocol.
  * The protocol is state-full as version, supported extentions and messages size are negotiated.
@@ -346,7 +371,7 @@ public:
      * Common header that all messages have.
      */
     struct MessageHeader {
-        size_type       size;   //!< Size of the message including size of the header and size field itself.
+        size_type       messageSize;   //!< Size of the message including size of the header and size field itself.
         MessageType     type;   //!< Type of the message. @see MessageType.
         Tag             tag;    //!< Message tag for concurent messages.
     };
@@ -768,7 +793,7 @@ public:
      */
     static constexpr size_type headerSize() noexcept {
         // Note: can't use sizeof(MessageHeader) due to padding
-        return  sizeof(MessageHeader::size) +
+        return  sizeof(MessageHeader::messageSize) +
                 sizeof(MessageHeader::type) +
                 sizeof(MessageHeader::tag);
     }
@@ -827,8 +852,8 @@ public:
      * Set negotiated protocol version.
      * @param version A new negotited protocol version.
      */
-    void setNegotiatedVersion(Solace::String const& version) noexcept {
-        _negotiatedVersion = version;
+    void setNegotiatedVersion(Solace::String&& version) noexcept {
+        _negotiatedVersion = std::move(version);
     }
 
     /**
@@ -866,7 +891,7 @@ private:
     size_type const         _maxMassageSize;                /// Initial value of the maximum message size in bytes.
     size_type               _maxNegotiatedMessageSize;      /// Negotiated value of the maximum message size in bytes.
 
-    Solace::String const    _initialVersion;                  /// Initial value of the used protocol version.
+    Solace::StringView const    _initialVersion;                  /// Initial value of the used protocol version.
     Solace::String          _negotiatedVersion;                     /// Negotiated value of the protocol version.
 };
 

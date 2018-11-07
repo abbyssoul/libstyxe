@@ -101,28 +101,31 @@ Protocol::Decoder::read(MutableMemoryView* data) {
 }
 
 
+//Result<void, Error>
+//readPathComponent(uint16 componentsCount) {
+//}
+
 Result<void, Error>
 Protocol::Decoder::read(Path* path) {
     uint16 componentsCount = 0;
 
     return read(&componentsCount)
             .then([&]() -> Result<void, Error> {
-                // FIXME: This is where PathBuilder will be handy.
-                std::vector<String> components;
-                components.reserve(componentsCount);
+                // FIXME: This is where PathBuilder can be handy.
+                auto components = makeVector<String>(componentsCount);
 
-                for (uint16 i = 0; i < componentsCount; ++i) {
+                for (decltype (componentsCount) i = 0; i < componentsCount; ++i) {
                     StringView component;
                     auto result = read(&component);
-                    if (!result) {
+                    if (!result) {  // Break on first error
                         return result;
                     }
 
                     // FIXME: Performance kick in the nuts!
-                    components.emplace_back(component);
+                    components.emplace_back(makeString(component));
                 }
 
-                *path = allocPath(std::move(components));
+                *path = makePath(components.toArray());
 
                 return Ok();
             });

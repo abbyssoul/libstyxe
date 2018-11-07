@@ -33,6 +33,32 @@ const Protocol::Tag         Protocol::NO_TAG = static_cast<Protocol::Tag>(~0);
 const Protocol::Fid         Protocol::NOFID = static_cast<Protocol::Fid>(~0);
 
 
+AtomValue const
+styxe::kProtocolErrorCatergory = atom("9p2000");
+
+
+#define CANNE(id, msg) \
+    Error(kProtocolErrorCatergory, static_cast<uint16>(id), msg)
+
+
+Error const kCannedErrors[] = {
+    CANNE(CannedError::IllFormedHeader, "Ill-formed message header. Not enough data to read a header"),
+    CANNE(CannedError::IllFormedHeader_FrameTooShort, "Ill-formed message: Declared frame size less than header"),
+    CANNE(CannedError::IllFormedHeader_TooBig, "Ill-formed message: Declared frame size greater than negotiated message size"),
+    CANNE(CannedError::UnsupportedMessageType, "Ill-formed message: Unsupported message type"),
+
+    CANNE(CannedError::NotEnoughData, "Ill-formed message: Declared frame size larger than message data received"),
+    CANNE(CannedError::MoreThenExpectedData, "Ill-formed message: Declared frame size less than message data received"),
+};
+
+
+Error
+styxe::getCannedError(CannedError errorId) {
+    return kCannedErrors[static_cast<int>(errorId)];
+}
+
+
+
 struct OkRespose {
     Result<Protocol::Response, Error>
     operator() () { return {types::Ok<Protocol::Response>{std::move(fcall)}}; }
@@ -371,19 +397,20 @@ Protocol::parseMessageHeader(ByteReader& buffer) const {
 
     // Check that we have enough data to read mandatory message header
     if (dataAvailliable < mandatoryHeaderSize) {
-        return Err(Error("Ill-formed message header. Not enough data to read a header"));
+        return Err(getCannedError(CannedError::IllFormedHeader));
     }
 
     MessageHeader header;
-    buffer.readLE(header.size);
+    buffer.readLE(header.messageSize);
 
     // Sanity checks:
     // It is a serious error if server responded with the message of a size bigger than negotiated one.
-    if (header.size < headerSize()) {
-        return Err(Error("Ill-formed message: Declared frame size less than header"));
+    if (header.messageSize < headerSize()) {
+        return Err(getCannedError(CannedError::IllFormedHeader_FrameTooShort));
     }
-    if (header.size > maxNegotiatedMessageSize()) {
-        return Err(Error("Ill-formed message: Declared frame size greater than negotiated message size"));
+
+    if (header.messageSize > maxNegotiatedMessageSize()) {
+        return Err(getCannedError(CannedError::IllFormedHeader_TooBig));
     }
 
     // Read message type:
@@ -393,7 +420,7 @@ Protocol::parseMessageHeader(ByteReader& buffer) const {
     header.type = static_cast<MessageType>(messageBytecode);
     if (header.type < MessageType::_beginSupportedMessageCode ||
         header.type >= MessageType::_endSupportedMessageCode) {
-        return Err(Error("Ill-formed message: Unsupported message type"));
+        return Err(getCannedError(CannedError::UnsupportedMessageType));
     }
 
     // Read message tag. Tags are provided by the client and can not be checked by the message parser.
@@ -405,18 +432,23 @@ Protocol::parseMessageHeader(ByteReader& buffer) const {
 
 
 Result<Protocol::Response, Error>
-Protocol::parseResponse(const MessageHeader& header, ByteReader& data) const {
-    const auto expectedData = header.size - headerSize();
+Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
+    auto const expectedData = header.messageSize - headerSize();
 
     // Message data sanity check
+    // Just paranoid about huge messages exciding frame size getting through.
+    if (header.messageSize > maxNegotiatedMessageSize()) {
+        return Err(getCannedError(CannedError::IllFormedHeader_TooBig));
+    }
+
     // Make sure we have been given enough data to read a message as requested in the message size.
     if (expectedData > data.remaining()) {
-        return Err(Error("Ill-formed message: Declared frame size larger than message data received"));
+        return Err(getCannedError(CannedError::NotEnoughData));
     }
 
     // Make sure there is no extra data in the buffer.
     if (expectedData < data.remaining()) {
-        return Err(Error("Ill-formed message: Declared frame size less than message data received"));
+        return Err(getCannedError(CannedError::MoreThenExpectedData));
     }
 
     switch (header.type) {
@@ -442,28 +474,28 @@ Protocol::parseResponse(const MessageHeader& header, ByteReader& data) const {
         return parseNoDataResponse(header,   data);
 
     default:
-        return Err(Error("Failed to parse responce message: Unsupported message type"));
+        return Err(getCannedError(CannedError::UnsupportedMessageType));
     }
 }
 
 Result<Protocol::Request, Solace::Error>
 Protocol::parseRequest(const MessageHeader& header, ByteReader& data) const {
-    // Just paranoid about huge messages exciding frame size getting through.
-    if (header.size > maxNegotiatedMessageSize()) {
-        return Err(Error("Ill-formed message: Declared frame size greater than negotiated message size"));
-    }
-
-    const auto expectedData = header.size - headerSize();
+    const auto expectedData = header.messageSize - headerSize();
 
     // Message data sanity check
+    // Just paranoid about huge messages exciding frame size getting through.
+    if (header.messageSize > maxNegotiatedMessageSize()) {
+        return Err(getCannedError(CannedError::IllFormedHeader_TooBig));
+    }
+
     // Make sure we have been given enough data to read a message as requested in the message size.
     if (expectedData > data.remaining()) {
-        return Err(Error("Ill-formed message: Declared frame size larger than message data received"));
+        return Err(getCannedError(CannedError::NotEnoughData));
     }
 
     // Make sure there is no extra unexpected data in the buffer.
     if (expectedData < data.remaining()) {
-        return Err(Error("Ill-formed message: Declared frame size less than message data received"));
+        return Err(getCannedError(CannedError::MoreThenExpectedData));
     }
 
     switch (header.type) {
@@ -486,7 +518,7 @@ Protocol::parseRequest(const MessageHeader& header, ByteReader& data) const {
     case MessageType::TSWrite:  return parseShortWriteRequest(header,   data);
 
     default:
-        return Err(Error("Failed to parse responce message: Unsupported message type"));
+        return Err(getCannedError(CannedError::UnsupportedMessageType));
     }
 }
 
@@ -502,7 +534,7 @@ Protocol::Protocol(size_type maxMassageSize, StringView version) :
     _maxMassageSize(maxMassageSize),
     _maxNegotiatedMessageSize(maxMassageSize),
     _initialVersion(version),
-    _negotiatedVersion(version)
+    _negotiatedVersion(makeString(version))
 {
     // No-op
 }
