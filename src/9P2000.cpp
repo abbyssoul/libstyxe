@@ -53,7 +53,7 @@ Error const kCannedErrors[] = {
 
 
 Error
-styxe::getCannedError(CannedError errorId) {
+styxe::getCannedError(CannedError errorId) noexcept {
     return kCannedErrors[static_cast<int>(errorId)];
 }
 

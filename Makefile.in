@@ -52,7 +52,7 @@ test_obj = $(addprefix $(BUILD_DIR)/, $(test_src:.cpp=.o))
 dep = $(obj:.o=.d)  # one dependency file for each source
 
 
-CXXFLAGS += -std=c++14 -pipe -ftemplate-depth=128
+CXXFLAGS += -std=c++17 -pipe -ftemplate-depth=128
 CXXFLAGS += -pedantic -Wall -Wextra -Wabi -Wfloat-equal \
 -Wshadow -Wno-missing-field-initializers -Wno-missing-braces \
 -Wcast-qual -Wno-sign-compare -Wno-multichar
@@ -237,7 +237,7 @@ cpplint: $(MODULE_HEADERS) $(MODULE_SRC)
 	cpplint --recursive --exclude=${TEST_SRC_DIR}/ci/* ${PUBLIC_HEADERS} ${SRC_DIR} ${TEST_SRC_DIR} $(EXAMPLES_SRC_DIR)
 
 cppcheck: $(MODULE_HEADERS) $(MODULE_SRC) tools/cppcheck/cppcheck
-	tools/cppcheck/cppcheck --std=c++11 --std=posix -D __linux__ --inline-suppr -q --error-exitcode=2 \
+	tools/cppcheck/cppcheck --std=c++14 --std=posix -D __linux__ --inline-suppr -q --error-exitcode=2 \
 	--enable=warning,performance,portability,missingInclude,information,unusedFunction \
 	-I include -i test/ci ${SRC_DIR} ${TEST_SRC_DIR} $(EXAMPLES_SRC_DIR)
 

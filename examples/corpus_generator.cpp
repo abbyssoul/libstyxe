@@ -150,14 +150,14 @@ int main(int argc, char const **argv) {
                 .auth({1, 543, 939938}));
 
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
-                .error(StringView{"This is a test error. Please move on."}));
+                .error("This is a test error. Please move on."));
 
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
                 .flush());
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
                 .attach({21, 4884, 9047302}));
     dumpMessage(corpusDir, styxe::Protocol::ResponseBuilder(buffer, 1)
-                .walk(makeArray<styxe::Protocol::Qid>(
+                .walk(makeArrayOf<styxe::Protocol::Qid>(
                           styxe::Protocol::Qid{21, 4884, 9047302},
                           styxe::Protocol::Qid{22, 3242, 8488484},
                           styxe::Protocol::Qid{32, 9198, 8758379}

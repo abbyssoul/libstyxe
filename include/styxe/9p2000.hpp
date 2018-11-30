@@ -51,7 +51,7 @@ enum class CannedError : int {
  * @param errorId Error code of the canned error.
  * @return Error object for the error category
  */
-Solace::Error getCannedError(CannedError errorId);
+Solace::Error getCannedError(CannedError errorId) noexcept;
 
 
 /**

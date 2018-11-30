@@ -15,6 +15,7 @@
 */
 
 #include "styxe/9p2000.hpp"
+#include "styxe/version.hpp"
 #include "styxe/print.hpp"
 
 #include <solace/base16.hpp>
@@ -29,6 +30,25 @@
 
 using namespace Solace;
 using namespace styxe;
+
+
+template<typename T>
+struct Quoted {
+    Quoted(T const& t, char quote='\'')
+        : _t(t)
+        , _quote(quote)
+    {}
+
+    friend std::ostream& operator<< (std::ostream& ostr, Quoted<T> const& q) {
+        return ostr << q._quote << q._t << q._quote;
+    }
+
+    char const _quote;
+    T const& _t;
+};
+
+template<typename T>
+Quoted<T> quote(T const& t, char q='\'') { return Quoted<T>(t, q); }
 
 
 std::ostream& operator<< (std::ostream& ostr, Protocol::OpenMode mode) {
@@ -46,16 +66,16 @@ std::ostream& operator<< (std::ostream& ostr, Protocol::OpenMode mode) {
 }
 
 std::ostream& operator<< (std::ostream& ostr, Protocol::Qid const& qid) {
-    return ostr << "{"
+    return ostr << '{'
                 << "type: " << static_cast<int>(qid.type) << ", "
                 << "ver: "  << qid.version << ", "
                 << "path: " << qid.path
-                << "}";
+                << '}';
 
 }
 
 std::ostream& operator<< (std::ostream& ostr, Protocol::Stat const& stat) {
-    return ostr << "{"
+    return ostr << '{'
          << "size: "    << stat.size    << ", "
          << "type: "    << stat.type    << ", "
          << "dev: "     << stat.dev     << ", "
@@ -68,12 +88,12 @@ std::ostream& operator<< (std::ostream& ostr, Protocol::Stat const& stat) {
          << "uid: \""   << stat.uid     << "\", "
          << "gid: \""   << stat.gid     << "\", "
          << "muid: \""  << stat.muid    << "\""
-         << "}";
+         << '}';
 }
 
 
 void onVersionRequest(Protocol::Request::Version& req) {
-    std::cout << req.msize << " \"" << req.version << "\"" <<std::endl;
+    std::cout << req.msize << ' ' << quote(req.version, '\"') <<std::endl;
 }
 
 void onAuthRequest(Protocol::Request::Auth& req) {

@@ -14,16 +14,22 @@
 *  limitations under the License.
 */
 #pragma once
-#ifndef STYXE_PRINT_HPP
-#define STYXE_PRINT_HPP
+#ifndef STYXE_VERSION_HPP
+#define STYXE_VERSION_HPP
 
-#include "9p2000.hpp"
+#include <solace/version.hpp>
 
-#include <ostream>
 
 namespace styxe {
 
-    std::ostream& operator<< (std::ostream& ostr, Protocol::MessageType t);
+
+/**
+ * Get compiled version of the library.
+ * @note This is not the protocol version but the library itself.
+ * @return Version of this library.
+ */
+Solace::Version getVersion() noexcept;
+
 
 }  // end of namespace styxe
-#endif  // STYXE_PRINT_HPP
+#endif // STYXE_VERSION_HPP
