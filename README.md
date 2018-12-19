@@ -15,7 +15,7 @@ It also includes 9P2000.e extension. To learn more about the extension please se
 # Using this library
 
 ### To create 9P message:
-The library use Solace::WriteBuffer / Solace::ReadBuffer to provide a writer / reader interface.
+The library is using `Solace::WriteBuffer` / `Solace::ReadBuffer` to read/write byte streams.
 Note that this adaptors do not allocate memory. So the user is responsible for creating a
 buffer of appropriate size to write the resulting message to.
 Note that the size of the target buffer should be no more then negotiated message size for the current session.
@@ -28,11 +28,11 @@ Note that the size of the target buffer should be no more then negotiated messag
 Solace::WriteBuffer buffer(...);
 
 // Write TVersion request into the beffer
-styxe::Protocol::RequestBuilder(buffer)
+styxe::Protocol::RequestBuilder(destBuffer)
             .version();
 ...
-// Write TOpen request into the buffer
-styxe::Protocol::RequestBuilder(buffer)
+// Write TOpen request into the given destination buffer
+styxe::Protocol::RequestBuilder(destBuffer)
             .open(42, styxe::Protocol::OpenMode::READ));
 
 ```
@@ -72,7 +72,9 @@ See [examples](docs/examples.md) for other example usage of this library.
 
 
 ## Dependencies
-Please note that this library depends on [libsolace](https://github.com/abbyssoul/libsolace).
+This library depends on [libsolace](https://github.com/abbyssoul/libsolace) for low level data manipulation primitives
+such as ByteReader/ByteWriter and Result<> type.
+Since it is only a 9P protocol parser - there is dependency on the IO. It is library users responsibility to provide data stream.
 
 ### GTest
 Note test framework used is gtest and it is managed via git modules.
@@ -123,7 +125,7 @@ make
 make test
 
 # To run valgrind on test suit:
-# Please note – doesn’t work with ./configure --enable-sanitize option
+# Note: `valgrind` doesn’t work with ./configure --enable-sanitize option
 make verify
 
 # To build API documentation using doxygen:

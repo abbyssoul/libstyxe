@@ -331,7 +331,7 @@ int main(int argc, const char **argv) {
     auto maxMessageSize = Protocol::MAX_MESSAGE_SIZE;
     auto requiredVersion = Protocol::PROTOCOL_VERSION;
 
-    auto const parseArgs = cli::Parser("Decoded and print 9P message")
+    auto const parseArgs = cli::Parser("Decode and print 9P message")
             .options({
                          cli::Parser::printVersion("9pdecode", {1, 0, 0}),
                          cli::Parser::printHelp(),
