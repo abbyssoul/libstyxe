@@ -77,7 +77,7 @@ such as ByteReader/ByteWriter and Result<> type.
 Since it is only a 9P protocol parser - there is dependency on the IO. It is library users responsibility to provide data stream.
 
 ### GTest
-Note test framework used is gtest and it is managed via git modules.
+Note test framework used is *gtest* and it is managed via git modules.
 Don't forget to do `git submodule update --init --recursive` on a new checkout to pull sub-module dependencies.
 
 
