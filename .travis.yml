@@ -6,16 +6,19 @@ os:
   - linux
 addons:
  apt:
+   update: true
    sources:
    - ubuntu-toolchain-r-test
-   - llvm-toolchain-trusty-5.0
+   - llvm-toolchain-trusty-6.0
    packages:
-   - clang-5.0
+   - clang-6.0
    - gcc-7
    - g++-7
    - binutils-2.26
+   - cmake
    - doxygen
    - python-pip
+   - libc6-dbg  # needed by Valgrind
    - valgrind
    - ggcov
    - lcov
@@ -44,14 +47,11 @@ install:
 
 script:
   - ./configure --enable-sanitizer
-  - make clean
-  - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make codecheck; fi
+  - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean codecheck; fi
   - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make -j2 test; fi
-  - make clean
-  - ./configure --disable-sanitizer --enable-debug
-  - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make verify ; fi
+  - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./configure --disable-sanitizer --enable-debug && make clean && make verify ; fi
 
 after_success:
-  - make clean && make coverage_report
+  - make clean coverage_report
   - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
   - coveralls-lcov --repo-token ${COVERALLS_TOKEN} coverage.info  # uploads to coveralls
