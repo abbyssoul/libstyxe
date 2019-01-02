@@ -9,7 +9,8 @@ set(SOURCE_FILES
         )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} solace)
+target_link_libraries(${PROJECT_NAME} ${CONAN_LIBS})
+#    CONAN_PKG::libsolace)
 
 install(TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION lib

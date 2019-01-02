@@ -1,0 +1,5 @@
+[requires]
+libsolace/0.1@abbyssoul/testing
+
+[generators]
+cmake

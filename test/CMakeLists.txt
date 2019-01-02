@@ -8,7 +8,7 @@ set(TEST_SOURCE_FILES
 
         test_9P2000.cpp
         test_9PMessageBuilder.cpp
-        )
+    )
 
 
 if(STYXE_GTEST_SUPPORT)
@@ -21,6 +21,8 @@ else()
 endif()
 
 enable_testing()
+
+include_directories(${gtest_SOURCE_DIR}/include ${COMMON_INCLUDES})
 add_executable(test_${PROJECT_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE_FILES})
 add_test(NAME test_${PROJECT_NAME}
     COMMAND test_${PROJECT_NAME}
