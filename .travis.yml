@@ -32,9 +32,9 @@ addons:
   branch_pattern: coverity_scan
 
 before_install:
-  - pip3 install conan --upgrade
-  - pip3 install --user cpplint --upgrade
-  - pip3 install --user cpp-coveralls --upgrade
+  - pip3 install conan
+  - pip3 install cpplint --upgrade
+  - pip3 install cpp-coveralls --upgrade
   - gem install coveralls-lcov
 install:
   - gcov --version
