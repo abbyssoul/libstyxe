@@ -44,7 +44,7 @@ styxe::kProtocolErrorCatergory = atom("9p2000");
 Error const kCannedErrors[] = {
     CANNE(CannedError::IllFormedHeader, "Ill-formed message header. Not enough data to read a header"),
     CANNE(CannedError::IllFormedHeader_FrameTooShort, "Ill-formed message: Declared frame size less than header"),
-    CANNE(CannedError::IllFormedHeader_TooBig, "Ill-formed message: Declared frame size greater than negotiated message size"),
+    CANNE(CannedError::IllFormedHeader_TooBig, "Ill-formed message: Declared frame size greater than negotiated one"),
     CANNE(CannedError::UnsupportedMessageType, "Ill-formed message: Unsupported message type"),
 
     CANNE(CannedError::NotEnoughData, "Ill-formed message: Declared frame size larger than message data received"),

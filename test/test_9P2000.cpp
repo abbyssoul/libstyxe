@@ -235,8 +235,8 @@ protected:
         return proc.parseMessageHeader(_reader)
                 .then([expectType](Protocol::MessageHeader&& header) {
                     return (header.type != expectType)
-                            ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                            : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
+                    ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
+                    : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
                 })
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
@@ -257,8 +257,8 @@ protected:
         return proc.parseMessageHeader(_reader)
                 .then([expectType](Protocol::MessageHeader&& header) {
                     return (header.type != expectType)
-                            ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                            : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
+                ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
+                : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
                 })
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);

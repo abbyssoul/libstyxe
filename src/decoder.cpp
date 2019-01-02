@@ -101,10 +101,6 @@ Protocol::Decoder::read(MutableMemoryView* data) {
 }
 
 
-//Result<void, Error>
-//readPathComponent(uint16 componentsCount) {
-//}
-
 Result<void, Error>
 Protocol::Decoder::read(Path* path) {
     uint16 componentsCount = 0;
@@ -114,7 +110,7 @@ Protocol::Decoder::read(Path* path) {
                 // FIXME: This is where PathBuilder can be handy.
                 auto components = makeVector<String>(componentsCount);
 
-                for (decltype (componentsCount) i = 0; i < componentsCount; ++i) {
+                for (decltype(componentsCount) i = 0; i < componentsCount; ++i) {
                     StringView component;
                     auto result = read(&component);
                     if (!result) {  // Break on first error

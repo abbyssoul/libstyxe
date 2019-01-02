@@ -32,4 +32,4 @@ Solace::Version getVersion() noexcept;
 
 
 }  // end of namespace styxe
-#endif // STYXE_VERSION_HPP
+#endif  // STYXE_VERSION_HPP
