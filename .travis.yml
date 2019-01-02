@@ -17,7 +17,7 @@ addons:
    - binutils-2.26
    - cmake
    - doxygen
-   - python-pip
+   - python3-pip
    - libc6-dbg  # needed by Valgrind
    - valgrind
    - ggcov
@@ -32,8 +32,9 @@ addons:
   branch_pattern: coverity_scan
 
 before_install:
-  - pip install --user cpp-coveralls
-  - pip install --user cpplint
+  - pip3 install --user cpplint --upgrade
+  - pip3 install --user conan --upgrade
+  - pip3 install --user cpp-coveralls --upgrade
   - gem install coveralls-lcov
 install:
   - gcov --version
