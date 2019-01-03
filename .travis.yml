@@ -17,7 +17,8 @@ addons:
    - binutils-2.26
    - cmake
    - doxygen
-   - python3-pip
+   - python3
+   #- python3-pip
    - libc6-dbg  # needed by Valgrind
    - valgrind
    - ggcov
@@ -33,15 +34,14 @@ addons:
 
 before_install:
   #- pip3 install conan
-  - sudo pip3 install virtualenv
-  - mkdir env
-  - virtualenv env
-  - source env/bin/activate
+  #- sudo pip3 install virtualenv
   - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  - python3 -m env
+  - source env/bin/activate
   - sudo python3 get-pip.py
-  - sudo pip install conan
-  - sudo pip install cpplint --upgrade
-  - sudo pip install cpp-coveralls --upgrade
+  - which pip
+  - sudo pip install
+  - sudo pip install conan cpplint cpp-coveralls--upgrade
   - gem install coveralls-lcov
 
 install:
@@ -57,7 +57,9 @@ install:
 script:
   - source env/bin/activate
   - which python
+  - which pip
   - python -V
+  - pip -V
   - ./configure --enable-sanitizer
   - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean codecheck; fi
   - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make -j2 test; fi
