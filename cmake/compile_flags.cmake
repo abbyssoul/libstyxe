@@ -106,7 +106,7 @@ endif()
 # ---------------------------------
 # When sanitizers are ON
 # ---------------------------------
-if (STYXE_SANITIZE)
+if (SANITIZE)
     check_cxx_compiler_flag("-fsanitize=leak" WITH_SANITIZE_LEAK)
     if (WITH_SANITIZE_LEAK)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined,leak")
@@ -135,7 +135,7 @@ endif()
 # ---------------------------------
 # Debug build with test coverage
 # ---------------------------------
-if (STYXE_COVERALLS)
+if (COVERALLS)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage") # enabling coverage
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
