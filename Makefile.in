@@ -79,7 +79,7 @@ build_coverage: $(BUILD_DIR)/build_coverage
 # Build unit tests
 #-------------------------------------------------------------------------------
 $(TEST_TAGRET): ${GENERATED_MAKE}
-	$(MAKE) -C ${BUILD_DIR} $(TESTNAME)
+	$(MAKE) -C ${BUILD_DIR} $(TESTNAME) VERBOSE=1
 
 
 tests: $(LIB_TAGRET) $(TEST_TAGRET)
