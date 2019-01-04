@@ -1,5 +1,8 @@
 [requires]
 libsolace/0.1@abbyssoul/stable
 
+[options]
+libsolace:shared=False
+
 [generators]
 cmake
