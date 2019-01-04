@@ -11,25 +11,28 @@ set(TEST_SOURCE_FILES
     )
 
 
+enable_testing()
+
+add_executable(test_${PROJECT_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE_FILES})
+
 if(STYXE_GTEST_SUPPORT)
     message(STATUS, "Using local version of GTest")
 
     add_subdirectory(../${STYXE_EXTERNAL_DEP_GTEST_DIR} ${CMAKE_BINARY_DIR}/gtest EXCLUDE_FROM_ALL)
-    include_directories(SYSTEM ${gtest_SOURCE_DIR}/include)
+#    include_directories(SYSTEM ${gtest_SOURCE_DIR}/include)
+#    target_include_directories(test_${PROJECT_NAME} PRIVATE ${gtest_SOURCE_DIR}/include ${COMMON_INCLUDES})
 else()
     message(STATUS, "Using provided version of GTest")
 endif()
 
-enable_testing()
 
-include_directories(${gtest_SOURCE_DIR}/include ${COMMON_INCLUDES})
-add_executable(test_${PROJECT_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE_FILES})
-add_test(NAME test_${PROJECT_NAME}
-    COMMAND test_${PROJECT_NAME}
-    )
-
-target_link_libraries(test_${PROJECT_NAME} PRIVATE
+#PRIVATE
+target_link_libraries(test_${PROJECT_NAME}
     ${PROJECT_NAME}
     gtest
     $<$<NOT:$<PLATFORM_ID:Darwin>>:rt>
+    )
+
+add_test(NAME test_${PROJECT_NAME}
+    COMMAND test_${PROJECT_NAME}
     )
