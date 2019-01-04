@@ -33,14 +33,14 @@ addons:
   branch_pattern: coverity_scan
 
 before_install:
-  #- sudo pip install conan --upgrade
   #- curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
   #- sudo pip3 install virtualenv env
   #- python3 -m env
   #- source env/bin/activate
   #- sudo python3 get-pip.py
   - which pip
-  - sudo pip install conan cpplint cpp-coveralls
+  - sudo pip install cpplint cpp-coveralls
+  - sudo pip install conan --upgrade
   - gem install coveralls-lcov
 
 install:
