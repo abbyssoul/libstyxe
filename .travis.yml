@@ -34,8 +34,8 @@ addons:
 
 before_install:
   #- pip3 install conan
-  #- sudo pip3 install virtualenv
   - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  - sudo pip3 install virtualenv env
   - python3 -m env
   - source env/bin/activate
   - sudo python3 get-pip.py
