@@ -40,7 +40,7 @@ before_install:
   #- source env/bin/activate
   #- sudo python3 get-pip.py
   - which pip
-  - pip install conan cpplint cpp-coveralls
+  - sudo pip install conan cpplint cpp-coveralls
   - gem install coveralls-lcov
 
 install:
