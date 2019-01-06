@@ -183,8 +183,9 @@ install: $(LIB_TAGRET)
 		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 		-DSANITIZE=${SANITIZE} \
 		..
-#	cd ${BUILD_DIR} && cmake --build . --target install --config ${BUILD_TYPE}
+	#cd ${BUILD_DIR} && cmake --build . --target install --config ${BUILD_TYPE}
 	$(MAKE) -C ${BUILD_DIR} install DESTDIR=$(DESTDIR)
+
 
 .PHONY: uninstall
 uninstall:

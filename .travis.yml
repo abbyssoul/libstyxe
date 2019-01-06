@@ -17,8 +17,7 @@ addons:
    - binutils-2.26
    - cmake
    - doxygen
-   - python3
-   #- python3-pip
+   - python-pip
    - libc6-dbg  # needed by Valgrind
    - valgrind
    - ggcov
@@ -33,12 +32,6 @@ addons:
   branch_pattern: coverity_scan
 
 before_install:
-  #- curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-  #- sudo pip3 install virtualenv env
-  #- python3 -m env
-  #- source env/bin/activate
-  #- sudo python3 get-pip.py
-  - which pip
   - sudo pip install cpplint cpp-coveralls
   - sudo pip install conan --upgrade
   - gem install coveralls-lcov
@@ -61,7 +54,6 @@ script:
   - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./configure --disable-sanitizer --enable-debug && make clean && make verify ; fi
 
 after_success:
-  - source env/bin/activate
   - make clean coverage_report
   - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
   - coveralls-lcov --repo-token ${COVERALLS_TOKEN} coverage.info  # uploads to coveralls
