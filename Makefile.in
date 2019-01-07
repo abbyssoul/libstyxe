@@ -54,11 +54,11 @@ $(BUILD_DIR):
 $(DEP_INSTALL): $(BUILD_DIR)
 	cd ${BUILD_DIR} && conan install ..
 
-$(GENERATED_MAKE): ${DEP_INSTALL}
+$(GENERATED_MAKE): $(DEP_INSTALL)
 	cd ${BUILD_DIR} && cmake -DSANITIZE=${SANITIZE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
 
 
-${BUILD_DIR}/build_coverage: ${DEP_INSTALL}
+${BUILD_DIR}/build_coverage: $(DEP_INSTALL)
 	cd ${BUILD_DIR} && cmake -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug ..
 	$(MAKE) -C ${BUILD_DIR}
 	$(shell touch ${BUILD_DIR}/build_coverage)
@@ -79,7 +79,7 @@ build_coverage: $(BUILD_DIR)/build_coverage
 # Build unit tests
 #-------------------------------------------------------------------------------
 $(TEST_TAGRET): ${GENERATED_MAKE}
-	$(MAKE) -C ${BUILD_DIR} $(TESTNAME) VERBOSE=1
+	$(MAKE) -C ${BUILD_DIR} $(TESTNAME)
 
 
 tests: $(LIB_TAGRET) $(TEST_TAGRET)
@@ -109,7 +109,8 @@ ANALYZE_MAKE: ${ANALYZE_DIR}
 
 tools/cppcheck:
 	# Getting latest cppcheck
-	git clone --single-branch --depth 1 https://github.com/danmar/cppcheck.git tools/cppcheck
+	# Fix cppcheck version to 1.85 as master is borked
+	git clone -b '1.85' --single-branch --depth 1 https://github.com/danmar/cppcheck.git tools/cppcheck
 
 tools/cppcheck/cppcheck: tools/cppcheck
 	git -C tools/cppcheck pull

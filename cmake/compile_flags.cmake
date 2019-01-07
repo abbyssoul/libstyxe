@@ -59,9 +59,6 @@ endif (WITH_WARN_LOGICAL_OP)
 if (WITH_WARN_STRICT_NULL_SENTINEL)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstrict-null-sentinel")
 endif (WITH_WARN_STRICT_NULL_SENTINEL)
-if (WITH_STACK_PROTECTOR)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong")
-endif (WITH_STACK_PROTECTOR)
 
 
 # It's better to use fortify_sources if compiler supports it
@@ -73,6 +70,9 @@ if (UNIX AND NOT APPLE)
 endif()
 
 
+if (WITH_STACK_PROTECTOR)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong")
+endif (WITH_STACK_PROTECTOR)
 # ---------------------------------
 # Debug mode flags
 # ---------------------------------
@@ -96,10 +96,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -D NDEBUG")
 # Extra optimizations on GCC
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND NOT "MINGW")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fuse-ld=gold")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fuse-linker-plugin -flto-report -flto")
-
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fuse-linker-plugin -flto")
 endif()
 
 
@@ -114,10 +111,6 @@ if (SANITIZE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined")
         message(STATUS, "Leak sanitizer not supported")
     endif(WITH_SANITIZE_LEAK)
-
-    if (WITH_SANITIZE_ADDRESS_USE_AFTER_SCOPE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-address-use-after-scope")
-    endif(WITH_SANITIZE_ADDRESS_USE_AFTER_SCOPE)
 
     if (WITH_SANITIZE_SIGNED_INTEGER_OVERFLOW)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=signed-integer-overflow")
