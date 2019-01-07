@@ -100,8 +100,8 @@ In order to build this project following tools must be present in the system:
 * cpplint (for static code analysis in addition to cppcheck)
 * valgrind (for runtime code quality verification)
 
-This project is using C++14 features extensively. The minimal tested/required version of gcc is gcc-4.9.
-[CI](https://travis-ci.org/abbyssoul/libstyxe) is using clang-5 and gcc-7.
+This project is using C++17 features extensively. The minimal tested/required version of gcc is gcc-7.
+[CI](https://travis-ci.org/abbyssoul/libstyxe) is using clang-6 and gcc-7.
 To install build tools on Debian based Linux distribution:
 ```shell
 sudo apt-get update -qq
@@ -109,8 +109,8 @@ sudo apt-get install git doxygen python-pip valgrind ggcov
 sudo pip install cpplint
 ```
 
-The library has one external dependency: [libsolace](https://github.com/abbyssoul/libsolace).
-Please make sure it is installed and available in the build path before building the project.
+The library has one external dependency: [libsolace](https://github.com/abbyssoul/libsolace)  which is managed via conan.
+Please make sure [conan is installed](https://docs.conan.io/en/latest/installation.html) on your system if you want to build this project.
 
 ## Building the project
 ```shell
