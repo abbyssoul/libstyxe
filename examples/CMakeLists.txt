@@ -19,3 +19,7 @@ target_link_libraries(corpus_generator ${PROJECT_NAME})
 set(EXAMPLE_fuzz_parser_SOURCE_FILES corpus_generator.cpp)
 add_executable(fuzz-parser ${EXAMPLE_fuzz_parser_SOURCE_FILES})
 target_link_libraries(fuzz-parser ${PROJECT_NAME})
+
+
+add_custom_target(examples
+    DEPENDS 9pdecode corpus_generator fuzz-parser)
