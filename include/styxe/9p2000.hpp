@@ -350,7 +350,11 @@ public:
         Encoder(Encoder const&) = delete;
         Encoder& operator= (Encoder const&) = delete;
 
-        Encoder& header(MessageType type, Tag tag, size_type payloadSize = 0);
+        Encoder& header(Solace::byte customMessageType, Tag tag, size_type payloadSize);
+        Encoder& header(MessageType type, Tag tag, size_type payloadSize = 0) {
+            return header(static_cast<Solace::byte>(type), tag, payloadSize);
+        }
+
         Encoder& encode(Solace::uint8 value);
         Encoder& encode(Solace::uint16 value);
         Encoder& encode(Solace::uint32 value);

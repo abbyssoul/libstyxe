@@ -119,11 +119,10 @@ Protocol::Encoder::protocolSize(const MemoryView& data) {
 }
 
 
-
 Protocol::Encoder&
-Protocol::Encoder::header(MessageType type, Tag tag, size_type payloadSize) {
+Protocol::Encoder::header(Solace::byte customMessageType, Tag tag, size_type payloadSize) {
     return encode(Protocol::headerSize() + payloadSize)
-            .encode(static_cast<byte>(type))
+            .encode(customMessageType)
             .encode(tag);
 }
 
