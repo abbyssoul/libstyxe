@@ -333,7 +333,7 @@ public:
          * @param value Value to store in the message.
          * @return Number of bytes required to represent the value given.
          */
-        static size_type protocolSize(Solace::Array<Qid> const& value);
+        static size_type protocolSize(Solace::ArrayView<Qid> value);
         /**
          * Compute the number of bytes in the buffer required to store a given value.
          * @param value Value to store in the message.
@@ -361,8 +361,8 @@ public:
         Encoder& encode(Solace::uint64 value);
         Encoder& encode(Solace::StringView str);
         Encoder& encode(Solace::String const& str) = delete;
-        Encoder& encode(Qid const& qid);
-        Encoder& encode(Solace::Array<Qid> const& qids);
+        Encoder& encode(Qid qid);
+        Encoder& encode(Solace::ArrayView<Qid> qids);
         Encoder& encode(Stat const& stat);
         Encoder& encode(Solace::MemoryView const& data);
         Encoder& encode(Solace::Path const& path);
@@ -765,7 +765,7 @@ public:
 
         ResponseBuilder& flush();
         ResponseBuilder& attach(Qid const& qid);
-        ResponseBuilder& walk(Solace::Array<Qid> const& qids);
+        ResponseBuilder& walk(Solace::ArrayView<Qid> const& qids);
         ResponseBuilder& open(Qid const& qid, size_type iounit);
         ResponseBuilder& create(Qid const& qid, size_type iounit);
         ResponseBuilder& read(Solace::MemoryView const& data);
@@ -901,7 +901,7 @@ private:
 
 
 inline
-bool operator == (Protocol::Qid const& lhs, Protocol::Qid const& rhs) {
+bool operator == (Protocol::Qid const& lhs, Protocol::Qid const& rhs) noexcept {
     return (lhs.path == rhs.path &&
             lhs.version == rhs.version &&
             lhs.type == rhs.type);
@@ -909,7 +909,7 @@ bool operator == (Protocol::Qid const& lhs, Protocol::Qid const& rhs) {
 
 
 inline
-bool operator == (Protocol::Stat const& lhs, Protocol::Stat const& rhs) {
+bool operator == (Protocol::Stat const& lhs, Protocol::Stat const& rhs) noexcept {
     return (lhs.atime == rhs.atime &&
             lhs.dev == rhs.dev &&
             lhs.gid == rhs.gid &&

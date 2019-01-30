@@ -147,7 +147,7 @@ Protocol::ResponseBuilder::attach(const Qid& qid) {
 }
 
 Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::walk(const Array<Qid>& qids) {
+Protocol::ResponseBuilder::walk(Solace::ArrayView<Qid> const& qids) {
     buffer().reset(_initialPosition);
     Encoder encode(buffer());
 

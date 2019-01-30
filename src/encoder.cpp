@@ -98,9 +98,9 @@ Protocol::Encoder::protocolSize(const Stat& stat) {
 
 
 Protocol::size_type
-Protocol::Encoder::protocolSize(const Array<Qid>& qids) {
+Protocol::Encoder::protocolSize(Solace::ArrayView<Qid> qids) {
     assertIndexInRange(qids.size(), 0,
-                       static_cast<Array<Qid>::size_type>(std::numeric_limits<uint16>::max()));
+                       static_cast<ArrayView<Qid>::size_type>(std::numeric_limits<uint16>::max()));
 
     Qid uselessQid;
 
@@ -160,14 +160,14 @@ Protocol::Encoder::encode(StringView str) {
 }
 
 Protocol::Encoder&
-Protocol::Encoder::encode(const Protocol::Qid& qid) {
+Protocol::Encoder::encode(Qid qid) {
     return encode(qid.type)
             .encode(qid.version)
             .encode(qid.path);
 }
 
 Protocol::Encoder&
-Protocol::Encoder::encode(const Array<Protocol::Qid>& qids) {
+Protocol::Encoder::encode(ArrayView<Protocol::Qid> qids) {
     encode(static_cast<uint16>(qids.size()));
     for (auto qid : qids) {
         encode(qid);
