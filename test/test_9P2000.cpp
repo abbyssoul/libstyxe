@@ -24,7 +24,7 @@
 #include <solace/exception.hpp>
 #include <solace/output_utils.hpp>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 
 using namespace Solace;
@@ -890,7 +890,7 @@ TEST_F(P9Messages, createWalkRespose) {
     qids[2].version = 117;
     qids[2].type = 81;
     Protocol::ResponseBuilder(_writer, 1)
-            .walk(qids)
+            .walk(qids.view())
             .build();
 
     getResponseOfFail(Protocol::MessageType::RWalk)
