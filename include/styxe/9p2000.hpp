@@ -343,15 +343,15 @@ public:
 
     public:
 
-        Encoder(Solace::ByteWriter& dest) :
-            _dest(dest)
+        constexpr Encoder(Solace::ByteWriter& dest) noexcept
+            : _dest{dest}
         {}
 
         Encoder(Encoder const&) = delete;
         Encoder& operator= (Encoder const&) = delete;
 
         Encoder& header(Solace::byte customMessageType, Tag tag, size_type payloadSize);
-        Encoder& header(MessageType type, Tag tag, size_type payloadSize = 0) {
+        Encoder& header(MessageType type, Tag tag, size_type payloadSize) {
             return header(static_cast<Solace::byte>(type), tag, payloadSize);
         }
 
@@ -724,37 +724,36 @@ public:
     class ResponseBuilder {
     public:
 
-        ResponseBuilder(Solace::ByteWriter& dest, Tag tag) :
-            _tag(tag),
-            _type(),
-            _payloadSize(0),
-            _initialPosition(dest.position()),
-            _buffer(dest)
+        constexpr ResponseBuilder(Solace::ByteWriter& dest, Tag tag) noexcept
+            : _tag{tag}
+            , _type{}
+            , _payloadSize{0}
+            , _initialPosition{dest.position()}
+            , _buffer{dest}
         {}
 
-        Solace::ByteWriter& buffer() noexcept {
+        constexpr Solace::ByteWriter& buffer() noexcept {
             return _buffer;
         }
 
-        Solace::ByteWriter& build(bool recalcPayloadSize = false);
+        Solace::ByteWriter& build(/*bool recalcPayloadSize = false*/);
 
         /**
          * Set response message tag
          * @param value Tag of the response message.
          * @return Ref to this for a fluent interface.
          */
-        ResponseBuilder& tag(Tag value) noexcept {
+        constexpr ResponseBuilder& tag(Tag value) noexcept {
             _tag = value;
             return (*this);
         }
 
-        Tag tag() const noexcept { return _tag; }
-        MessageType type() const noexcept { return _type; }
-        size_type payloadSize() const noexcept { return _payloadSize; }
+        constexpr Tag tag() const noexcept { return _tag; }
+        constexpr MessageType type() const noexcept { return _type; }
+        constexpr size_type payloadSize() const noexcept { return _payloadSize; }
 
-        ResponseBuilder& updatePayloadSize();
-        ResponseBuilder& updatePayloadSize(size_type payloadSize);
-
+//        ResponseBuilder& updatePayloadSize();
+//        ResponseBuilder& updatePayloadSize(size_type payloadSize);
 
         ResponseBuilder& version(Solace::StringView version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
         ResponseBuilder& auth(Qid const& qid);
@@ -819,13 +818,13 @@ public:
      * @param version Supported protocol version. This is advertized by the protocol during version/size negotiation.
      */
     Protocol(size_type maxMassageSize = MAX_MESSAGE_SIZE,
-               Solace::StringView version = PROTOCOL_VERSION);
+             Solace::StringView version = PROTOCOL_VERSION);
 
     /**
      * Get maximum message size supported by the protocol instance.
      * @return Maximum message size in bytes.
      */
-    size_type maxPossibleMessageSize() const noexcept {
+    constexpr size_type maxPossibleMessageSize() const noexcept {
         return _maxMassageSize;
     }
 
@@ -833,7 +832,7 @@ public:
      * Get negotiated message size to be used in an established session.
      * @return Negotiated message size in bytes.
      */
-    size_type maxNegotiatedMessageSize() const noexcept {
+    constexpr size_type maxNegotiatedMessageSize() const noexcept {
         return _maxNegotiatedMessageSize;
     }
 
@@ -848,7 +847,7 @@ public:
      * Get negotiated protocol version effective for the estanblished session.
      * @return Negotiated version string.
      */
-    Solace::String const& getNegotiatedVersion() const noexcept {
+    constexpr Solace::String const& getNegotiatedVersion() const noexcept {
         return _negotiatedVersion;
     }
 
@@ -857,7 +856,7 @@ public:
      * @param version A new negotited protocol version.
      */
     void setNegotiatedVersion(Solace::String&& version) noexcept {
-        _negotiatedVersion = std::move(version);
+        _negotiatedVersion = Solace::mv(version);
     }
 
     /**
@@ -895,8 +894,8 @@ private:
     size_type const         _maxMassageSize;                /// Initial value of the maximum message size in bytes.
     size_type               _maxNegotiatedMessageSize;      /// Negotiated value of the maximum message size in bytes.
 
-    Solace::StringView const    _initialVersion;                  /// Initial value of the used protocol version.
-    Solace::String          _negotiatedVersion;                     /// Negotiated value of the protocol version.
+    Solace::StringView const    _initialVersion;            /// Initial value of the used protocol version.
+    Solace::String              _negotiatedVersion;         /// Negotiated value of the protocol version.
 };
 
 
@@ -922,6 +921,63 @@ bool operator == (Protocol::Stat const& lhs, Protocol::Stat const& rhs) noexcept
             lhs.type == rhs.type &&
             lhs.uid == rhs.uid);
 }
+
+
+/**
+ * @brief A helper class that allows to build responce content for DIR `read` request.
+ * @see Protocol::Request::Read
+ *
+ * This is a helper class design to help server implementors to build DIR read responce.
+ * May responsibility is of this class is to keep track of offset and count received from the request.
+ * The implementation only measures how much data is would have encoded untill it reaches 'offset' value.
+ * Only after that data provided to encode will be actually encoded
+ * untill count bytest has been written into the destination buffer.
+ *
+ * @example
+ * \code{.cpp}
+ * ...
+    DirListingWriter encoder{dest, count, offset};
+    for (auto const& dirEntry : entries) {
+        if (!encoder.encode(mapEntryStats(dirEntry))) {
+            break;
+        }
+    }
+    ...
+ * \endcode
+ *
+ */
+struct DirListingWriter {
+    Solace::uint32 const count;
+    Solace::uint64 const offset;
+
+    /**
+     * @brief Create an instance of Dir listing writer that encodes no more then 'inCount' bytes after the offset.
+     * @param inCount Maximum number of bytes that can be written into dest.
+     * @param inOffset Number of bytes to skip.
+     * @param dest Output buffer where resuling data is written.
+     */
+    constexpr DirListingWriter(Solace::ByteWriter& dest, Solace::uint32 inCount, Solace::uint64 inOffset) noexcept
+        : count{inCount}
+        , offset{inOffset}
+        , _encoder{dest}
+    {}
+
+
+    /**
+     * @brief Encode directory entry into response message
+     * @param stat Directory entry stat.
+     * @return True if more entries can be encoded.
+     */
+    bool encode(Protocol::Stat const& stat);
+
+private:
+    Solace::uint64 bytesTraversed{0};
+    Solace::uint32 bytesEncoded{0};
+
+    Protocol::Encoder _encoder;
+
+};
+
 
 }  // end of namespace styxe
 #endif  // STYXE_9P2000_HPP

@@ -23,44 +23,49 @@ using namespace Solace;
 using namespace styxe;
 
 
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::updatePayloadSize(size_type payloadSize) {
-    _payloadSize = payloadSize;
-    _buffer.reset(_initialPosition);
+//Protocol::ResponseBuilder&
+//Protocol::ResponseBuilder::updatePayloadSize(size_type payloadSize) {
+//    _payloadSize = payloadSize;
+//    _buffer.reset(_initialPosition);
 
-    Encoder(_buffer)
-            .header(type(), _tag, _payloadSize);
+//    Encoder(_buffer)
+//            .header(type(), _tag, _payloadSize);
 
-    _buffer.advance(_payloadSize);
+//    _buffer.advance(_payloadSize);
 
-    return (*this);
+//    return (*this);
+//}
+
+
+
+//Protocol::ResponseBuilder&
+//Protocol::ResponseBuilder::updatePayloadSize() {
+//    const auto dataLoad = _buffer.position() - _initialPosition;
+//    if (dataLoad < headerSize()) {
+//        Solace::raise<IOException>("Message header has not been written.");
+//    }
+
+//    const auto newPayloadSize = dataLoad - headerSize();
+
+//    return updatePayloadSize(newPayloadSize);
+//}
+
+void noPayloadMessage(ByteWriter& buffer, ByteWriter::size_type startPosition,
+                      Protocol::MessageType type, Protocol::Tag tag) {
+    buffer.reset(startPosition);
+    Protocol::Encoder(buffer).header(type, tag, 0);
 }
-
-
-
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::updatePayloadSize() {
-    const auto dataLoad = _buffer.position() - _initialPosition;
-    if (dataLoad < headerSize()) {
-        Solace::raise<IOException>("Message header has not been written.");
-    }
-
-    const auto newPayloadSize = dataLoad - headerSize();
-
-    return updatePayloadSize(newPayloadSize);
-}
-
 
 ByteWriter&
-Protocol::ResponseBuilder::build(bool recalcPayloadSize) {
+Protocol::ResponseBuilder::build(/*bool recalcPayloadSize*/) {
     if (type() < MessageType::_beginSupportedMessageCode ||
         type() > MessageType::_endSupportedMessageCode) {
         Solace::raise<IOException>("Unexpected message type");
     }
 
-    if (recalcPayloadSize) {
-        updatePayloadSize(_buffer.position() - headerSize());
-    }
+//    if (recalcPayloadSize) {
+//        updatePayloadSize(_buffer.position() - headerSize());
+//    }
 
     return _buffer.flip();
 }
@@ -78,7 +83,7 @@ Protocol::ResponseBuilder::version(StringView version, size_type maxMessageSize)
             encode.protocolSize(version);
 
     _tag = NO_TAG;
-    encode.header(type(), NO_TAG, _payloadSize)
+    encode.header(type(), _tag, _payloadSize)
             .encode(maxMessageSize)
             .encode(version);
 
@@ -119,12 +124,15 @@ Protocol::ResponseBuilder::error(StringView message) {
 
 Protocol::ResponseBuilder&
 Protocol::ResponseBuilder::flush() {
+//    noPayloadMessage(buffer(), _initialPosition, MessageType::RFlush, _tag);
+//    return (*this);
+
     buffer().reset(_initialPosition);
     _type = MessageType::RFlush;
     _payloadSize = 0;
 
     Encoder(buffer())
-            .header(type(), _tag);
+            .header(type(), _tag, _payloadSize);
 
     return (*this);
 }
@@ -241,7 +249,7 @@ Protocol::ResponseBuilder::clunk() {
     _payloadSize = 0;
 
     Encoder(buffer())
-            .header(type(), _tag);
+            .header(type(), _tag, _payloadSize);
 
     return (*this);
 }
@@ -254,7 +262,7 @@ Protocol::ResponseBuilder::remove() {
     _payloadSize = 0;
 
     Encoder(buffer())
-            .header(type(), _tag);
+            .header(type(), _tag, _payloadSize);
 
     return (*this);
 }
@@ -286,7 +294,7 @@ Protocol::ResponseBuilder::wstat() {
     _payloadSize = 0;
 
     Encoder(buffer())
-            .header(type(), _tag);
+            .header(type(), _tag, _payloadSize);
 
     return (*this);
 }
@@ -299,7 +307,7 @@ Protocol::ResponseBuilder::session() {
     _payloadSize = 0;
 
     Encoder(buffer())
-            .header(type(), _tag);
+            .header(type(), _tag, _payloadSize);
 
     return (*this);
 }
@@ -337,4 +345,26 @@ Protocol::ResponseBuilder::shortWrite(size_type count) {
             .encode(count);
 
     return (*this);
+}
+
+
+
+bool DirListingWriter::encode(Protocol::Stat const& stat) {
+    const auto protoSize = _encoder.protocolSize(stat);
+    // Keep count of how many data we have traversed.
+    bytesTraversed += protoSize;
+    if (bytesTraversed <= offset) { // Client is only interested in data pass the offset.
+        return true;
+    }
+
+    // Keep track of much data will end up in a buffer to prevent overflow.
+    bytesEncoded += protoSize;
+    if (bytesEncoded > count) {
+        return false;
+    }
+
+    // Only encode the data if we have some room left, as specified by 'count' arg.
+    _encoder.encode(stat);
+
+    return true;
 }

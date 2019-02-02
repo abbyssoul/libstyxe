@@ -522,7 +522,8 @@ Protocol::parseRequest(const MessageHeader& header, ByteReader& data) const {
     }
 }
 
-Protocol::size_type Protocol::maxNegotiatedMessageSize(size_type newMessageSize) {
+Protocol::size_type
+Protocol::maxNegotiatedMessageSize(size_type newMessageSize) {
     Solace::assertIndexInRange(newMessageSize, 0, maxPossibleMessageSize() + 1);
     _maxNegotiatedMessageSize = std::min(newMessageSize, maxPossibleMessageSize());
 

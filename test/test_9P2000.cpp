@@ -416,7 +416,7 @@ TEST_F(P9Messages, createFlushRequest) {
 }
 
 
-TEST_F(P9Messages, createFlushRespose) {
+TEST_F(P9Messages, createFlushResponse) {
     Protocol::ResponseBuilder(_writer, 1)
             .flush()
             .build();
@@ -991,7 +991,7 @@ TEST_F(P9E_Messages, createSessionRespose) {
 TEST_F(P9E_Messages, parseSessionRespose) {
     // Set declared message size to be more then negotiated message size
     Protocol::Encoder(_writer)
-            .header(Protocol::MessageType::RSession, 1);
+            .header(Protocol::MessageType::RSession, 1, 0);
     _writer.flip();
 
     getResponseOfFail(Protocol::MessageType::RSession);
