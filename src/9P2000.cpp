@@ -17,8 +17,7 @@
 #include "styxe/9p2000.hpp"
 
 #include <solace/assert.hpp>
-#include <solace/exception.hpp>
-
+#include <algorithm>  // std::min
 
 
 using namespace Solace;
@@ -41,7 +40,7 @@ styxe::kProtocolErrorCatergory = atom("9p2000");
     Error(kProtocolErrorCatergory, static_cast<uint16>(id), msg)
 
 
-Error const kCannedErrors[] = {
+static Error const kCannedErrors[] = {
     CANNE(CannedError::IllFormedHeader, "Ill-formed message header. Not enough data to read a header"),
     CANNE(CannedError::IllFormedHeader_FrameTooShort, "Ill-formed message: Declared frame size less than header"),
     CANNE(CannedError::IllFormedHeader_TooBig, "Ill-formed message: Declared frame size greater than negotiated one"),
@@ -60,137 +59,138 @@ styxe::getCannedError(CannedError errorId) noexcept {
 
 
 struct OkRespose {
-    Result<Protocol::Response, Error>
-    operator() () { return {types::Ok<Protocol::Response>{std::move(fcall)}}; }
+    Result<Protocol::ResponseMessage, Error>
+    operator() () { return Result<Protocol::ResponseMessage, Error>(types::OkTag{}, std::move(fcall)); }
 
-    Protocol::Response& fcall;
+    Protocol::ResponseMessage fcall;
 
-    OkRespose(Protocol::Response& f) : fcall(f)
+    template<typename T>
+    OkRespose(T&& f)
+        : fcall{std::forward<T>(f)}
     {}
 };
 
 struct OkRequest {
-    Result<Protocol::Request, Error>
-    operator() () { return {types::Ok<Protocol::Request>{std::move(fcall)}}; }
+    Result<Protocol::RequestMessage, Error>
+    operator() () { return Result<Protocol::RequestMessage, Error>(types::OkTag{}, std::move(fcall)); }
 
-    Protocol::Request& fcall;
+    Protocol::RequestMessage fcall;
 
-    OkRequest(Protocol::Request& f) : fcall(f)
+    template<typename T>
+    OkRequest(T&& f)
+        : fcall{std::forward<T>(f)}
     {}
 };
 
 
-Result<Protocol::Response, Error>
-parseNoDataResponse(Protocol::MessageHeader const& header, ByteReader& SOLACE_UNUSED(data)) {
-    return Result<Protocol::Response, Error>(types::Ok<Protocol::Response>({header.type, header.tag}));
+template<typename T>
+Result<Protocol::ResponseMessage, Error>
+parseNoDataResponse() {
+    return Result<Protocol::ResponseMessage, Error>(types::OkTag{}, T{});
 }
 
 
-Result<Protocol::Response, Error>
-parseErrorResponse(Protocol::MessageHeader const& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseErrorResponse(ByteReader& data) {
+    Protocol::Response::Error fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.error.ename)
-            .then(OkRespose(fcall));
-
-//    return Result<Protocol::Response, Error>(types::Err<Error>({std::move(errorMessage)}));
+            .read(&fcall.ename)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseVersionResponse(Protocol::MessageHeader const& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseVersionResponse(ByteReader& data) {
+    Protocol::Response::Version fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.version.msize, &fcall.version.version)
-            .then(OkRespose(fcall));
+            .read(&fcall.msize, &fcall.version)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseAuthResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseAuthResponse(ByteReader& data) {
+    Protocol::Response::Auth fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.auth.qid)
-            .then(OkRespose(fcall));
+            .read(&fcall.qid)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseAttachResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseAttachResponse(ByteReader& data) {
+    Protocol::Response::Attach fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.attach.qid)
-            .then(OkRespose(fcall));
+            .read(&fcall.qid)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-
-Result<Protocol::Response, Error>
-parseOpenResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseOpenResponse(ByteReader& data) {
+    Protocol::Response::Open fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.open.qid, &fcall.open.iounit)
-            .then(OkRespose(fcall));
+            .read(&fcall.qid, &fcall.iounit)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseCreateResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseCreateResponse(ByteReader& data) {
+    Protocol::Response::Create fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.create.qid, &fcall.open.iounit)
-            .then(OkRespose(fcall));
+            .read(&fcall.qid, &fcall.iounit)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseReadResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseReadResponse(ByteReader& data) {
+    Protocol::Response::Read fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.read.data)
-            .then(OkRespose(fcall));
+            .read(&fcall.data)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseWriteResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseWriteResponse(ByteReader& data) {
+    Protocol::Response::Write fcall;
 
     return Protocol::Decoder(data)
-            .read(&fcall.write.count)
-            .then(OkRespose(fcall));
+            .read(&fcall.count)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseStatResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseStatResponse(ByteReader& data) {
+    Protocol::Response::Stat fcall;
 
-    uint16 dummySize;
     return Protocol::Decoder(data)
-            .read(&dummySize, &fcall.stat)
-            .then(OkRespose(fcall));
+            .read(&fcall.dummySize, &fcall.data)
+            .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::Response, Error>
-parseWalkResponse(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Response fcall(header.type, header.tag);
+Result<Protocol::ResponseMessage, Error>
+parseWalkResponse(ByteReader& data) {
+    Protocol::Response::Walk fcall;
 
     Protocol::Decoder decoder(data);
 
     // FIXME: Non-sense!
-    return decoder.read(&fcall.walk.nqids)
+    return decoder.read(&fcall.nqids)
             .then([&decoder, &fcall]() -> Result<void, Error> {
-                for (decltype(fcall.walk.nqids) i = 0; i < fcall.walk.nqids; ++i) {
-                    auto r = decoder.read(&fcall.walk.qids[i]);
+                for (decltype(fcall.nqids) i = 0; i < fcall.nqids; ++i) {
+                    auto r = decoder.read(&fcall.qids[i]);
                     if (!r) {
                         return Err<Error>(r.moveError());
                     }
@@ -198,194 +198,161 @@ parseWalkResponse(const Protocol::MessageHeader& header, ByteReader& data) {
 
                 return Ok();
             })
-            .then(OkRespose(fcall));}
-
+            .then(OkRespose(std::move(fcall)));
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Request parser
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Result<Protocol::Request, Error>
-parseVersionRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asVersion();
+Result<Protocol::RequestMessage, Error>
+parseVersionRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Version{};
     return Protocol::Decoder(data)
             .read(&msg.msize, &msg.version)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseAuthRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asAuth();
+Result<Protocol::RequestMessage, Error>
+parseAuthRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Auth{};
     return Protocol::Decoder(data)
             .read(&msg.afid, &msg.uname, &msg.aname)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseFlushRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asFlush();
+Result<Protocol::RequestMessage, Error>
+parseFlushRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Flush{};
     return Protocol::Decoder(data)
             .read(&msg.oldtag)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseAttachRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asAttach();
+Result<Protocol::RequestMessage, Error>
+parseAttachRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Attach{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.afid, &msg.uname, &msg.aname)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseWalkRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asWalk();
+Result<Protocol::RequestMessage, Error>
+parseWalkRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Walk{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.newfid, &msg.path)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseOpenRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asOpen();
+Result<Protocol::RequestMessage, Error>
+parseOpenRequest(ByteReader& data) {
     byte openMode;
 
+    auto msg = Protocol::Request::Open{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &openMode)
             .then([&msg, &openMode]() { msg.mode = static_cast<Protocol::OpenMode>(openMode); })
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseCreateRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asCreate();
+Result<Protocol::RequestMessage, Error>
+parseCreateRequest(ByteReader& data) {
     byte openMode;
 
+    auto msg = Protocol::Request::Create{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.name, &msg.perm, &openMode)
             .then([&msg, &openMode]() { msg.mode = static_cast<Protocol::OpenMode>(openMode); })
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseReadRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asRead();
+Result<Protocol::RequestMessage, Error>
+parseReadRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Read{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.offset, &msg.count)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseWriteRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asWrite();
+Result<Protocol::RequestMessage, Error>
+parseWriteRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Write{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.offset, &msg.data)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseClunkRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asClunk();
+Result<Protocol::RequestMessage, Error>
+parseClunkRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Clunk{};
     return Protocol::Decoder(data)
             .read(&msg.fid)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseRemoveRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asRemove();
+Result<Protocol::RequestMessage, Error>
+parseRemoveRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Remove{};
     return Protocol::Decoder(data)
             .read(&msg.fid)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseStatRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asStat();
+Result<Protocol::RequestMessage, Error>
+parseStatRequest(ByteReader& data) {
+    auto msg = Protocol::Request::StatRequest{};
     return Protocol::Decoder(data)
             .read(&msg.fid)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::Request, Error>
-parseWStatRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asWstat();
+Result<Protocol::RequestMessage, Error>
+parseWStatRequest(ByteReader& data) {
+    auto msg = Protocol::Request::WStat{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.stat)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
 
-Result<Protocol::Request, Error>
-parseSessionRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asSession();
-
+Result<Protocol::RequestMessage, Error>
+parseSessionRequest(ByteReader& data) {
+    auto msg = Protocol::Request::Session{};
     return Protocol::Decoder(data)
             .read(&(msg.key[0]), &(msg.key[1]), &(msg.key[2]), &(msg.key[3]),
                   &(msg.key[4]), &(msg.key[5]), &(msg.key[6]), &(msg.key[7]))
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
-Result<Protocol::Request, Error>
-parseShortReadRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asShortRead();
+Result<Protocol::RequestMessage, Error>
+parseShortReadRequest(ByteReader& data) {
+    auto msg = Protocol::Request::SRead{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.path)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
-Result<Protocol::Request, Error>
-parseShortWriteRequest(const Protocol::MessageHeader& header, ByteReader& data) {
-    Protocol::Request fcall(header.type, header.tag);
-
-    auto& msg = fcall.asShortWrite();
+Result<Protocol::RequestMessage, Error>
+parseShortWriteRequest(ByteReader& data) {
+    auto msg = Protocol::Request::SWrite{};
     return Protocol::Decoder(data)
             .read(&msg.fid, &msg.path, &msg.data)
-            .then(OkRequest(fcall));
+            .then(OkRequest(std::move(msg)));
 }
 
 
@@ -393,22 +360,24 @@ parseShortWriteRequest(const Protocol::MessageHeader& header, ByteReader& data) 
 Result<Protocol::MessageHeader, Error>
 Protocol::parseMessageHeader(ByteReader& buffer) const {
     const auto mandatoryHeaderSize = headerSize();
-    const auto dataAvailliable = buffer.remaining();
+    const auto dataAvailable = buffer.remaining();
 
     // Check that we have enough data to read mandatory message header
-    if (dataAvailliable < mandatoryHeaderSize) {
+    if (dataAvailable < mandatoryHeaderSize) {
         return Err(getCannedError(CannedError::IllFormedHeader));
     }
 
+    Decoder decoder(buffer);
     MessageHeader header;
-    buffer.readLE(header.messageSize);
+
+    decoder.read(&header.messageSize);
 
     // Sanity checks:
-    // It is a serious error if server responded with the message of a size bigger than negotiated one.
     if (header.messageSize < headerSize()) {
         return Err(getCannedError(CannedError::IllFormedHeader_FrameTooShort));
     }
 
+    // It is a serious error if we got a message of a size bigger than negotiated one.
     if (header.messageSize > maxNegotiatedMessageSize()) {
         return Err(getCannedError(CannedError::IllFormedHeader_TooBig));
     }
@@ -425,13 +394,13 @@ Protocol::parseMessageHeader(ByteReader& buffer) const {
 
     // Read message tag. Tags are provided by the client and can not be checked by the message parser.
     // Unless we are provided with the expected tag...
-    buffer.readLE(header.tag);
+    decoder.read(&header.tag);
 
     return Ok(header);
 }
 
 
-Result<Protocol::Response, Error>
+Result<Protocol::ResponseMessage, Error>
 Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
     auto const expectedData = header.messageSize - headerSize();
 
@@ -452,34 +421,34 @@ Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
     }
 
     switch (header.type) {
-    case MessageType::RError:   return parseErrorResponse(header,   data);
-    case MessageType::RVersion: return parseVersionResponse(header, data);
-    case MessageType::RAuth:    return parseAuthResponse(header,    data);
-    case MessageType::RAttach:  return parseAttachResponse(header,  data);
-    case MessageType::RWalk:    return parseWalkResponse(header,    data);
-    case MessageType::ROpen:    return parseOpenResponse(header,    data);
-    case MessageType::RCreate:  return parseCreateResponse(header,  data);
+    case MessageType::RError:   return parseErrorResponse(data);
+    case MessageType::RVersion: return parseVersionResponse(data);
+    case MessageType::RAuth:    return parseAuthResponse(data);
+    case MessageType::RAttach:  return parseAttachResponse(data);
+    case MessageType::RWalk:    return parseWalkResponse(data);
+    case MessageType::ROpen:    return parseOpenResponse(data);
+    case MessageType::RCreate:  return parseCreateResponse(data);
     case MessageType::RSRead:  // Note: RRead is re-used here for RSRead
-    case MessageType::RRead:    return parseReadResponse(header,    data);
+    case MessageType::RRead:    return parseReadResponse(data);
     case MessageType::RSWrite:  // Note: RWrite is re-used here for RSWrite
-    case MessageType::RWrite:   return parseWriteResponse(header,   data);
-    case MessageType::RStat:    return parseStatResponse(header,    data);
+    case MessageType::RWrite:   return parseWriteResponse(data);
+    case MessageType::RStat:    return parseStatResponse(data);
 
     // Responses with no data use common procedure:
-    case MessageType::RFlush:
-    case MessageType::RClunk:
-    case MessageType::RRemove:
-    case MessageType::RWStat:
-    case MessageType::RSession:
-        return parseNoDataResponse(header,   data);
+    case MessageType::RFlush:   return parseNoDataResponse<Response::Flush>();
+    case MessageType::RClunk:   return parseNoDataResponse<Response::Clunk>();
+    case MessageType::RRemove:  return parseNoDataResponse<Response::Remove>();
+    case MessageType::RWStat:   return parseNoDataResponse<Response::WStat>();
+    case MessageType::RSession: return parseNoDataResponse<Response::Session>();
+
 
     default:
         return Err(getCannedError(CannedError::UnsupportedMessageType));
     }
 }
 
-Result<Protocol::Request, Solace::Error>
-Protocol::parseRequest(const MessageHeader& header, ByteReader& data) const {
+Result<Protocol::RequestMessage, Solace::Error>
+Protocol::parseRequest(MessageHeader const& header, ByteReader& data) const {
     const auto expectedData = header.messageSize - headerSize();
 
     // Message data sanity check
@@ -499,23 +468,23 @@ Protocol::parseRequest(const MessageHeader& header, ByteReader& data) const {
     }
 
     switch (header.type) {
-    case MessageType::TVersion: return parseVersionRequest(header,      data);
-    case MessageType::TAuth:    return parseAuthRequest(header,         data);
-    case MessageType::TFlush:   return parseFlushRequest(header,        data);
-    case MessageType::TAttach:  return parseAttachRequest(header,       data);
-    case MessageType::TWalk:    return parseWalkRequest(header,         data);
-    case MessageType::TOpen:    return parseOpenRequest(header,         data);
-    case MessageType::TCreate:  return parseCreateRequest(header,       data);
-    case MessageType::TRead:    return parseReadRequest(header,         data);
-    case MessageType::TWrite:   return parseWriteRequest(header,        data);
-    case MessageType::TClunk:   return parseClunkRequest(header,        data);
-    case MessageType::TRemove:  return parseRemoveRequest(header,       data);
-    case MessageType::TStat:    return parseStatRequest(header,         data);
-    case MessageType::TWStat:   return parseWStatRequest(header,        data);
+    case MessageType::TVersion: return parseVersionRequest(data);
+    case MessageType::TAuth:    return parseAuthRequest(data);
+    case MessageType::TFlush:   return parseFlushRequest(data);
+    case MessageType::TAttach:  return parseAttachRequest(data);
+    case MessageType::TWalk:    return parseWalkRequest(data);
+    case MessageType::TOpen:    return parseOpenRequest(data);
+    case MessageType::TCreate:  return parseCreateRequest(data);
+    case MessageType::TRead:    return parseReadRequest(data);
+    case MessageType::TWrite:   return parseWriteRequest(data);
+    case MessageType::TClunk:   return parseClunkRequest(data);
+    case MessageType::TRemove:  return parseRemoveRequest(data);
+    case MessageType::TStat:    return parseStatRequest(data);
+    case MessageType::TWStat:   return parseWStatRequest(data);
     /* 9P2000.e extension messages */
-    case MessageType::TSession: return parseSessionRequest(header,      data);
-    case MessageType::TSRead:   return parseShortReadRequest(header,    data);
-    case MessageType::TSWrite:  return parseShortWriteRequest(header,   data);
+    case MessageType::TSession: return parseSessionRequest(data);
+    case MessageType::TSRead:   return parseShortReadRequest(data);
+    case MessageType::TSWrite:  return parseShortWriteRequest(data);
 
     default:
         return Err(getCannedError(CannedError::UnsupportedMessageType));
@@ -538,327 +507,4 @@ Protocol::Protocol(size_type maxMassageSize, StringView version) :
     _negotiatedVersion(makeString(version))
 {
     // No-op
-}
-
-
-
-
-Protocol::Request::Request(MessageType msgType, Tag msgTag) :
-    _tag(msgTag),
-    _type(msgType)
-{
-    switch (_type) {
-    case MessageType::TVersion: new (&version)  Version;        return;
-    case MessageType::TAuth:    new (&auth)     Auth;           return;
-    case MessageType::TFlush:   new (&flush)    Flush;          return;
-    case MessageType::TAttach:  new (&attach)   Attach;         return;
-    case MessageType::TWalk:    new (&walk)     Walk;           return;
-    case MessageType::TOpen:    new (&open)     Open;           return;
-    case MessageType::TCreate:  new (&create)   Create;         return;
-    case MessageType::TRead:    new (&read)     Read;           return;
-    case MessageType::TWrite:   new (&write)    Write;          return;
-    case MessageType::TClunk:   new (&clunk)    Clunk;          return;
-    case MessageType::TRemove:  new (&remove)   Remove;         return;
-    case MessageType::TStat:    new (&stat)     StatRequest;    return;
-    case MessageType::TWStat:   new (&wstat)    WStat;          return;
-
-    /* 9P2000.e extention */
-    case MessageType::TSession: new (&session)      Session;    return;
-    case MessageType::TSRead:   new (&shortRead)    SRead;      return;
-    case MessageType::TSWrite:  new (&shortWrite)   SWrite;     return;
-
-    default:
-        Solace::raise<IOException>("Unexpected message type");
-        break;
-    }
-}
-
-Protocol::Request::Request(Request&& rhs) :
-    _tag(std::move(rhs._tag)),
-    _type(std::move(rhs._type))
-{
-    switch (_type) {
-    case MessageType::TVersion: new (&version)  Version(std::move(rhs.version));    return;
-    case MessageType::TAuth:    new (&auth)     Auth(std::move(rhs.auth));       return;
-    case MessageType::TFlush:   new (&flush)    Flush(std::move(rhs.flush));      return;
-    case MessageType::TAttach:  new (&attach)   Attach(std::move(rhs.attach));     return;
-    case MessageType::TWalk:    new (&walk)     Walk(std::move(rhs.walk));       return;
-    case MessageType::TOpen:    new (&open)     Open(std::move(rhs.open));       return;
-    case MessageType::TCreate:  new (&create)   Create(std::move(rhs.create));     return;
-    case MessageType::TRead:    new (&read)     Read(std::move(rhs.read));       return;
-    case MessageType::TWrite:   new (&write)    Write(std::move(rhs.write));      return;
-    case MessageType::TClunk:   new (&clunk)    Clunk(std::move(rhs.clunk));      return;
-    case MessageType::TRemove:  new (&remove)   Remove(std::move(rhs.remove));     return;
-    case MessageType::TStat:    new (&stat)     StatRequest(std::move(rhs.stat));       return;
-    case MessageType::TWStat:   new (&wstat)    WStat(std::move(rhs.wstat));      return;
-
-    /* 9P2000.e extention */
-    case MessageType::TSession: new (&session)      Session(std::move(rhs.session));   return;
-    case MessageType::TSRead:   new (&shortRead)    SRead(std::move(rhs.shortRead));  return;
-    case MessageType::TSWrite:  new (&shortWrite)   SWrite(std::move(rhs.shortWrite)); return;
-
-    default:
-        Solace::raise<IOException>("Unexpected message type");
-        break;
-    }
-}
-
-Protocol::Request::~Request() {
-    switch (_type) {
-    case MessageType::TVersion: (&version)->~Version();     break;
-    case MessageType::TAuth:    (&auth)->~Auth();           break;
-    case MessageType::TFlush:   (&flush)->~Flush();         break;
-    case MessageType::TAttach:  (&attach)->~Attach();       break;
-    case MessageType::TWalk:    (&walk)->~Walk();           break;
-    case MessageType::TOpen:    (&open)->~Open();           break;
-    case MessageType::TCreate:  (&create)->~Create();       break;
-    case MessageType::TRead:    (&read)->~Read();           break;
-    case MessageType::TWrite:   (&write)->~Write();         break;
-    case MessageType::TClunk:   (&clunk)->~Clunk();         break;
-    case MessageType::TRemove:  (&remove)->~Remove();       break;
-    case MessageType::TStat:    (&stat)->~StatRequest();    break;
-    case MessageType::TWStat:   (&wstat)->~WStat();         break;
-
-    /* 9P2000.e extention */
-    case MessageType::TSession: (&session)->~Session();     break;
-    case MessageType::TSRead:   (&shortRead)->~SRead();     break;
-    case MessageType::TSWrite:  (&shortWrite)->~SWrite();   break;
-
-    default:
-        Solace::raise<IOException>("Unexpected message type");
-        break;
-    }
-}
-
-
-Protocol::Request::Version&
-Protocol::Request::asVersion() {
-    if (_type != MessageType::TVersion) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return version;
-}
-
-Protocol::Request::Auth&
-Protocol::Request::asAuth(){
-    if (_type != MessageType::TAuth) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return auth;
-}
-
-Protocol::Request::Flush&
-Protocol::Request::asFlush(){
-    if (_type != MessageType::TFlush) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return flush;
-}
-
-Protocol::Request::Attach&
-Protocol::Request::asAttach(){
-    if (_type != MessageType::TAttach) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return attach;
-}
-
-Protocol::Request::Walk&
-Protocol::Request::asWalk(){
-    if (_type != MessageType::TWalk) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return walk;
-}
-
-Protocol::Request::Open&
-Protocol::Request::asOpen(){
-    if (_type != MessageType::TOpen) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return open;
-}
-
-Protocol::Request::Create&
-Protocol::Request::asCreate(){
-    if (_type != MessageType::TCreate) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return create;
-}
-
-Protocol::Request::Read&
-Protocol::Request::asRead(){
-    if (_type != MessageType::TRead) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return read;
-}
-
-Protocol::Request::Write&
-Protocol::Request::asWrite(){
-    if (_type != MessageType::TWrite) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return write;
-}
-
-Protocol::Request::Clunk&
-Protocol::Request::asClunk(){
-    if (_type != MessageType::TClunk) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return clunk;
-}
-
-Protocol::Request::Remove&
-Protocol::Request::asRemove(){
-    if (_type != MessageType::TRemove) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return remove;
-}
-
-Protocol::Request::StatRequest&
-Protocol::Request::asStat(){
-    if (_type != MessageType::TStat) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return stat;
-}
-
-Protocol::Request::WStat&
-Protocol::Request::asWstat(){
-    if (_type != MessageType::TWStat) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return wstat;
-}
-
-Protocol::Request::Session&
-Protocol::Request::asSession(){
-    if (_type != MessageType::TSession) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return session;
-}
-
-Protocol::Request::SRead&
-Protocol::Request::asShortRead(){
-    if (_type != MessageType::TSRead) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return shortRead;
-}
-
-Protocol::Request::SWrite&
-Protocol::Request::asShortWrite(){
-    if (_type != MessageType::TSWrite) {
-        Solace::raise<IOException>("Incorrect message type");
-    }
-
-    return shortWrite;
-}
-
-
-
-
-Protocol::Response::Response(MessageType msgType, Tag msgTag) :
-    type(msgType),
-    tag(msgTag)
-{
-    switch (type) {
-    case MessageType::RError:   new (&error) Error;     return;
-    case MessageType::RVersion: new (&version) Version; return;
-    case MessageType::RAuth:    new (&auth) Auth;       return;
-    case MessageType::RAttach:  new (&attach) Attach;   return;
-    case MessageType::RWalk:    new (&walk) Walk;       return;
-    case MessageType::ROpen:    new (&open) Open;       return;
-    case MessageType::RCreate:  new (&create) Create;   return;
-    case MessageType::RSRead:  // Note: RRead is re-used here for RSRead
-    case MessageType::RRead:    new (&read) Read;       return;
-    case MessageType::RSWrite:  // Note: RWrite is re-used here for RSWrite
-    case MessageType::RWrite:   new (&write) Write;     return;
-    case MessageType::RStat:    new (&stat) Stat;       return;
-    case MessageType::RClunk:
-    case MessageType::RRemove:
-    case MessageType::RFlush:
-    case MessageType::RWStat:
-    case MessageType::RSession:
-        break;
-
-    default:
-        Solace::raise<IOException>("Unexpected message type");
-        break;
-    }
-}
-
-Protocol::Response::Response(Response&& rhs) :
-    type(rhs.type),
-    tag(rhs.tag)
-{
-    switch (type) {
-    case MessageType::RError:   new (&error) Error(std::move(rhs.error)); return;
-    case MessageType::RVersion: new (&version) Version(std::move(rhs.version)); return;
-    case MessageType::RAuth:    new (&auth) Auth(std::move(rhs.auth)); return;
-    case MessageType::RAttach:  new (&attach) Attach(std::move(rhs.attach)); return;
-    case MessageType::RWalk:    new (&walk) Walk(std::move(rhs.walk)); return;
-    case MessageType::ROpen:    new (&open) Open(std::move(rhs.open)); return;
-    case MessageType::RCreate:  new (&create) Create(std::move(rhs.create)); return;
-    case MessageType::RSRead:  // Note: RRead is re-used here for RSRead
-    case MessageType::RRead:    new (&read) Read(std::move(rhs.read)); return;
-    case MessageType::RSWrite:  // Note: RWrite is re-used here for RSWrite
-    case MessageType::RWrite:   new (&write) Write(std::move(rhs.write)); return;
-    case MessageType::RStat:    new (&stat) Stat(std::move(rhs.stat)); return;
-    case MessageType::RClunk:
-    case MessageType::RRemove:
-    case MessageType::RFlush:
-    case MessageType::RWStat:
-    case MessageType::RSession:
-        break;
-
-    default:
-        Solace::raise<IOException>("Unexpected message type");
-        break;
-    }
-}
-
-
-Protocol::Response::~Response() {
-    switch (type) {
-    case MessageType::RError:   (&error)->~Error();     break;
-    case MessageType::RVersion: (&version)->~Version(); break;
-    case MessageType::RAuth:    (&auth)->~Auth();       break;
-    case MessageType::RAttach:  (&attach)->~Attach();   break;
-    case MessageType::RWalk:    (&walk)->~Walk();       break;
-    case MessageType::ROpen:    (&open)->~Open();       break;
-    case MessageType::RCreate:  (&create)->~Create();   break;
-    case MessageType::RSRead:  // Note: RRead is re-used here for RSRead
-    case MessageType::RRead:    (&read)->~Read();       break;
-    case MessageType::RSWrite:  // Note: RWrite is re-used here for RSWrite
-    case MessageType::RWrite:   (&write)->~Write();     break;
-    case MessageType::RStat:    (&stat)->~Stat();       break;
-    case MessageType::RClunk:
-    case MessageType::RRemove:
-    case MessageType::RFlush:
-    case MessageType::RWStat:
-    case MessageType::RSession:
-    default:
-        break;
-    }
 }

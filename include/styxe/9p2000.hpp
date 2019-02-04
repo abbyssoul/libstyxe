@@ -27,6 +27,9 @@
 #include <solace/path.hpp>
 
 
+#include <variant>
+
+
 namespace styxe {
 
 
@@ -528,60 +531,26 @@ public:
             Solace::Path                path;   //!< A path to the file to be read.
             Solace::MemoryView data;   //!< A data to be written into the file.
         };
-
-
-        Request(MessageType rtype, Tag tag);
-        Request(Request&& rhs);
-
-        ~Request();
-
-        Tag tag() const noexcept { return _tag; }
-
-        MessageType type() const noexcept { return _type; }
-
-        Version&        asVersion();
-        Auth&           asAuth();
-        Flush&          asFlush();
-        Attach&         asAttach();
-        Walk&           asWalk();
-        Open&           asOpen();
-        Create&         asCreate();
-        Read&           asRead();
-        Write&          asWrite();
-        Clunk&          asClunk();
-        Remove&         asRemove();
-        StatRequest&    asStat();
-        WStat&          asWstat();
-        Session&        asSession();
-        SRead&          asShortRead();
-        SWrite&         asShortWrite();
-
-    private:
-
-        Tag             _tag;
-        MessageType     _type;
-        union {
-            Version     version;
-            Auth        auth;
-            Flush       flush;
-            Attach      attach;
-            Walk        walk;
-            Open        open;
-            Create      create;
-            Read        read;
-            Write       write;
-            Clunk       clunk;
-            Remove      remove;
-            StatRequest stat;
-            WStat       wstat;
-
-            /* 9P2000.e extention */
-            Session     session;
-            SRead       shortRead;
-            SWrite      shortWrite;
-        };
     };
 
+    using RequestMessage = std::variant<
+                            Request::Version,
+                            Request::Auth,
+                            Request::Flush,
+                            Request::Attach,
+                            Request::Walk,
+                            Request::Open,
+                            Request::Create,
+                            Request::Read,
+                            Request::Write,
+                            Request::Clunk,
+                            Request::Remove,
+                            Request::StatRequest,
+                            Request::WStat,
+                            Request::Session,
+                            Request::SRead,
+                            Request::SWrite
+                            >;
 
     /**
      * Helper class to build Request messages.
@@ -656,17 +625,9 @@ public:
 
     struct Response {
 
-        struct Write {
-            size_type       count;
-        };
-
         struct Version {
-            size_type       msize;
+            size_type           msize;
             Solace::StringView  version;
-        };
-
-        struct Error {
-            Solace::StringView  ename;
         };
 
         struct Auth {
@@ -676,6 +637,12 @@ public:
         struct Attach {
             Qid  qid;
         };
+
+        struct Error {
+            Solace::StringView  ename;
+        };
+
+        struct Flush {};
 
         struct Walk {
             Solace::uint16 nqids;
@@ -696,27 +663,43 @@ public:
             Solace::MutableMemoryView data;
         };
 
-
-        MessageType type;
-        Tag         tag;
-        union {
-            Write       write;
-            Version     version;
-            Error       error;
-            Auth        auth;
-            Attach      attach;
-            Walk        walk;
-            Open        open;
-            Create      create;
-            Read        read;
-            Stat        stat;
+        struct Write {
+            size_type       count;
         };
 
-        Response(MessageType rtype, Tag tag);
-        Response(Response&& rhs);
+        struct Clunk {};
 
-        ~Response();
+        struct Remove {};
+
+        struct Stat {
+            Solace::uint16 dummySize;
+            ::styxe::Protocol::Stat data;
+        };
+
+        struct WStat {};
+
+        struct Session {};
     };
+
+
+    using ResponseMessage = std::variant<
+                                Response::Version,
+                                Response::Auth,
+                                Response::Attach,
+                                Response::Error,
+                                Response::Flush,
+                                Response::Walk,
+                                Response::Open,
+                                Response::Create,
+                                Response::Read,
+                                Response::Write,
+                                Response::Clunk,
+                                Response::Remove,
+                                Response::Stat,
+                                Response::WStat,
+                                Response::Session
+                                >;
+
 
     /**
      * Helper class to build response messages.
@@ -751,9 +734,6 @@ public:
         constexpr Tag tag() const noexcept { return _tag; }
         constexpr MessageType type() const noexcept { return _type; }
         constexpr size_type payloadSize() const noexcept { return _payloadSize; }
-
-//        ResponseBuilder& updatePayloadSize();
-//        ResponseBuilder& updatePayloadSize(size_type payloadSize);
 
         ResponseBuilder& version(Solace::StringView version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
         ResponseBuilder& auth(Qid const& qid);
@@ -875,7 +855,7 @@ public:
      * @param data Byte buffer to read message content from.
      * @return Resulting message if parsed successfully or an error otherwise.
      */
-    Solace::Result<Response, Solace::Error>
+    Solace::Result<ResponseMessage, Solace::Error>
     parseResponse(MessageHeader const& header, Solace::ByteReader& data) const;
 
     /**
@@ -886,7 +866,7 @@ public:
      * @param data Byte buffer to read message content from.
      * @return Resulting message if parsed successfully or an error otherwise.
      */
-    Solace::Result<Request, Solace::Error>
+    Solace::Result<RequestMessage, Solace::Error>
     parseRequest(MessageHeader const& header, Solace::ByteReader& data) const;
 
 private:
