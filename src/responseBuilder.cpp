@@ -322,7 +322,7 @@ bool DirListingWriter::encode(Protocol::Stat const& stat) {
     const auto protoSize = _encoder.protocolSize(stat);
     // Keep count of how many data we have traversed.
     bytesTraversed += protoSize;
-    if (bytesTraversed <= offset) { // Client is only interested in data pass the offset.
+    if (bytesTraversed <= offset) {  // Client is only interested in data pass the offset.
         return true;
     }
 

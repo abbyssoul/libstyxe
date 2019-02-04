@@ -48,30 +48,6 @@ protected:
 };
 
 
-
-//TEST_F(P9MessageBuilder, payloadResizing) {
-//    MemoryView emptyBuffer;
-//    Protocol::ResponseBuilder builder(_buffer, Protocol::NO_TAG);
-
-//    builder.read(emptyBuffer);
-//    ASSERT_EQ(4, builder.payloadSize());
-//    ASSERT_EQ(Protocol::headerSize() + 4 + 0, _buffer.position());
-
-//    // Write extra data:
-//    const byte extraData[] = {1, 3, 2, 45, 18};
-//    builder.buffer().write(wrapMemory(extraData, 5));
-
-//    builder.updatePayloadSize();
-//    ASSERT_EQ(5 + 4, builder.payloadSize());
-//    ASSERT_EQ(Protocol::headerSize() + 4 + 5, _buffer.position());
-
-//    builder.updatePayloadSize(3);
-//    ASSERT_EQ(3, builder.payloadSize());
-//    ASSERT_EQ(Protocol::headerSize() + 3, _buffer.position());
-//}
-
-
-
 TEST_F(P9MessageBuilder, messageChanging) {
     MemoryView emptyBuffer;
     Protocol::ResponseBuilder builder(_buffer, Protocol::NO_TAG);

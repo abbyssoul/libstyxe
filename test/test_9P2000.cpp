@@ -242,14 +242,14 @@ protected:
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
                 })
-                .then([this](Protocol::RequestMessage&& msg) -> RequestType const& {
+                .then([this](Protocol::RequestMessage&& msg) -> RequestType {
                     const bool isType = std::holds_alternative<RequestType>(msg);
 
                     [&isType]() {
                         ASSERT_TRUE(isType);
                     } ();
 
-                    return std::get<RequestType>(msg);
+                    return std::get<RequestType>(std::move(msg));
                 })
                 .mapError([](Error&& e) -> Error {
                     [&e]() {
@@ -275,14 +275,14 @@ protected:
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
                 })
-                .then([this](Protocol::ResponseMessage&& msg) -> ResponseType const& {
+                .then([this](Protocol::ResponseMessage&& msg) -> ResponseType {
                     const bool isType = std::holds_alternative<ResponseType>(msg);
 
                     [isType]() {
                         ASSERT_TRUE(isType);
                     } ();
 
-                    return std::get<ResponseType>(msg);
+                    return std::get<ResponseType>(std::move(msg));
                 })
                 .mapError([](Error&& e) {
                     [&e]() {
