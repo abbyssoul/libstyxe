@@ -228,7 +228,8 @@ protected:
         _reader.rewind();
     }
 
-    Result<Protocol::Request, Error>
+    template<typename RequestType>
+    Result<RequestType, Error>
     getRequestOfFail(Protocol::MessageType expectType) {
         _reader.limit(_writer.limit());
 
@@ -241,6 +242,15 @@ protected:
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
                 })
+                .then([this](Protocol::RequestMessage&& msg) -> RequestType const& {
+                    const bool isType = std::holds_alternative<RequestType>(msg);
+
+                    [&isType]() {
+                        ASSERT_TRUE(isType);
+                    } ();
+
+                    return std::get<RequestType>(msg);
+                })
                 .mapError([](Error&& e) -> Error {
                     [&e]() {
                         FAIL() << e.toString();
@@ -250,7 +260,9 @@ protected:
                 });
     }
 
-    Result<Protocol::Response, Error>
+
+    template<typename ResponseType>
+    Result<ResponseType, Error>
     getResponseOfFail(Protocol::MessageType expectType) {
         _reader.limit(_writer.limit());
 
@@ -262,6 +274,15 @@ protected:
                 })
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
+                })
+                .then([this](Protocol::ResponseMessage&& msg) -> ResponseType const& {
+                    const bool isType = std::holds_alternative<ResponseType>(msg);
+
+                    [isType]() {
+                        ASSERT_TRUE(isType);
+                    } ();
+
+                    return std::get<ResponseType>(msg);
                 })
                 .mapError([](Error&& e) {
                     [&e]() {
@@ -291,10 +312,10 @@ TEST_F(P9Messages, createVersionRequest) {
             .version(testVersion)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TVersion)
-            .then([this, testVersion](Protocol::Request&& request) {
-                ASSERT_EQ(proc.maxPossibleMessageSize(), request.asVersion().msize);
-                ASSERT_EQ(testVersion, request.asVersion().version);
+    getRequestOfFail<Protocol::Request::Version>(Protocol::MessageType::TVersion)
+            .then([this, testVersion](Protocol::Request::Version const& request) {
+                EXPECT_EQ(proc.maxPossibleMessageSize(), request.msize);
+                EXPECT_EQ(testVersion, request.version);
             });
 }
 
@@ -303,10 +324,10 @@ TEST_F(P9Messages, createVersionRespose) {
             .version("9Pe", 718)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RVersion)
-            .then([](Protocol::Response&& response) {
-                ASSERT_EQ(718, response.version.msize);
-                ASSERT_EQ("9Pe", response.version.version);
+    getResponseOfFail<Protocol::Response::Version>(Protocol::MessageType::RVersion)
+            .then([](Protocol::Response::Version const& response) {
+                ASSERT_EQ(718, response.msize);
+                ASSERT_EQ("9Pe", response.version);
             });
 }
 
@@ -318,10 +339,10 @@ TEST_F(P9Messages, parseVersionRespose) {
     _writer.write(StringLiteral("9P").view());
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RVersion)
-            .then([](Protocol::Response&& response) {
-                ASSERT_EQ(512, response.version.msize);
-                ASSERT_EQ("9P", response.version.version);
+    getResponseOfFail<Protocol::Response::Version>(Protocol::MessageType::RVersion)
+            .then([](Protocol::Response::Version const& response) {
+                ASSERT_EQ(512, response.msize);
+                ASSERT_EQ("9P", response.version);
             });
 }
 
@@ -331,11 +352,11 @@ TEST_F(P9Messages, createAuthRequest) {
             .auth(312, "User mcUsers", "Somewhere near")
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TAuth)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(312, request.asAuth().afid);
-                ASSERT_EQ("User mcUsers", request.asAuth().uname);
-                ASSERT_EQ("Somewhere near", request.asAuth().aname);
+    getRequestOfFail<Protocol::Request::Auth>(Protocol::MessageType::TAuth)
+            .then([](Protocol::Request::Auth&& request) {
+                ASSERT_EQ(312, request.afid);
+                ASSERT_EQ("User mcUsers", request.uname);
+                ASSERT_EQ("Somewhere near", request.aname);
             });
 }
 
@@ -351,9 +372,9 @@ TEST_F(P9Messages, createAuthRespose) {
             .auth(qid)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RAuth)
-            .then([qid](Protocol::Response&& response) {
-                ASSERT_EQ(qid, response.auth.qid);
+    getResponseOfFail<Protocol::Response::Auth>(Protocol::MessageType::RAuth)
+            .then([qid](Protocol::Response::Auth&& response) {
+                ASSERT_EQ(qid, response.qid);
             });
 }
 
@@ -367,11 +388,11 @@ TEST_F(P9Messages, parseAuthRespose) {
     _writer.writeLE(static_cast<uint64>(441));  // QID.path
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RAuth)
-            .then([](Protocol::Response&& response) {
-                EXPECT_EQ(13, response.auth.qid.type);
-                EXPECT_EQ(91, response.auth.qid.version);
-                EXPECT_EQ(441, response.auth.qid.path);
+    getResponseOfFail<Protocol::Response::Auth>(Protocol::MessageType::RAuth)
+            .then([](Protocol::Response::Auth&& response) {
+                EXPECT_EQ(13, response.qid.type);
+                EXPECT_EQ(91, response.qid.version);
+                EXPECT_EQ(441, response.qid.path);
             });
 }
 
@@ -383,9 +404,9 @@ TEST_F(P9Messages, createErrorRespose) {
             .error(testError)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RError)
-            .then([testError](Protocol::Response&& response) {
-                ASSERT_EQ(testError, response.error.ename);
+    getResponseOfFail<Protocol::Response::Error>(Protocol::MessageType::RError)
+            .then([testError](Protocol::Response::Error&& response) {
+                ASSERT_EQ(testError, response.ename);
             });
 }
 
@@ -397,9 +418,9 @@ TEST_F(P9Messages, parseErrorRespose) {
             .encode(expectedErrorMessage);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RError)
-            .then([expectedErrorMessage](Protocol::Response&& response) {
-                EXPECT_EQ(expectedErrorMessage, response.error.ename);
+    getResponseOfFail<Protocol::Response::Error>(Protocol::MessageType::RError)
+            .then([expectedErrorMessage](Protocol::Response::Error&& response) {
+                EXPECT_EQ(expectedErrorMessage, response.ename);
             });
 }
 
@@ -409,9 +430,9 @@ TEST_F(P9Messages, createFlushRequest) {
             .flush(7711)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TFlush)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(7711, request.asFlush().oldtag);
+    getRequestOfFail<Protocol::Request::Flush>(Protocol::MessageType::TFlush)
+            .then([](Protocol::Request::Flush&& request) {
+                ASSERT_EQ(7711, request.oldtag);
             });
 }
 
@@ -421,7 +442,7 @@ TEST_F(P9Messages, createFlushResponse) {
             .flush()
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RFlush);
+    getResponseOfFail<Protocol::Response::Flush>(Protocol::MessageType::RFlush);
 }
 
 
@@ -429,7 +450,7 @@ TEST_F(P9Messages, parseFlushRespose) {
     writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RFlush, 1);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RFlush);
+    getResponseOfFail<Protocol::Response::Flush>(Protocol::MessageType::RFlush);
 }
 
 
@@ -438,12 +459,12 @@ TEST_F(P9Messages, createAttachRequest) {
             .attach(3310, 1841, "McFace", "close to u")
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TAttach)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(3310, request.asAttach().fid);
-                ASSERT_EQ(1841, request.asAttach().afid);
-                ASSERT_EQ("McFace", request.asAttach().uname);
-                ASSERT_EQ("close to u", request.asAttach().aname);
+    getRequestOfFail<Protocol::Request::Attach>(Protocol::MessageType::TAttach)
+            .then([](Protocol::Request::Attach&& request) {
+                ASSERT_EQ(3310, request.fid);
+                ASSERT_EQ(1841, request.afid);
+                ASSERT_EQ("McFace", request.uname);
+                ASSERT_EQ("close to u", request.aname);
             });
 }
 
@@ -458,9 +479,9 @@ TEST_F(P9Messages, createAttachRespose) {
             .attach(qid)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RAttach)
-            .then([qid](Protocol::Response&& response) {
-                ASSERT_EQ(qid, response.attach.qid);
+    getResponseOfFail<Protocol::Response::Attach>(Protocol::MessageType::RAttach)
+            .then([qid](Protocol::Response::Attach&& response) {
+                ASSERT_EQ(qid, response.qid);
             });
 }
 
@@ -472,11 +493,11 @@ TEST_F(P9Messages, parseAttachRespose) {
     _writer.writeLE(static_cast<uint64>(1049));     // QID.path
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RAttach)
-            .then([](Protocol::Response&& response) {
-                EXPECT_EQ(81, response.attach.qid.type);
-                EXPECT_EQ(3, response.attach.qid.version);
-                EXPECT_EQ(1049, response.attach.qid.path);
+    getResponseOfFail<Protocol::Response::Attach>(Protocol::MessageType::RAttach)
+            .then([](Protocol::Response::Attach&& response) {
+                EXPECT_EQ(81, response.qid.type);
+                EXPECT_EQ(3, response.qid.version);
+                EXPECT_EQ(1049, response.qid.path);
             });
 }
 
@@ -486,10 +507,10 @@ TEST_F(P9Messages, createOpenRequest) {
             .open(517, Protocol::OpenMode::RDWR)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TOpen)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(517, request.asOpen().fid);
-                ASSERT_EQ(Protocol::OpenMode::RDWR, request.asOpen().mode);
+    getRequestOfFail<Protocol::Request::Open>(Protocol::MessageType::TOpen)
+            .then([](Protocol::Request::Open&& request) {
+                ASSERT_EQ(517, request.fid);
+                ASSERT_EQ(Protocol::OpenMode::RDWR, request.mode);
             });
 }
 
@@ -505,10 +526,10 @@ TEST_F(P9Messages, createOpenRespose) {
             .open(qid, 817)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::ROpen)
-            .then([qid](Protocol::Response&& response) {
-                ASSERT_EQ(qid, response.open.qid);
-                ASSERT_EQ(817, response.open.iounit);
+    getResponseOfFail<Protocol::Response::Open>(Protocol::MessageType::ROpen)
+            .then([qid](Protocol::Response::Open&& response) {
+                ASSERT_EQ(qid, response.qid);
+                ASSERT_EQ(817, response.iounit);
             });
 }
 
@@ -531,10 +552,10 @@ TEST_F(P9Messages, parseOpenRespose) {
     _writer.writeLE(iounit);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::ROpen)
-            .then([qid, iounit](Protocol::Response&& response) {
-                EXPECT_EQ(qid, response.open.qid);
-                EXPECT_EQ(iounit, response.open.iounit);
+    getResponseOfFail<Protocol::Response::Open>(Protocol::MessageType::ROpen)
+            .then([qid, iounit](Protocol::Response::Open&& response) {
+                EXPECT_EQ(qid, response.qid);
+                EXPECT_EQ(iounit, response.iounit);
             });
 }
 
@@ -545,12 +566,12 @@ TEST_F(P9Messages, createCreateRequest) {
             .create(1734, "mcFance", 11, Protocol::OpenMode::EXEC)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TCreate)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(1734, request.asCreate().fid);
-                ASSERT_EQ("mcFance", request.asCreate().name);
-                ASSERT_EQ(11, request.asCreate().perm);
-                ASSERT_EQ(Protocol::OpenMode::EXEC, request.asCreate().mode);
+    getRequestOfFail<Protocol::Request::Create>(Protocol::MessageType::TCreate)
+            .then([](Protocol::Request::Create&& request) {
+                ASSERT_EQ(1734, request.fid);
+                ASSERT_EQ("mcFance", request.name);
+                ASSERT_EQ(11, request.perm);
+                ASSERT_EQ(Protocol::OpenMode::EXEC, request.mode);
             });
 }
 
@@ -565,10 +586,10 @@ TEST_F(P9Messages, createCreateRespose) {
             .create(qid, 718)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RCreate)
-            .then([qid](Protocol::Response&& response) {
-                ASSERT_EQ(qid, response.create.qid);
-                ASSERT_EQ(718, response.create.iounit);
+    getResponseOfFail<Protocol::Response::Create>(Protocol::MessageType::RCreate)
+            .then([qid](Protocol::Response::Create&& response) {
+                ASSERT_EQ(qid, response.qid);
+                ASSERT_EQ(718, response.iounit);
             });
 }
 
@@ -591,10 +612,10 @@ TEST_F(P9Messages, parseCreateRespose) {
     _writer.writeLE(iounit);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RCreate)
-            .then([qid](Protocol::Response&& response) {
-                EXPECT_EQ(qid, response.create.qid);
-                EXPECT_EQ(778, response.create.iounit);
+    getResponseOfFail<Protocol::Response::Create>(Protocol::MessageType::RCreate)
+            .then([qid](Protocol::Response::Create&& response) {
+                EXPECT_EQ(qid, response.qid);
+                EXPECT_EQ(778, response.iounit);
             });
 }
 
@@ -604,11 +625,11 @@ TEST_F(P9Messages, createReadRequest) {
             .read(7234, 18, 772)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TRead)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(7234, request.asRead().fid);
-                ASSERT_EQ(18, request.asRead().offset);
-                ASSERT_EQ(772, request.asRead().count);
+    getRequestOfFail<Protocol::Request::Read>(Protocol::MessageType::TRead)
+            .then([](Protocol::Request::Read&& request) {
+                ASSERT_EQ(7234, request.fid);
+                ASSERT_EQ(18, request.offset);
+                ASSERT_EQ(772, request.count);
             });
 }
 
@@ -619,9 +640,9 @@ TEST_F(P9Messages, createReadRespose) {
             .read(data)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RRead)
-            .then([data](Protocol::Response&& response) {
-                ASSERT_EQ(data, response.read.data);
+    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RRead)
+            .then([data](Protocol::Response::Read&& response) {
+                ASSERT_EQ(data, response.data);
             });
 }
 
@@ -636,10 +657,10 @@ TEST_F(P9Messages, parseReadRespose) {
     _writer.write(messageData.view());
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RRead)
-            .then([dataLen, messageData](Protocol::Response&& response) {
-                EXPECT_EQ(dataLen, response.read.data.size());
-                EXPECT_EQ(response.read.data, messageData.view());
+    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RRead)
+            .then([dataLen, messageData](Protocol::Response::Read&& response) {
+                EXPECT_EQ(dataLen, response.data.size());
+                EXPECT_EQ(response.data, messageData.view());
             });
 }
 
@@ -652,11 +673,11 @@ TEST_F(P9Messages, createWriteRequest) {
             .write(15927, 98, data)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TWrite)
-            .then([data](Protocol::Request&& request) {
-                ASSERT_EQ(15927, request.asWrite().fid);
-                ASSERT_EQ(98, request.asWrite().offset);
-                ASSERT_EQ(data, request.asWrite().data);
+    getRequestOfFail<Protocol::Request::Write>(Protocol::MessageType::TWrite)
+            .then([data](Protocol::Request::Write&& request) {
+                ASSERT_EQ(15927, request.fid);
+                ASSERT_EQ(98, request.offset);
+                ASSERT_EQ(data, request.data);
             });
 }
 
@@ -665,9 +686,9 @@ TEST_F(P9Messages, createWriteRespose) {
             .write(71717)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RWrite)
-            .then([](Protocol::Response&& response) {
-                ASSERT_EQ(71717, response.write.count);
+    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RWrite)
+            .then([](Protocol::Response::Write&& response) {
+                ASSERT_EQ(71717, response.count);
             });
 }
 
@@ -677,9 +698,9 @@ TEST_F(P9Messages, parseWriteRespose) {
     _writer.writeLE(static_cast<uint32>(81177));
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RWrite)
-            .then([](Protocol::Response&& response) {
-                EXPECT_EQ(81177, response.write.count);
+    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RWrite)
+            .then([](Protocol::Response::Write&& response) {
+                EXPECT_EQ(81177, response.count);
             });
 }
 
@@ -690,9 +711,9 @@ TEST_F(P9Messages, createClunkRequest) {
             .clunk(37509)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TClunk)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(37509, request.asClunk().fid);
+    getRequestOfFail<Protocol::Request::Clunk>(Protocol::MessageType::TClunk)
+            .then([](Protocol::Request::Clunk&& request) {
+                ASSERT_EQ(37509, request.fid);
             });
 }
 
@@ -701,14 +722,14 @@ TEST_F(P9Messages, createClunkRespose) {
             .clunk()
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RClunk);
+    getResponseOfFail<Protocol::Response::Clunk>(Protocol::MessageType::RClunk);
 }
 
 TEST_F(P9Messages, parseClunkRespose) {
     writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RClunk, 1);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RClunk);
+    getResponseOfFail<Protocol::Response::Clunk>(Protocol::MessageType::RClunk);
 }
 
 
@@ -718,9 +739,9 @@ TEST_F(P9Messages, createRemoveRequest) {
             .remove(54329)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TRemove)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(54329, request.asRemove().fid);
+    getRequestOfFail<Protocol::Request::Remove>(Protocol::MessageType::TRemove)
+            .then([](Protocol::Request::Remove&& request) {
+                ASSERT_EQ(54329, request.fid);
             });
 }
 
@@ -729,14 +750,14 @@ TEST_F(P9Messages, createRemoveRespose) {
             .remove()
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RRemove);
+    getResponseOfFail<Protocol::Response::Remove>(Protocol::MessageType::RRemove);
 }
 
 TEST_F(P9Messages, parseRemoveRespose) {
     writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RRemove, 1);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RRemove);
+    getResponseOfFail<Protocol::Response::Remove>(Protocol::MessageType::RRemove);
 }
 
 
@@ -746,9 +767,9 @@ TEST_F(P9Messages, createStatRequest) {
             .stat(7872)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TStat)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(7872, request.asStat().fid);
+    getRequestOfFail<Protocol::Request::StatRequest>(Protocol::MessageType::TStat)
+            .then([](Protocol::Request::StatRequest&& request) {
+                ASSERT_EQ(7872, request.fid);
             });
 }
 
@@ -772,9 +793,9 @@ TEST_F(P9Messages, createStatRespose) {
             .stat(stat)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RStat)
-            .then([stat](Protocol::Response&& response) {
-                ASSERT_EQ(stat, response.stat);
+    getResponseOfFail<Protocol::Response::Stat>(Protocol::MessageType::RStat)
+            .then([stat](Protocol::Response::Stat&& response) {
+                ASSERT_EQ(stat, response.data);
             });
 }
 
@@ -804,9 +825,9 @@ TEST_F(P9Messages, parseStatRespose) {
     _writer.reset(headPosition);
     _writer.writeLE(Protocol::size_type(totalSize));
 
-    getResponseOfFail(Protocol::MessageType::RStat)
-            .then([stat](Protocol::Response&& response) {
-                ASSERT_EQ(stat, response.stat);
+    getResponseOfFail<Protocol::Response::Stat>(Protocol::MessageType::RStat)
+            .then([stat](Protocol::Response::Stat&& response) {
+                ASSERT_EQ(stat, response.data);
             });
 }
 
@@ -831,10 +852,10 @@ TEST_F(P9Messages, createWStatRequest) {
             .writeStat(8193, stat)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TWStat)
-            .then([stat](Protocol::Request&& request) {
-                ASSERT_EQ(8193, request.asWstat().fid);
-                ASSERT_EQ(stat, request.asWstat().stat);
+    getRequestOfFail<Protocol::Request::WStat>(Protocol::MessageType::TWStat)
+            .then([stat](Protocol::Request::WStat&& request) {
+                ASSERT_EQ(8193, request.fid);
+                ASSERT_EQ(stat, request.stat);
             });
 }
 
@@ -843,14 +864,14 @@ TEST_F(P9Messages, createWStatRespose) {
             .wstat()
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RWStat);
+    getResponseOfFail<Protocol::Response::WStat>(Protocol::MessageType::RWStat);
 }
 
 TEST_F(P9Messages, parseWStatRespose) {
     writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RWStat, 1);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RWStat);
+    getResponseOfFail<Protocol::Response::WStat>(Protocol::MessageType::RWStat);
 }
 
 
@@ -862,11 +883,11 @@ TEST_F(P9Messages, createWalkRequest) {
             .walk(213, 124, destPath)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TWalk)
-            .then([&destPath](Protocol::Request&& request) {
-                EXPECT_EQ(213, request.asWalk().fid);
-                EXPECT_EQ(124, request.asWalk().newfid);
-                EXPECT_EQ(destPath, request.asWalk().path);
+    getRequestOfFail<Protocol::Request::Walk>(Protocol::MessageType::TWalk)
+            .then([&destPath](Protocol::Request::Walk&& request) {
+                EXPECT_EQ(213, request.fid);
+                EXPECT_EQ(124, request.newfid);
+                EXPECT_EQ(destPath, request.path);
             });
 }
 
@@ -875,11 +896,11 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
             .walk(7374, 542, Path())
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TWalk)
-            .then([](Protocol::Request&& request) {
-                ASSERT_EQ(7374, request.asWalk().fid);
-                ASSERT_EQ(542, request.asWalk().newfid);
-                ASSERT_TRUE(request.asWalk().path.empty());
+    getRequestOfFail<Protocol::Request::Walk>(Protocol::MessageType::TWalk)
+            .then([](Protocol::Request::Walk&& request) {
+                ASSERT_EQ(7374, request.fid);
+                ASSERT_EQ(542, request.newfid);
+                ASSERT_TRUE(request.path.empty());
             });
 }
 
@@ -893,10 +914,10 @@ TEST_F(P9Messages, createWalkRespose) {
             .walk(qids.view())
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RWalk)
-            .then([&qids](Protocol::Response&& response) {
-                ASSERT_EQ(qids.size(), response.walk.nqids);
-                ASSERT_EQ(qids[2], response.walk.qids[2]);
+    getResponseOfFail<Protocol::Response::Walk>(Protocol::MessageType::RWalk)
+            .then([&qids](Protocol::Response::Walk&& response) {
+                ASSERT_EQ(qids.size(), response.nqids);
+                ASSERT_EQ(qids[2], response.qids[2]);
             });
 }
 
@@ -920,12 +941,12 @@ TEST_F(P9Messages, parseWalkRespose) {
     _writer.reset(headPosition);
     _writer.writeLE(Protocol::size_type(totalSize));
 
-    getResponseOfFail(Protocol::MessageType::RWalk)
-            .then([](Protocol::Response&& response) {
-                EXPECT_EQ(1, response.walk.nqids);
-                EXPECT_EQ(87, response.walk.qids[0].type);
-                EXPECT_EQ(5481, response.walk.qids[0].version);
-                EXPECT_EQ(17, response.walk.qids[0].path);
+    getResponseOfFail<Protocol::Response::Walk>(Protocol::MessageType::RWalk)
+            .then([](Protocol::Response::Walk&& response) {
+                EXPECT_EQ(1, response.nqids);
+                EXPECT_EQ(87, response.qids[0].type);
+                EXPECT_EQ(5481, response.qids[0].version);
+                EXPECT_EQ(17, response.qids[0].path);
             });
 }
 
@@ -946,9 +967,9 @@ TEST_F(P9E_Messages, createSessionRequest) {
             .session(data)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TSession)
-            .then([data](Protocol::Request&& request) {
-                ASSERT_EQ(data, wrapMemory(request.asSession().key));
+    getRequestOfFail<Protocol::Request::Session>(Protocol::MessageType::TSession)
+            .then([data](Protocol::Request::Session&& request) {
+                ASSERT_EQ(data, wrapMemory(request.key));
             });
 }
 
@@ -985,7 +1006,7 @@ TEST_F(P9E_Messages, createSessionRespose) {
             .session()
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RSession);
+    getResponseOfFail<Protocol::Response::Session>(Protocol::MessageType::RSession);
 }
 
 TEST_F(P9E_Messages, parseSessionRespose) {
@@ -994,7 +1015,7 @@ TEST_F(P9E_Messages, parseSessionRespose) {
             .header(Protocol::MessageType::RSession, 1, 0);
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RSession);
+    getResponseOfFail<Protocol::Response::Session>(Protocol::MessageType::RSession);
 }
 
 
@@ -1005,10 +1026,10 @@ TEST_F(P9E_Messages, createShortReadRequest) {
             .shortRead(32, path)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TSRead)
-        .then([&path](Protocol::Request&& request) {
-            ASSERT_EQ(32, request.asShortRead().fid);
-            ASSERT_EQ(path, request.asShortRead().path);
+    getRequestOfFail<Protocol::Request::SRead>(Protocol::MessageType::TSRead)
+        .then([&path](Protocol::Request::SRead&& request) {
+            ASSERT_EQ(32, request.fid);
+            ASSERT_EQ(path, request.path);
         });
 }
 
@@ -1020,9 +1041,9 @@ TEST_F(P9E_Messages, createShortReadRespose) {
             .shortRead(data)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RSRead)
-            .then([data](Protocol::Response&& response) {
-                EXPECT_EQ(data, response.read.data);
+    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RSRead)
+            .then([data](Protocol::Response::Read&& response) {
+                EXPECT_EQ(data, response.data);
             });
 }
 
@@ -1038,10 +1059,10 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
     _writer.write(messageData.view());
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RSRead)
-            .then([messageData](Protocol::Response&& response) {
-                EXPECT_EQ(messageData.size(), response.read.data.size());
-                EXPECT_EQ(messageData.view(), response.read.data);
+    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RSRead)
+            .then([messageData](Protocol::Response::Read&& response) {
+                EXPECT_EQ(messageData.size(), response.data.size());
+                EXPECT_EQ(messageData.view(), response.data);
             });
 }
 
@@ -1055,11 +1076,11 @@ TEST_F(P9E_Messages, createShortWriteRequest) {
             .shortWrite(32, path, data)
             .build();
 
-    getRequestOfFail(Protocol::MessageType::TSWrite)
-        .then([&path, data](Protocol::Request&& request) {
-            ASSERT_EQ(32, request.asShortWrite().fid);
-            ASSERT_EQ(path, request.asShortWrite().path);
-            ASSERT_EQ(data, request.asShortWrite().data);
+    getRequestOfFail<Protocol::Request::SWrite>(Protocol::MessageType::TSWrite)
+        .then([&path, data](Protocol::Request::SWrite&& request) {
+            ASSERT_EQ(32, request.fid);
+            ASSERT_EQ(path, request.path);
+            ASSERT_EQ(data, request.data);
         });
 }
 
@@ -1069,9 +1090,9 @@ TEST_F(P9E_Messages, createShortWriteRespose) {
             .shortWrite(100500)
             .build();
 
-    getResponseOfFail(Protocol::MessageType::RSWrite)
-            .then([](Protocol::Response&& response) {
-                EXPECT_EQ(100500, response.write.count);
+    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RSWrite)
+            .then([](Protocol::Response::Write&& response) {
+                EXPECT_EQ(100500, response.count);
             });
 }
 
@@ -1082,8 +1103,8 @@ TEST_F(P9E_Messages, parseShortWriteRespose) {
             .encode(static_cast<uint32>(81177));
     _writer.flip();
 
-    getResponseOfFail(Protocol::MessageType::RSWrite)
-            .then([](Protocol::Response&& response) {
-                EXPECT_EQ(81177, response.write.count);
+    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RSWrite)
+            .then([](Protocol::Response::Write&& response) {
+                EXPECT_EQ(81177, response.count);
             });
 }

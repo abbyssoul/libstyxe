@@ -23,33 +23,6 @@ using namespace Solace;
 using namespace styxe;
 
 
-//Protocol::ResponseBuilder&
-//Protocol::ResponseBuilder::updatePayloadSize(size_type payloadSize) {
-//    _payloadSize = payloadSize;
-//    _buffer.reset(_initialPosition);
-
-//    Encoder(_buffer)
-//            .header(type(), _tag, _payloadSize);
-
-//    _buffer.advance(_payloadSize);
-
-//    return (*this);
-//}
-
-
-
-//Protocol::ResponseBuilder&
-//Protocol::ResponseBuilder::updatePayloadSize() {
-//    const auto dataLoad = _buffer.position() - _initialPosition;
-//    if (dataLoad < headerSize()) {
-//        Solace::raise<IOException>("Message header has not been written.");
-//    }
-
-//    const auto newPayloadSize = dataLoad - headerSize();
-
-//    return updatePayloadSize(newPayloadSize);
-//}
-
 void noPayloadMessage(ByteWriter& buffer, ByteWriter::size_type startPosition,
                       Protocol::MessageType type, Protocol::Tag tag) {
     buffer.reset(startPosition);
@@ -62,10 +35,6 @@ Protocol::ResponseBuilder::build(/*bool recalcPayloadSize*/) {
         type() > MessageType::_endSupportedMessageCode) {
         Solace::raise<IOException>("Unexpected message type");
     }
-
-//    if (recalcPayloadSize) {
-//        updatePayloadSize(_buffer.position() - headerSize());
-//    }
 
     return _buffer.flip();
 }
