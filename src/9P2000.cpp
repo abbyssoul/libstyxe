@@ -15,6 +15,7 @@
 */
 
 #include "styxe/9p2000.hpp"
+#include "styxe/version.hpp"
 
 #include <solace/assert.hpp>
 #include <algorithm>  // std::min
@@ -24,13 +25,14 @@ using namespace Solace;
 using namespace styxe;
 
 
+static const Version   kLibVersion{STYXE_VERSION_MAJOR, STYXE_VERSION_MINOR, STYXE_VERSION_BUILD};
+
 
 const Protocol::size_type   Protocol::MAX_MESSAGE_SIZE = 8*1024;      // 8k should be enough for everyone, am I right?
 const StringLiteral         Protocol::PROTOCOL_VERSION = "9P2000.e";  // By default we want to talk via 9P2000.e proc
 const StringLiteral         Protocol::UNKNOWN_PROTOCOL_VERSION = "unknown";
 const Protocol::Tag         Protocol::NO_TAG = static_cast<Protocol::Tag>(~0);
 const Protocol::Fid         Protocol::NOFID = static_cast<Protocol::Fid>(~0);
-
 
 AtomValue const
 styxe::kProtocolErrorCatergory = atom("9p2000");
@@ -56,6 +58,9 @@ styxe::getCannedError(CannedError errorId) noexcept {
     return kCannedErrors[static_cast<int>(errorId)];
 }
 
+Version const& styxe::getVersion() noexcept {
+    return kLibVersion;
+}
 
 
 struct OkRespose {

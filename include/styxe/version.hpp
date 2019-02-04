@@ -20,16 +20,19 @@
 #include <solace/version.hpp>
 
 
-namespace styxe {
+#define STYXE_VERSION_MAJOR 0
+#define STYXE_VERSION_MINOR 2
+#define STYXE_VERSION_BUILD 0
 
+
+namespace styxe {
 
 /**
  * Get compiled version of the library.
- * @note This is not the protocol version but the library itself.
- * @return Version of this library.
+ * @note This is not the protocol version, but the version of the library itself.
+ * @return Build-version of the library.
  */
-Solace::Version getVersion() noexcept;
-
+Solace::Version const& getVersion() noexcept;
 
 }  // end of namespace styxe
 #endif  // STYXE_VERSION_HPP
