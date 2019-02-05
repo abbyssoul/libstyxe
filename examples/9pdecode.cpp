@@ -20,7 +20,8 @@
 
 #include <solace/base16.hpp>
 #include <solace/output_utils.hpp>
-//#include <clime/parser.hpp>
+
+#include <clime/parser.hpp>
 
 
 #include <iostream>
@@ -294,7 +295,7 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, styxe::Protoc
 
     proc.parseMessageHeader(reader)
             .then([&](Protocol::MessageHeader&& header) {
-                in.read(buffer.view().dataAs<char>(), header.messageSize - proc.headerSize());
+                in.read(buffer.view().dataAs<char>(), header.payloadSize());
 
                 reader.rewind()
                         .limit(in.gcount());
@@ -331,14 +332,14 @@ int main(int argc, const char **argv) {
     auto maxMessageSize = Protocol::MAX_MESSAGE_SIZE;
     auto requiredVersion = Protocol::PROTOCOL_VERSION;
 
-    auto const parseArgs = cli::Parser("Decode and print 9P message")
+    auto const parseArgs = clime::Parser("Decode and print 9P message")
             .options({
-                         cli::Parser::printVersion("9pdecode", {1, 0, 0}),
-                         cli::Parser::printHelp(),
+                         clime::Parser::printVersion("9pdecode", {1, 0, 0}),
+                         clime::Parser::printHelp(),
                          {{"m", "msize"}, "Maximum message size", &maxMessageSize},
                          {{"p", "proc"}, "Protocol version", &requiredVersion}
             })
-            .arguments({{"*", "Files", [&inputFiles] (StringView, cli::Parser::Context const& c) -> Optional<Error> {
+            .arguments({{"*", "Files", [&inputFiles] (StringView, clime::Parser::Context const& c) -> Optional<Error> {
 
                              if (!inputFiles) {
                                 inputFiles = Optional<uint>(c.offset);

@@ -23,297 +23,252 @@ using namespace Solace;
 using namespace styxe;
 
 
-void noPayloadMessage(ByteWriter& buffer, ByteWriter::size_type startPosition,
+auto noPayloadMessage(ByteWriter& buffer,
                       Protocol::MessageType type, Protocol::Tag tag) {
-    buffer.reset(startPosition);
-    Protocol::Encoder(buffer).header(type, tag, 0);
-}
+    auto header = Protocol::makeHeaderWithPayload(type, tag, 0);
+    auto const pos = buffer.position();
 
-ByteWriter&
-Protocol::ResponseBuilder::build(/*bool recalcPayloadSize*/) {
-    if (type() < MessageType::_beginSupportedMessageCode ||
-        type() > MessageType::_endSupportedMessageCode) {
-        Solace::raise<IOException>("Unexpected message type");
-    }
+    Protocol::Encoder(buffer)
+            .header(type, tag, 0);
 
-    return _buffer.flip();
+    return Protocol::TypedWriter{buffer, pos, header};
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::version(StringView version, size_type maxMessageSize) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RVersion;
-    _payloadSize =
-            encode.protocolSize(maxMessageSize) +
-            encode.protocolSize(version);
+    auto const payloadSize =
+            encoder.protocolSize(maxMessageSize) +
+            encoder.protocolSize(version);
 
-    _tag = NO_TAG;
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RVersion, NO_TAG, payloadSize);
+    encoder.encode(header)
             .encode(maxMessageSize)
             .encode(version);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::auth(const Qid& qid) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+Protocol::TypedWriter
+Protocol::ResponseBuilder::auth(Qid qid) {
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RAuth;
-    _payloadSize =
-            encode.protocolSize(qid);
+    auto const payloadSize =
+            encoder.protocolSize(qid);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RAuth, _tag, payloadSize);
+    encoder.encode(header)
             .encode(qid);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::error(StringView message) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RError;
-    _payloadSize =
-            encode.protocolSize(message);
+    auto const payloadSize =
+            encoder.protocolSize(message);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RError, _tag, payloadSize);
+    encoder.encode(header)
             .encode(message);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::flush() {
-//    noPayloadMessage(buffer(), _initialPosition, MessageType::RFlush, _tag);
-//    return (*this);
-
-    buffer().reset(_initialPosition);
-    _type = MessageType::RFlush;
-    _payloadSize = 0;
-
-    Encoder(buffer())
-            .header(type(), _tag, _payloadSize);
-
-    return (*this);
+    return noPayloadMessage(_buffer, MessageType::RFlush, _tag);
 }
 
 
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::attach(const Qid& qid) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+Protocol::TypedWriter
+Protocol::ResponseBuilder::attach(Qid qid) {
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RAttach;
-    _payloadSize =
-            encode.protocolSize(qid);
+    auto const payloadSize =
+            encoder.protocolSize(qid);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RAttach, _tag, payloadSize);
+    encoder.encode(header)
             .encode(qid);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::walk(Solace::ArrayView<Qid> const& qids) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+    Encoder encoder{_buffer};
 
-    _type = MessageType::RWalk;
     // Compute message size first:
-    _payloadSize =
-            encode.protocolSize(qids);
+    auto const payloadSize =
+            encoder.protocolSize(qids);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RWalk, _tag, payloadSize);
+    encoder.encode(header)
             .encode(qids);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::open(const Qid& qid, size_type iounit) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+Protocol::TypedWriter
+Protocol::ResponseBuilder::open(Qid qid, size_type iounit) {
+    Encoder encoder{_buffer};
 
-    _type = MessageType::ROpen;
     // Compute message size first:
-    _payloadSize =
-            encode.protocolSize(qid) +
-            encode.protocolSize(iounit);
+    auto const payloadSize =
+            encoder.protocolSize(qid) +
+            encoder.protocolSize(iounit);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::ROpen, _tag, payloadSize);
+    encoder.encode(header)
             .encode(qid)
             .encode(iounit);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
 
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::create(const Qid& qid, size_type iounit) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+Protocol::TypedWriter
+Protocol::ResponseBuilder::create(Qid qid, size_type iounit) {
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RCreate;
-    _payloadSize =
-            encode.protocolSize(qid) +
-            encode.protocolSize(iounit);
+    auto const payloadSize =
+            encoder.protocolSize(qid) +
+            encoder.protocolSize(iounit);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RCreate, _tag, payloadSize);
+    encoder.encode(header)
             .encode(qid)
             .encode(iounit);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
 
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::read(const MemoryView& data) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+Protocol::TypedWriter
+Protocol::ResponseBuilder::read(MemoryView data) {
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RRead;
-    _payloadSize =
-            encode.protocolSize(data);
+    auto const payloadSize =
+            encoder.protocolSize(data);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RRead, _tag, payloadSize);
+    encoder.encode(header)
             .encode(data);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::write(size_type count) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RWrite;
-    _payloadSize =
-            encode.protocolSize(count);
+    auto const payloadSize =
+            encoder.protocolSize(count);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RWrite, _tag, payloadSize);
+    encoder.encode(header)
             .encode(count);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::clunk() {
-    buffer().reset(_initialPosition);
-    _type = MessageType::RClunk;
-    _payloadSize = 0;
-
-    Encoder(buffer())
-            .header(type(), _tag, _payloadSize);
-
-    return (*this);
+    return noPayloadMessage(_buffer, MessageType::RClunk, _tag);
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::remove() {
-    buffer().reset(_initialPosition);
-    _type = MessageType::RRemove;
-    _payloadSize = 0;
-
-    Encoder(buffer())
-            .header(type(), _tag, _payloadSize);
-
-    return (*this);
+    return noPayloadMessage(_buffer, MessageType::RRemove, _tag);
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::stat(const Stat& data) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RStat;
-    _payloadSize =
-            sizeof(uint16) +
-            encode.protocolSize(data);
+    uint16 const statSize = encoder.protocolSize(data);  // FIXME: Deal with stat data size over 64k
+    auto const payloadSize = narrow_cast<size_type>(sizeof(uint16) + statSize);
 
-    encode.header(type(), _tag, _payloadSize)
-            .encode(static_cast<uint16>(_payloadSize))
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RStat, _tag, payloadSize);
+    encoder.encode(header)
+            .encode(statSize) //static_cast<uint16>(payloadSize))
             .encode(data);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::wstat() {
-    buffer().reset(_initialPosition);
-    _type = MessageType::RWStat;
-    _payloadSize = 0;
-
-    Encoder(buffer())
-            .header(type(), _tag, _payloadSize);
-
-    return (*this);
+    return noPayloadMessage(_buffer, MessageType::RWStat, _tag);
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::session() {
-    buffer().reset(_initialPosition);
-    _type = MessageType::RSession;
-    _payloadSize = 0;
-
-    Encoder(buffer())
-            .header(type(), _tag, _payloadSize);
-
-    return (*this);
+    return noPayloadMessage(_buffer, MessageType::RSession, _tag);
 }
 
 
 
-Protocol::ResponseBuilder&
-Protocol::ResponseBuilder::shortRead(const MemoryView& data) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+Protocol::TypedWriter
+Protocol::ResponseBuilder::shortRead(MemoryView data) {
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RSRead;
-    _payloadSize =
-            encode.protocolSize(data);
+    auto const payloadSize =
+            encoder.protocolSize(data);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RSRead, _tag, payloadSize);
+    encoder.encode(header)
             .encode(data);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
 
-Protocol::ResponseBuilder&
+Protocol::TypedWriter
 Protocol::ResponseBuilder::shortWrite(size_type count) {
-    buffer().reset(_initialPosition);
-    Encoder encode(buffer());
+    Encoder encoder{_buffer};
 
     // Compute message size first:
-    _type = MessageType::RSWrite;
-    _payloadSize =
-            encode.protocolSize(count);
+    auto const payloadSize =
+            encoder.protocolSize(count);
 
-    encode.header(type(), _tag, _payloadSize)
+    auto const pos = _buffer.position();
+    auto header = makeHeaderWithPayload(MessageType::RSWrite, _tag, payloadSize);
+    encoder.encode(header)
             .encode(count);
 
-    return (*this);
+    return TypedWriter{_buffer, pos, header};
 }
 
 
@@ -321,14 +276,14 @@ Protocol::ResponseBuilder::shortWrite(size_type count) {
 bool DirListingWriter::encode(Protocol::Stat const& stat) {
     const auto protoSize = _encoder.protocolSize(stat);
     // Keep count of how many data we have traversed.
-    bytesTraversed += protoSize;
-    if (bytesTraversed <= offset) {  // Client is only interested in data pass the offset.
+    _bytesTraversed += protoSize;
+    if (_bytesTraversed <= offset) {  // Client is only interested in data pass the offset.
         return true;
     }
 
     // Keep track of much data will end up in a buffer to prevent overflow.
-    bytesEncoded += protoSize;
-    if (bytesEncoded > count) {
+    _bytesEncoded += protoSize;
+    if (_bytesEncoded > count) {
         return false;
     }
 

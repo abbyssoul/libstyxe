@@ -127,6 +127,15 @@ Protocol::Encoder::header(Solace::byte customMessageType, Tag tag, size_type pay
 }
 
 
+
+Protocol::Encoder&
+Protocol::Encoder::encode(MessageHeader header) {
+    return encode(header.messageSize)
+            .encode(header.type)
+            .encode(header.tag);
+}
+
+
 Protocol::Encoder&
 Protocol::Encoder::encode(uint8 value) {
     _dest.writeLE(value);
@@ -192,8 +201,9 @@ Protocol::Encoder::encode(const Protocol::Stat& stat) {
             .encode(stat.muid);
 }
 
+
 Protocol::Encoder&
-Protocol::Encoder::encode(const MemoryView& data) {
+Protocol::Encoder::encode(MemoryView data) {
     encode(static_cast<Protocol::size_type>(data.size()));
     _dest.write(data);
 

@@ -48,20 +48,53 @@ protected:
 };
 
 
-TEST_F(P9MessageBuilder, messageChanging) {
-    MemoryView emptyBuffer;
-    Protocol::ResponseBuilder builder(_buffer, Protocol::NO_TAG);
+TEST_F(P9MessageBuilder, dirListingMessage) {
+//    auto baseBuilder = ;
+    auto responseWriter = Protocol::ResponseBuilder{_buffer, 1}
+            .read(MemoryView{}); // Prime read request 0 size data!
 
-    builder.read(emptyBuffer);
-    ASSERT_EQ(Protocol::headerSize() + 4 + 0, _buffer.position());
-    ASSERT_EQ(Protocol::MessageType::RRead, builder.type());
+    DirListingWriter writer{_buffer, 4096, 0};
 
-    // Change message type
-    const char* message = "Nothing to read";
-    const auto payloadSize = strlen(message) + 2;
-    builder.error(StringView{message});
+    Protocol::Stat testStats[] = {
+        {
+            0,
+            1,
+            2,
+            {2, 0, 64},
+            01000644,
+            0,
+            0,
+            4096,
+            StringLiteral{"Root"},
+            StringLiteral{"User"},
+            StringLiteral{"Glanda"},
+            StringLiteral{"User"}
+        }
+    };
 
-    ASSERT_EQ(payloadSize, builder.payloadSize());
-    ASSERT_EQ(Protocol::headerSize() + payloadSize, _buffer.position());
-    ASSERT_EQ(Protocol::MessageType::RError, builder.type());
+    for (auto& stat : testStats) {
+        stat.size = DirListingWriter::sizeStat(stat);
+    }
+
+    for (auto const& stat : testStats) {
+        if (!writer.encode(stat))
+            break;
+    }
+
+    auto& buf = responseWriter.build();
+    ByteReader reader{buf.viewRemaining()};
+
+    Protocol proc;
+    auto maybeHeader = proc.parseMessageHeader(reader);
+    ASSERT_TRUE(maybeHeader.isOk());
+
+    auto maybeMessage = proc.parseResponse(maybeHeader.unwrap(), reader);
+    ASSERT_TRUE(maybeMessage.isOk());
+
+    auto& message = maybeMessage.unwrap();
+    ASSERT_TRUE(std::holds_alternative<Protocol::Response::Read>(message));
+
+    auto read = std::get<Protocol::Response::Read>(message);
+
+    ASSERT_EQ(writer.bytesEncoded(), read.data.size());
 }

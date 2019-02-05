@@ -242,14 +242,15 @@ protected:
                 .then([this](Protocol::MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
                 })
-                .then([this](Protocol::RequestMessage&& msg) -> RequestType {
+                .then([this](Protocol::RequestMessage&& msg) -> Result<RequestType, Error> {
                     const bool isType = std::holds_alternative<RequestType>(msg);
 
-                    [&isType]() {
-                        ASSERT_TRUE(isType);
-                    } ();
+                    if (!isType) {
+                        []() { FAIL() << "Parsed request is on unexpected type"; } ();
+                        return Err(getCannedError(CannedError::UnsupportedMessageType));
+                    }
 
-                    return std::get<RequestType>(std::move(msg));
+                    return Ok<RequestType>(std::get<RequestType>(std::move(msg)));
                 })
                 .mapError([](Error&& e) -> Error {
                     [&e]() {
@@ -800,34 +801,35 @@ TEST_F(P9Messages, createStatRespose) {
 }
 
 TEST_F(P9Messages, parseStatRespose) {
-    Protocol::Stat stat;
-    stat.atime = 21;
-    stat.dev = 8828;
-    stat.gid = "Some user";
-    stat.length = 818177;
-    stat.mode = 111;
-    stat.mtime = 17;
-    stat.name = "File McFileface";
-    stat.qid.path = 61;
-    stat.qid.type = 15;
-    stat.qid.version = 404;
-    stat.size = 124;
-    stat.type = 1;
-    stat.uid = "User McUserface";
+    Protocol::Response::Stat statResponse;
+    statResponse.dummySize = 1;
 
-    const auto headPosition = _writer.position();
-    writeHeader(_writer, 0, Protocol::MessageType::RStat, 1);
-    _writer.writeLE(uint16(1));
-    encode9P(_writer, stat);
+    statResponse.data.atime = 21;
+    statResponse.data.dev = 8828;
+    statResponse.data.gid = "Some user";
+    statResponse.data.length = 818177;
+    statResponse.data.mode = 111;
+    statResponse.data.mtime = 17;
+    statResponse.data.name = "File McFileface";
+    statResponse.data.qid.path = 61;
+    statResponse.data.qid.type = 15;
+    statResponse.data.qid.version = 404;
+    statResponse.data.type = 1;
+    statResponse.data.uid = "User McUserface";
+    statResponse.data.size = DirListingWriter::sizeStat(statResponse.data);
 
-    const auto totalSize = _writer.position();
-    _writer.limit(totalSize);
-    _writer.reset(headPosition);
-    _writer.writeLE(Protocol::size_type(totalSize));
+    writeHeader(_writer,
+                Protocol::headerSize() + sizeof(statResponse.dummySize) + Protocol::Encoder::protocolSize(statResponse.data),
+                Protocol::MessageType::RStat,
+                1);
+    _writer.writeLE(statResponse.dummySize);
+    encode9P(_writer, statResponse.data);
+    _writer.flip();
 
     getResponseOfFail<Protocol::Response::Stat>(Protocol::MessageType::RStat)
-            .then([stat](Protocol::Response::Stat&& response) {
-                ASSERT_EQ(stat, response.data);
+            .then([statResponse](Protocol::Response::Stat&& response) {
+                ASSERT_EQ(statResponse.dummySize, response.dummySize);
+                ASSERT_EQ(statResponse.data, response.data);
             });
 }
 

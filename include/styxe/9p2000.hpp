@@ -129,6 +129,7 @@ public:
     /**
      * Qid's type as encoded into bit vector corresponding to the high 8 bits of the file's mode word.
      * Represents the type of a file (directory, etc.).
+     * @see Qid.type
      */
     enum class QidType : Solace::byte {
         DIR    = 0x80,  //!< directories
@@ -137,6 +138,7 @@ public:
         MOUNT  = 0x10,  //!< mounted channel
         AUTH   = 0x08,  //!< authentication file (afid)
         TMP    = 0x04,  //!< non-backed-up file
+        LINK   = 0x02,  //!< bit for symbolic link (Unix, 9P2000.u)
         FILE   = 0x00,  //!< bits for plain file
     };
 
@@ -160,6 +162,7 @@ public:
         WRITE       = 0x2,		/* mode bit for write permission */
         EXEC        = 0x1,		/* mode bit for execute permission */
     };
+
     /**
      * 9P message types
      */
@@ -236,7 +239,36 @@ public:
     };
 
 
+    /**
+     * Fixed size common message header that all messages start with
+     */
+    struct MessageHeader {
+        size_type       messageSize;    //!< Size of the message including size of the header and size field itself
+        MessageType     type;           //!< Type of the message. @see MessageType.
+        Tag             tag;            //!< Message tag for concurrent messages.
 
+        constexpr size_type payloadSize() const noexcept {
+            // TODO: Do we care about negative sizes?
+            return messageSize - headerSize();
+        }
+    };
+
+
+    /**
+     * Get size in bytes of the mandatory protocol message header.
+     * @see MessageHeader
+     * @return Size in bytes of the mandatory protocol message header.
+     */
+    static constexpr size_type headerSize() noexcept {
+        // Note: don't use sizeof(MessageHeader) due to possible padding
+        return  sizeof(MessageHeader::messageSize) +
+                sizeof(MessageHeader::type) +
+                sizeof(MessageHeader::tag);
+    }
+
+    static MessageHeader makeHeaderWithPayload(MessageType type, Tag tag, size_type payloadSize) noexcept {
+        return { Protocol::headerSize() + payloadSize, type, tag };
+    }
     /**
      * Helper class to decode data structures from the 9P2000 formatted messages.
      */
@@ -358,30 +390,29 @@ public:
             return header(static_cast<Solace::byte>(type), tag, payloadSize);
         }
 
+        Encoder& encode(MessageHeader header);
+
+        Encoder& encode(MessageType msgType) {
+            return encode(static_cast<Solace::byte>(msgType));
+        }
+
         Encoder& encode(Solace::uint8 value);
         Encoder& encode(Solace::uint16 value);
         Encoder& encode(Solace::uint32 value);
         Encoder& encode(Solace::uint64 value);
         Encoder& encode(Solace::StringView str);
         Encoder& encode(Solace::String const& str) = delete;
+        Encoder& encode(Solace::MemoryView data);
+        Encoder& encode(Solace::Path const& path);
+
         Encoder& encode(Qid qid);
         Encoder& encode(Solace::ArrayView<Qid> qids);
         Encoder& encode(Stat const& stat);
-        Encoder& encode(Solace::MemoryView const& data);
-        Encoder& encode(Solace::Path const& path);
 
     private:
         Solace::ByteWriter& _dest;
     };
 
-    /**
-     * Common header that all messages have.
-     */
-    struct MessageHeader {
-        size_type       messageSize;   //!< Size of the message including size of the header and size field itself.
-        MessageType     type;   //!< Type of the message. @see MessageType.
-        Tag             tag;    //!< Message tag for concurent messages.
-    };
 
 
     /**
@@ -552,37 +583,38 @@ public:
                             Request::SWrite
                             >;
 
+    struct TypedWriter {
+
+        TypedWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader head)
+            : _buffer{buffer}
+            , _pos{pos}
+            , header{head}
+        {}
+
+        Solace::ByteWriter& build();
+
+        constexpr Tag tag() const noexcept { return header.tag; }
+        constexpr MessageType type() const noexcept { return header.type; }
+        constexpr size_type payloadSize() const noexcept { return header.payloadSize(); }
+
+    private:
+        Solace::ByteWriter&     _buffer;
+        Solace::ByteWriter::size_type _pos;
+
+        MessageHeader           header;
+    };
+
+
     /**
      * Helper class to build Request messages.
      */
     class RequestBuilder {
     public:
 
-        RequestBuilder(Solace::ByteWriter& dest) noexcept :
-            _tag(1),
-            _payloadSize(0),
-            _buffer(dest)
+        RequestBuilder(Solace::ByteWriter& dest, Tag tag = 1) noexcept
+            : _tag{tag}
+            , _buffer{dest}
         {}
-
-        Solace::ByteWriter& buffer() noexcept {
-            return _buffer;
-        }
-
-        Solace::ByteWriter& build();
-
-        /**
-         * Set response message tag
-         * @param value Tag of the response message.
-         * @return Ref to this for a fluent interface.
-         */
-        RequestBuilder& tag(Tag value) noexcept {
-            _tag = value;
-            return (*this);
-        }
-
-        Tag tag() const noexcept { return _tag; }
-        MessageType type() const noexcept { return _type; }
-        size_type payloadSize() const noexcept { return _payloadSize; }
 
         /**
          * Create a version request.
@@ -590,35 +622,32 @@ public:
          * @param maxMessageSize Suggest maximum size of the protocol message, including mandatory message header.
          * @return Ref to this for fluent interface.
          */
-        RequestBuilder& version(Solace::StringView version = PROTOCOL_VERSION,
-                                size_type maxMessageSize = MAX_MESSAGE_SIZE);
-        RequestBuilder& auth(Fid afid, Solace::StringView userName, Solace::StringView attachName);
-        RequestBuilder& flush(Tag oldTransation);
-        RequestBuilder& attach(Fid fid, Fid afid,
+        TypedWriter version(Solace::StringView version = PROTOCOL_VERSION,
+                                size_type maxMessageSize = MAX_MESSAGE_SIZE) const;
+        TypedWriter auth(Fid afid, Solace::StringView userName, Solace::StringView attachName) const;
+        TypedWriter flush(Tag oldTransation) const;
+        TypedWriter attach(Fid fid, Fid afid,
                                 Solace::StringView userName, Solace::StringView attachName);
-        RequestBuilder& walk(Fid fid, Fid nfid, Solace::Path const& path);
-        RequestBuilder& open(Fid fid, OpenMode mode);
-        RequestBuilder& create(Fid fid,
+        TypedWriter walk(Fid fid, Fid nfid, Solace::Path const& path);
+        TypedWriter open(Fid fid, OpenMode mode);
+        TypedWriter create(Fid fid,
                                 Solace::StringView name,
                                 Solace::uint32 permissions,
                                 OpenMode mode);
-        RequestBuilder& read(Fid fid, Solace::uint64 offset, size_type count);
-        RequestBuilder& write(Fid fid, Solace::uint64 offset, Solace::MemoryView data);
-        RequestBuilder& clunk(Fid fid);
-        RequestBuilder& remove(Fid fid);
-        RequestBuilder& stat(Fid fid);
-        RequestBuilder& writeStat(Fid fid, Stat const& stat);
+        TypedWriter read(Fid fid, Solace::uint64 offset, size_type count);
+        TypedWriter write(Fid fid, Solace::uint64 offset, Solace::MemoryView data);
+        TypedWriter clunk(Fid fid);
+        TypedWriter remove(Fid fid);
+        TypedWriter stat(Fid fid);
+        TypedWriter writeStat(Fid fid, Stat const& stat);
 
         /* 9P2000.e extention */
-        RequestBuilder& session(Solace::MemoryView key);
-        RequestBuilder& shortRead(Fid rootFid, Solace::Path const& path);
-        RequestBuilder& shortWrite(Fid rootFid, Solace::Path const& path, Solace::MemoryView data);
+        TypedWriter session(Solace::MemoryView key);
+        TypedWriter shortRead(Fid rootFid, Solace::Path const& path);
+        TypedWriter shortWrite(Fid rootFid, Solace::Path const& path, Solace::MemoryView data);
 
     private:
-        Tag                     _tag;
-        MessageType             _type;
-        size_type               _payloadSize;
-
+        Tag const               _tag;
         Solace::ByteWriter&     _buffer;
     };
 
@@ -709,77 +738,37 @@ public:
 
         constexpr ResponseBuilder(Solace::ByteWriter& dest, Tag tag) noexcept
             : _tag{tag}
-            , _type{}
-            , _payloadSize{0}
-            , _initialPosition{dest.position()}
             , _buffer{dest}
         {}
 
-        constexpr Solace::ByteWriter& buffer() noexcept {
-            return _buffer;
-        }
-
-        Solace::ByteWriter& build(/*bool recalcPayloadSize = false*/);
-
-        /**
-         * Set response message tag
-         * @param value Tag of the response message.
-         * @return Ref to this for a fluent interface.
-         */
-        constexpr ResponseBuilder& tag(Tag value) noexcept {
-            _tag = value;
-            return (*this);
-        }
-
-        constexpr Tag tag() const noexcept { return _tag; }
-        constexpr MessageType type() const noexcept { return _type; }
-        constexpr size_type payloadSize() const noexcept { return _payloadSize; }
-
-        ResponseBuilder& version(Solace::StringView version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
-        ResponseBuilder& auth(Qid const& qid);
-        ResponseBuilder& error(Solace::StringView message);
-        ResponseBuilder& error(Solace::Error const& err) {
+        TypedWriter version(Solace::StringView version, size_type maxMessageSize = MAX_MESSAGE_SIZE);
+        TypedWriter auth(Qid qid);
+        TypedWriter error(Solace::StringView message);
+        TypedWriter error(Solace::Error const& err) {
             return error(err.toString());
         }
 
-        ResponseBuilder& flush();
-        ResponseBuilder& attach(Qid const& qid);
-        ResponseBuilder& walk(Solace::ArrayView<Qid> const& qids);
-        ResponseBuilder& open(Qid const& qid, size_type iounit);
-        ResponseBuilder& create(Qid const& qid, size_type iounit);
-        ResponseBuilder& read(Solace::MemoryView const& data);
-        ResponseBuilder& write(size_type iounit);
-        ResponseBuilder& clunk();
-        ResponseBuilder& remove();
-        ResponseBuilder& stat(Stat const& value);
-        ResponseBuilder& wstat();
+        TypedWriter flush();
+        TypedWriter attach(Qid qid);
+        TypedWriter walk(Solace::ArrayView<Qid> const& qids);
+        TypedWriter open(Qid qid, size_type iounit);
+        TypedWriter create(Qid qid, size_type iounit);
+        TypedWriter read(Solace::MemoryView data);
+        TypedWriter write(size_type iounit);
+        TypedWriter clunk();
+        TypedWriter remove();
+        TypedWriter stat(Stat const& value);
+        TypedWriter wstat();
 
         /* 9P2000.e extention */
-        ResponseBuilder& session();
-        ResponseBuilder& shortRead(Solace::MemoryView const& data);
-        ResponseBuilder& shortWrite(size_type iounit);
+        TypedWriter session();
+        TypedWriter shortRead(Solace::MemoryView data);
+        TypedWriter shortWrite(size_type iounit);
 
     private:
-        Tag                     _tag;
-        MessageType             _type;
-        size_type               _payloadSize;
-
-        Solace::ByteWriter::size_type   _initialPosition;
-        Solace::ByteWriter&             _buffer;
+        Tag const               _tag;
+        Solace::ByteWriter&     _buffer;
     };
-
-
-    /**
-     * Get size in bytes of the mandatory protocol message header.
-     * @see MessageHeader
-     * @return Size in bytes of the mandatory protocol message header.
-     */
-    static constexpr size_type headerSize() noexcept {
-        // Note: can't use sizeof(MessageHeader) due to padding
-        return  sizeof(MessageHeader::messageSize) +
-                sizeof(MessageHeader::type) +
-                sizeof(MessageHeader::tag);
-    }
 
 
 public:
@@ -950,9 +939,16 @@ struct DirListingWriter {
      */
     bool encode(Protocol::Stat const& stat);
 
+    static Solace::uint16 sizeStat(Protocol::Stat const& stat) {
+        return Solace::narrow_cast<Solace::uint16>(Protocol::Encoder::protocolSize(stat) - sizeof(stat.size));
+    }
+
+    constexpr auto bytesTraversed() const noexcept { return _bytesTraversed; }
+    constexpr auto bytesEncoded() const noexcept { return _bytesEncoded; }
+
 private:
-    Solace::uint64 bytesTraversed{0};
-    Solace::uint32 bytesEncoded{0};
+    Solace::uint64 _bytesTraversed{0};
+    Solace::uint32 _bytesEncoded{0};
 
     Protocol::Encoder _encoder;
 

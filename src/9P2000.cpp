@@ -363,22 +363,22 @@ parseShortWriteRequest(ByteReader& data) {
 
 
 Result<Protocol::MessageHeader, Error>
-Protocol::parseMessageHeader(ByteReader& buffer) const {
-    const auto mandatoryHeaderSize = headerSize();
-    const auto dataAvailable = buffer.remaining();
+Protocol::parseMessageHeader(ByteReader& src) const {
+    auto const mandatoryHeaderSize = headerSize();
+    auto const dataAvailable = src.remaining();
 
     // Check that we have enough data to read mandatory message header
     if (dataAvailable < mandatoryHeaderSize) {
         return Err(getCannedError(CannedError::IllFormedHeader));
     }
 
-    Decoder decoder(buffer);
+    Decoder decoder{src};
     MessageHeader header;
 
     decoder.read(&header.messageSize);
 
     // Sanity checks:
-    if (header.messageSize < headerSize()) {
+    if (header.messageSize < mandatoryHeaderSize) {
         return Err(getCannedError(CannedError::IllFormedHeader_FrameTooShort));
     }
 
@@ -389,7 +389,7 @@ Protocol::parseMessageHeader(ByteReader& buffer) const {
 
     // Read message type:
     byte messageBytecode;
-    buffer.readLE(messageBytecode);
+    decoder.read(&messageBytecode);
     // don't want any funny messages.
     header.type = static_cast<MessageType>(messageBytecode);
     if (header.type < MessageType::_beginSupportedMessageCode ||
@@ -407,7 +407,7 @@ Protocol::parseMessageHeader(ByteReader& buffer) const {
 
 Result<Protocol::ResponseMessage, Error>
 Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
-    auto const expectedData = header.messageSize - headerSize();
+    auto const expectedData = header.payloadSize();
 
     // Message data sanity check
     // Just paranoid about huge messages exciding frame size getting through.
@@ -454,7 +454,7 @@ Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
 
 Result<Protocol::RequestMessage, Solace::Error>
 Protocol::parseRequest(MessageHeader const& header, ByteReader& data) const {
-    const auto expectedData = header.messageSize - headerSize();
+    const auto expectedData = header.payloadSize();
 
     // Message data sanity check
     // Just paranoid about huge messages exciding frame size getting through.
@@ -512,4 +512,25 @@ Protocol::Protocol(size_type maxMassageSize, StringView version) :
     _negotiatedVersion(makeString(version))
 {
     // No-op
+}
+
+
+
+ByteWriter&
+Protocol::TypedWriter::build() {
+    auto const finalPos = _buffer.position();
+    auto const messageSize = finalPos - _pos; // Compute actual message size
+    _buffer.position(_pos);  // Reset to the start position
+
+    header.messageSize = narrow_cast<size_type>(messageSize);
+    Encoder encoder{_buffer};
+    encoder.encode(header);
+
+    if (header.type == Protocol::MessageType::RRead) {
+        encoder.encode(narrow_cast<Protocol::size_type>(finalPos - sizeof (Protocol::size_type) - _buffer.position()));
+    }
+
+    _buffer.position(finalPos);
+
+    return _buffer.flip();
 }
