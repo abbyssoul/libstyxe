@@ -22,44 +22,44 @@
 
 namespace styxe {
 
-    std::ostream& operator<< (std::ostream& ostr, Protocol::MessageType t) {
+    std::ostream& operator<< (std::ostream& ostr, MessageType t) {
 
         switch (t) {
-        case Protocol::MessageType::TVersion: ostr << "TVersion"; break;
-        case Protocol::MessageType::RVersion: ostr << "RVersion"; break;
-        case Protocol::MessageType::TAuth:    ostr << "TAuth"; break;
-        case Protocol::MessageType::RAuth:    ostr << "RAuth"; break;
-        case Protocol::MessageType::TAttach:  ostr << "TAttach"; break;
-        case Protocol::MessageType::RAttach:  ostr << "RAttach"; break;
-        case Protocol::MessageType::TError:   ostr << "TError"; break;
-        case Protocol::MessageType::RError:   ostr << "RError"; break;
-        case Protocol::MessageType::TFlush:   ostr << "TFlush"; break;
-        case Protocol::MessageType::RFlush:   ostr << "RFlush"; break;
-        case Protocol::MessageType::TWalk:    ostr << "TWalk"; break;
-        case Protocol::MessageType::RWalk:    ostr << "RWalk"; break;
-        case Protocol::MessageType::TOpen:    ostr << "TOpen"; break;
-        case Protocol::MessageType::ROpen:    ostr << "ROpen"; break;
-        case Protocol::MessageType::TCreate:  ostr << "TCreate"; break;
-        case Protocol::MessageType::RCreate:  ostr << "RCreate"; break;
-        case Protocol::MessageType::TRead:    ostr << "TRead"; break;
-        case Protocol::MessageType::RRead:    ostr << "RRead"; break;
-        case Protocol::MessageType::TWrite:   ostr << "TWrite"; break;
-        case Protocol::MessageType::RWrite:   ostr << "RWrite"; break;
-        case Protocol::MessageType::TClunk:   ostr << "TClunk"; break;
-        case Protocol::MessageType::RClunk:   ostr << "RClunk"; break;
-        case Protocol::MessageType::TRemove:  ostr << "TRemove"; break;
-        case Protocol::MessageType::RRemove:  ostr << "RRemove"; break;
-        case Protocol::MessageType::TStat:    ostr << "TStat"; break;
-        case Protocol::MessageType::RStat:    ostr << "RStat"; break;
-        case Protocol::MessageType::TWStat:   ostr << "TWStat"; break;
-        case Protocol::MessageType::RWStat:   ostr << "RWStat"; break;
+        case MessageType::TVersion: ostr << "TVersion"; break;
+        case MessageType::RVersion: ostr << "RVersion"; break;
+        case MessageType::TAuth:    ostr << "TAuth"; break;
+        case MessageType::RAuth:    ostr << "RAuth"; break;
+        case MessageType::TAttach:  ostr << "TAttach"; break;
+        case MessageType::RAttach:  ostr << "RAttach"; break;
+        case MessageType::TError:   ostr << "TError"; break;
+        case MessageType::RError:   ostr << "RError"; break;
+        case MessageType::TFlush:   ostr << "TFlush"; break;
+        case MessageType::RFlush:   ostr << "RFlush"; break;
+        case MessageType::TWalk:    ostr << "TWalk"; break;
+        case MessageType::RWalk:    ostr << "RWalk"; break;
+        case MessageType::TOpen:    ostr << "TOpen"; break;
+        case MessageType::ROpen:    ostr << "ROpen"; break;
+        case MessageType::TCreate:  ostr << "TCreate"; break;
+        case MessageType::RCreate:  ostr << "RCreate"; break;
+        case MessageType::TRead:    ostr << "TRead"; break;
+        case MessageType::RRead:    ostr << "RRead"; break;
+        case MessageType::TWrite:   ostr << "TWrite"; break;
+        case MessageType::RWrite:   ostr << "RWrite"; break;
+        case MessageType::TClunk:   ostr << "TClunk"; break;
+        case MessageType::RClunk:   ostr << "RClunk"; break;
+        case MessageType::TRemove:  ostr << "TRemove"; break;
+        case MessageType::RRemove:  ostr << "RRemove"; break;
+        case MessageType::TStat:    ostr << "TStat"; break;
+        case MessageType::RStat:    ostr << "RStat"; break;
+        case MessageType::TWStat:   ostr << "TWStat"; break;
+        case MessageType::RWStat:   ostr << "RWStat"; break;
 
-        case Protocol::MessageType::TSession: ostr << "TSession"; break;
-        case Protocol::MessageType::RSession: ostr << "RSession"; break;
-        case Protocol::MessageType::TSRead:   ostr << "TSRead"; break;
-        case Protocol::MessageType::RSRead:   ostr << "RSRead"; break;
-        case Protocol::MessageType::TSWrite:  ostr << "TSWrite"; break;
-        case Protocol::MessageType::RSWrite:  ostr << "RSWrite"; break;
+        case MessageType::TSession: ostr << "TSession"; break;
+        case MessageType::RSession: ostr << "RSession"; break;
+        case MessageType::TSRead:   ostr << "TSRead"; break;
+        case MessageType::RSRead:   ostr << "RSRead"; break;
+        case MessageType::TSWrite:  ostr << "TSWrite"; break;
+        case MessageType::RSWrite:  ostr << "RSWrite"; break;
         default:
             ostr << "[Unknown value '" << static_cast<Solace::byte>(t) << "']";
         }

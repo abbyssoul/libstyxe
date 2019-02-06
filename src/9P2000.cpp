@@ -27,12 +27,13 @@ using namespace styxe;
 
 static const Version   kLibVersion{STYXE_VERSION_MAJOR, STYXE_VERSION_MINOR, STYXE_VERSION_BUILD};
 
+const size_type         styxe::kMaxMesssageSize = 8*1024;      // 8k should be enough for everyone, am I right?
 
-const Protocol::size_type   Protocol::MAX_MESSAGE_SIZE = 8*1024;      // 8k should be enough for everyone, am I right?
-const StringLiteral         Protocol::PROTOCOL_VERSION = "9P2000.e";  // By default we want to talk via 9P2000.e proc
-const StringLiteral         Protocol::UNKNOWN_PROTOCOL_VERSION = "unknown";
-const Protocol::Tag         Protocol::NO_TAG = static_cast<Protocol::Tag>(~0);
-const Protocol::Fid         Protocol::NOFID = static_cast<Protocol::Fid>(~0);
+const StringLiteral     Protocol::PROTOCOL_VERSION = "9P2000.e";  // By default we want to talk via 9P2000.e proc
+const StringLiteral     Protocol::UNKNOWN_PROTOCOL_VERSION = "unknown";
+const Tag               Protocol::NO_TAG = static_cast<Tag>(~0);
+const Fid               Protocol::NOFID = static_cast<Fid>(~0);
+
 
 AtomValue const
 styxe::kProtocolErrorCatergory = atom("9p2000");
@@ -64,10 +65,10 @@ Version const& styxe::getVersion() noexcept {
 
 
 struct OkRespose {
-    Result<Protocol::ResponseMessage, Error>
-    operator() () { return Result<Protocol::ResponseMessage, Error>(types::OkTag{}, std::move(fcall)); }
+    Result<ResponseMessage, Error>
+    operator() () { return Result<ResponseMessage, Error>(types::OkTag{}, std::move(fcall)); }
 
-    Protocol::ResponseMessage fcall;
+    ResponseMessage fcall;
 
     template<typename T>
     OkRespose(T&& f)
@@ -76,10 +77,10 @@ struct OkRespose {
 };
 
 struct OkRequest {
-    Result<Protocol::RequestMessage, Error>
-    operator() () { return Result<Protocol::RequestMessage, Error>(types::OkTag{}, std::move(fcall)); }
+    Result<RequestMessage, Error>
+    operator() () { return Result<RequestMessage, Error>(types::OkTag{}, std::move(fcall)); }
 
-    Protocol::RequestMessage fcall;
+    RequestMessage fcall;
 
     template<typename T>
     OkRequest(T&& f)
@@ -89,107 +90,107 @@ struct OkRequest {
 
 
 template<typename T>
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseNoDataResponse() {
-    return Result<Protocol::ResponseMessage, Error>(types::OkTag{}, T{});
+    return Result<ResponseMessage, Error>(types::OkTag{}, T{});
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseErrorResponse(ByteReader& data) {
-    Protocol::Response::Error fcall;
+    Response::Error fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.ename)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseVersionResponse(ByteReader& data) {
-    Protocol::Response::Version fcall;
+    Response::Version fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.msize, &fcall.version)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseAuthResponse(ByteReader& data) {
-    Protocol::Response::Auth fcall;
+    Response::Auth fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.qid)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseAttachResponse(ByteReader& data) {
-    Protocol::Response::Attach fcall;
+    Response::Attach fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.qid)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseOpenResponse(ByteReader& data) {
-    Protocol::Response::Open fcall;
+    Response::Open fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.qid, &fcall.iounit)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseCreateResponse(ByteReader& data) {
-    Protocol::Response::Create fcall;
+    Response::Create fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.qid, &fcall.iounit)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseReadResponse(ByteReader& data) {
-    Protocol::Response::Read fcall;
+    Response::Read fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.data)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseWriteResponse(ByteReader& data) {
-    Protocol::Response::Write fcall;
+    Response::Write fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.count)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseStatResponse(ByteReader& data) {
-    Protocol::Response::Stat fcall;
+    Response::Stat fcall;
 
-    return Protocol::Decoder(data)
+    return Decoder{data}
             .read(&fcall.dummySize, &fcall.data)
             .then(OkRespose(std::move(fcall)));
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 parseWalkResponse(ByteReader& data) {
-    Protocol::Response::Walk fcall;
+    Response::Walk fcall;
 
-    Protocol::Decoder decoder(data);
+    Decoder decoder{data};
 
     // FIXME: Non-sense!
     return decoder.read(&fcall.nqids)
@@ -211,158 +212,158 @@ parseWalkResponse(ByteReader& data) {
 /// Request parser
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseVersionRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Version{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Version{};
+    return Decoder{data}
             .read(&msg.msize, &msg.version)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseAuthRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Auth{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Auth{};
+    return Decoder{data}
             .read(&msg.afid, &msg.uname, &msg.aname)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseFlushRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Flush{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Flush{};
+    return Decoder{data}
             .read(&msg.oldtag)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseAttachRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Attach{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Attach{};
+    return Decoder{data}
             .read(&msg.fid, &msg.afid, &msg.uname, &msg.aname)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseWalkRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Walk{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Walk{};
+    return Decoder{data}
             .read(&msg.fid, &msg.newfid, &msg.path)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseOpenRequest(ByteReader& data) {
     byte openMode;
 
-    auto msg = Protocol::Request::Open{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Open{};
+    return Decoder{data}
             .read(&msg.fid, &openMode)
-            .then([&msg, &openMode]() { msg.mode = static_cast<Protocol::OpenMode>(openMode); })
+            .then([&msg, &openMode]() { msg.mode = static_cast<OpenMode>(openMode); })
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseCreateRequest(ByteReader& data) {
     byte openMode;
 
-    auto msg = Protocol::Request::Create{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Create{};
+    return Decoder{data}
             .read(&msg.fid, &msg.name, &msg.perm, &openMode)
-            .then([&msg, &openMode]() { msg.mode = static_cast<Protocol::OpenMode>(openMode); })
+            .then([&msg, &openMode]() { msg.mode = static_cast<OpenMode>(openMode); })
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseReadRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Read{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Read{};
+    return Decoder{data}
             .read(&msg.fid, &msg.offset, &msg.count)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseWriteRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Write{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Write{};
+    return Decoder{data}
             .read(&msg.fid, &msg.offset, &msg.data)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseClunkRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Clunk{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Clunk{};
+    return Decoder{data}
             .read(&msg.fid)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseRemoveRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Remove{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Remove{};
+    return Decoder{data}
             .read(&msg.fid)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseStatRequest(ByteReader& data) {
-    auto msg = Protocol::Request::StatRequest{};
-    return Protocol::Decoder(data)
+    auto msg = Request::StatRequest{};
+    return Decoder{data}
             .read(&msg.fid)
             .then(OkRequest(std::move(msg)));
 }
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseWStatRequest(ByteReader& data) {
-    auto msg = Protocol::Request::WStat{};
-    return Protocol::Decoder(data)
+    auto msg = Request::WStat{};
+    return Decoder{data}
             .read(&msg.fid, &msg.stat)
             .then(OkRequest(std::move(msg)));
 }
 
 
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseSessionRequest(ByteReader& data) {
-    auto msg = Protocol::Request::Session{};
-    return Protocol::Decoder(data)
+    auto msg = Request::Session{};
+    return Decoder{data}
             .read(&(msg.key[0]), &(msg.key[1]), &(msg.key[2]), &(msg.key[3]),
                   &(msg.key[4]), &(msg.key[5]), &(msg.key[6]), &(msg.key[7]))
             .then(OkRequest(std::move(msg)));
 }
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseShortReadRequest(ByteReader& data) {
-    auto msg = Protocol::Request::SRead{};
-    return Protocol::Decoder(data)
+    auto msg = Request::SRead{};
+    return Decoder{data}
             .read(&msg.fid, &msg.path)
             .then(OkRequest(std::move(msg)));
 }
 
-Result<Protocol::RequestMessage, Error>
+Result<RequestMessage, Error>
 parseShortWriteRequest(ByteReader& data) {
-    auto msg = Protocol::Request::SWrite{};
-    return Protocol::Decoder(data)
+    auto msg = Request::SWrite{};
+    return Decoder{data}
             .read(&msg.fid, &msg.path, &msg.data)
             .then(OkRequest(std::move(msg)));
 }
 
 
 
-Result<Protocol::MessageHeader, Error>
+Result<MessageHeader, Error>
 Protocol::parseMessageHeader(ByteReader& src) const {
     auto const mandatoryHeaderSize = headerSize();
     auto const dataAvailable = src.remaining();
@@ -405,7 +406,7 @@ Protocol::parseMessageHeader(ByteReader& src) const {
 }
 
 
-Result<Protocol::ResponseMessage, Error>
+Result<ResponseMessage, Error>
 Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
     auto const expectedData = header.payloadSize();
 
@@ -452,7 +453,7 @@ Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
     }
 }
 
-Result<Protocol::RequestMessage, Solace::Error>
+Result<RequestMessage, Solace::Error>
 Protocol::parseRequest(MessageHeader const& header, ByteReader& data) const {
     const auto expectedData = header.payloadSize();
 
@@ -496,7 +497,7 @@ Protocol::parseRequest(MessageHeader const& header, ByteReader& data) const {
     }
 }
 
-Protocol::size_type
+size_type
 Protocol::maxNegotiatedMessageSize(size_type newMessageSize) {
     Solace::assertIndexInRange(newMessageSize, 0, maxPossibleMessageSize() + 1);
     _maxNegotiatedMessageSize = std::min(newMessageSize, maxPossibleMessageSize());
@@ -517,7 +518,7 @@ Protocol::Protocol(size_type maxMassageSize, StringView version) :
 
 
 ByteWriter&
-Protocol::TypedWriter::build() {
+TypedWriter::build() {
     auto const finalPos = _buffer.position();
     auto const messageSize = finalPos - _pos; // Compute actual message size
     _buffer.position(_pos);  // Reset to the start position
@@ -526,8 +527,8 @@ Protocol::TypedWriter::build() {
     Encoder encoder{_buffer};
     encoder.encode(header);
 
-    if (header.type == Protocol::MessageType::RRead) {
-        encoder.encode(narrow_cast<Protocol::size_type>(finalPos - sizeof (Protocol::size_type) - _buffer.position()));
+    if (header.type == MessageType::RRead) {
+        encoder.encode(narrow_cast<size_type>(finalPos - sizeof(size_type) - _buffer.position()));
     }
 
     _buffer.position(finalPos);

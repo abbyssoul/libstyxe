@@ -24,19 +24,19 @@ using namespace styxe;
 
 
 auto noPayloadMessage(ByteWriter& buffer,
-                      Protocol::MessageType type, Protocol::Tag tag) {
-    auto header = Protocol::makeHeaderWithPayload(type, tag, 0);
+                      MessageType type, Tag tag) {
+    auto header = makeHeaderWithPayload(type, tag, 0);
     auto const pos = buffer.position();
 
-    Protocol::Encoder(buffer)
+    Encoder(buffer)
             .header(type, tag, 0);
 
-    return Protocol::TypedWriter{buffer, pos, header};
+    return TypedWriter{buffer, pos, header};
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::version(StringView version, size_type maxMessageSize) {
+TypedWriter
+ResponseBuilder::version(StringView version, size_type maxMessageSize) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -45,7 +45,7 @@ Protocol::ResponseBuilder::version(StringView version, size_type maxMessageSize)
             encoder.protocolSize(version);
 
     auto const pos = _buffer.position();
-    auto header = makeHeaderWithPayload(MessageType::RVersion, NO_TAG, payloadSize);
+    auto header = makeHeaderWithPayload(MessageType::RVersion, Protocol::NO_TAG, payloadSize);
     encoder.encode(header)
             .encode(maxMessageSize)
             .encode(version);
@@ -53,8 +53,8 @@ Protocol::ResponseBuilder::version(StringView version, size_type maxMessageSize)
     return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::auth(Qid qid) {
+TypedWriter
+ResponseBuilder::auth(Qid qid) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -69,8 +69,8 @@ Protocol::ResponseBuilder::auth(Qid qid) {
     return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::error(StringView message) {
+TypedWriter
+ResponseBuilder::error(StringView message) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -85,14 +85,14 @@ Protocol::ResponseBuilder::error(StringView message) {
     return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::flush() {
+TypedWriter
+ResponseBuilder::flush() {
     return noPayloadMessage(_buffer, MessageType::RFlush, _tag);
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::attach(Qid qid) {
+TypedWriter
+ResponseBuilder::attach(Qid qid) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -107,8 +107,8 @@ Protocol::ResponseBuilder::attach(Qid qid) {
     return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::walk(Solace::ArrayView<Qid> const& qids) {
+TypedWriter
+ResponseBuilder::walk(Solace::ArrayView<Qid> const& qids) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -123,8 +123,8 @@ Protocol::ResponseBuilder::walk(Solace::ArrayView<Qid> const& qids) {
     return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::open(Qid qid, size_type iounit) {
+TypedWriter
+ResponseBuilder::open(Qid qid, size_type iounit) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -142,8 +142,8 @@ Protocol::ResponseBuilder::open(Qid qid, size_type iounit) {
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::create(Qid qid, size_type iounit) {
+TypedWriter
+ResponseBuilder::create(Qid qid, size_type iounit) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -161,8 +161,8 @@ Protocol::ResponseBuilder::create(Qid qid, size_type iounit) {
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::read(MemoryView data) {
+TypedWriter
+ResponseBuilder::read(MemoryView data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -178,8 +178,8 @@ Protocol::ResponseBuilder::read(MemoryView data) {
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::write(size_type count) {
+TypedWriter
+ResponseBuilder::write(size_type count) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -195,20 +195,20 @@ Protocol::ResponseBuilder::write(size_type count) {
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::clunk() {
+TypedWriter
+ResponseBuilder::clunk() {
     return noPayloadMessage(_buffer, MessageType::RClunk, _tag);
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::remove() {
+TypedWriter
+ResponseBuilder::remove() {
     return noPayloadMessage(_buffer, MessageType::RRemove, _tag);
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::stat(const Stat& data) {
+TypedWriter
+ResponseBuilder::stat(const Stat& data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -225,21 +225,21 @@ Protocol::ResponseBuilder::stat(const Stat& data) {
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::wstat() {
+TypedWriter
+ResponseBuilder::wstat() {
     return noPayloadMessage(_buffer, MessageType::RWStat, _tag);
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::session() {
+TypedWriter
+ResponseBuilder::session() {
     return noPayloadMessage(_buffer, MessageType::RSession, _tag);
 }
 
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::shortRead(MemoryView data) {
+TypedWriter
+ResponseBuilder::shortRead(MemoryView data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -255,8 +255,8 @@ Protocol::ResponseBuilder::shortRead(MemoryView data) {
 }
 
 
-Protocol::TypedWriter
-Protocol::ResponseBuilder::shortWrite(size_type count) {
+TypedWriter
+ResponseBuilder::shortWrite(size_type count) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -273,7 +273,7 @@ Protocol::ResponseBuilder::shortWrite(size_type count) {
 
 
 
-bool DirListingWriter::encode(Protocol::Stat const& stat) {
+bool DirListingWriter::encode(Stat const& stat) {
     const auto protoSize = _encoder.protocolSize(stat);
     // Keep count of how many data we have traversed.
     _bytesTraversed += protoSize;

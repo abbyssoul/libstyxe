@@ -22,28 +22,28 @@ using namespace styxe;
 
 
 Result<void, Error>
-Protocol::Decoder::read(uint8* dest) {
+Decoder::read(uint8* dest) {
     return _src.readLE(*dest);
 }
 
 
 Result<void, Error>
-Protocol::Decoder::read(uint16* dest) {
+Decoder::read(uint16* dest) {
     return _src.readLE(*dest);
 }
 
 Result<void, Error>
-Protocol::Decoder::read(uint32* dest) {
+Decoder::read(uint32* dest) {
     return _src.readLE(*dest);
 }
 
 Result<void, Error>
-Protocol::Decoder::read(uint64* dest) {
+Decoder::read(uint64* dest) {
     return _src.readLE(*dest);
 }
 
 Result<void, Error>
-Protocol::Decoder::read(StringView* dest) {
+Decoder::read(StringView* dest) {
     uint16 dataSize = 0;
 
     return _src.readLE(dataSize)
@@ -57,13 +57,13 @@ Protocol::Decoder::read(StringView* dest) {
 }
 
 Result<void, Error>
-Protocol::Decoder::read(Protocol::Qid* qid) {
+Decoder::read(Qid* qid) {
     return read(&qid->type, &qid->version, &qid->path);
 }
 
 
 Result<void, Error>
-Protocol::Decoder::read(Protocol::Stat* stat) {
+Decoder::read(Stat* stat) {
     return read(&stat->size,
                 &stat->type,
                 &stat->dev,
@@ -80,8 +80,8 @@ Protocol::Decoder::read(Protocol::Stat* stat) {
 
 
 Result<void, Error>
-Protocol::Decoder::read(MemoryView* data) {
-    Protocol::size_type dataSize = 0;
+Decoder::read(MemoryView* data) {
+    size_type dataSize = 0;
     // Read size of the following data.
     return read(&dataSize)
             .then([&]() {
@@ -96,13 +96,13 @@ Protocol::Decoder::read(MemoryView* data) {
 
 
 Result<void, Error>
-Protocol::Decoder::read(MutableMemoryView* data) {
+Decoder::read(MutableMemoryView* data) {
     return read(static_cast<MemoryView*>(data));
 }
 
 
 Result<void, Error>
-Protocol::Decoder::read(Path* path) {
+Decoder::read(Path* path) {
     uint16 componentsCount = 0;
 
     return read(&componentsCount)

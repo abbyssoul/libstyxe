@@ -32,14 +32,14 @@ using namespace styxe;
 class P9MessageBuilder : public ::testing::Test {
 public:
     P9MessageBuilder() :
-        _memManager(Protocol::MAX_MESSAGE_SIZE)
+        _memManager(kMaxMesssageSize)
     {}
 
 
 protected:
 
     void SetUp() override {
-        _buffer = _memManager.allocate(Protocol::MAX_MESSAGE_SIZE);
+        _buffer = _memManager.allocate(kMaxMesssageSize);
         _buffer.viewRemaining().fill(0xFE);
     }
 
@@ -50,12 +50,12 @@ protected:
 
 TEST_F(P9MessageBuilder, dirListingMessage) {
 //    auto baseBuilder = ;
-    auto responseWriter = Protocol::ResponseBuilder{_buffer, 1}
+    auto responseWriter = ResponseBuilder{_buffer, 1}
             .read(MemoryView{}); // Prime read request 0 size data!
 
     DirListingWriter writer{_buffer, 4096, 0};
 
-    Protocol::Stat testStats[] = {
+    Stat testStats[] = {
         {
             0,
             1,
@@ -92,9 +92,9 @@ TEST_F(P9MessageBuilder, dirListingMessage) {
     ASSERT_TRUE(maybeMessage.isOk());
 
     auto& message = maybeMessage.unwrap();
-    ASSERT_TRUE(std::holds_alternative<Protocol::Response::Read>(message));
+    ASSERT_TRUE(std::holds_alternative<Response::Read>(message));
 
-    auto read = std::get<Protocol::Response::Read>(message);
+    auto read = std::get<Response::Read>(message);
 
     ASSERT_EQ(writer.bytesEncoded(), read.data.size());
 }

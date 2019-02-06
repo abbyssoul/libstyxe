@@ -35,13 +35,13 @@ inline uint16 operator "" _us(unsigned long long value) {  // NOLINT(runtime/int
     return static_cast<uint16>(value);
 }
 
-void encode9P(ByteWriter& dest, Protocol::Qid const& qid) {
+void encode9P(ByteWriter& dest, Qid qid) {
     dest.writeLE(qid.type);
     dest.writeLE(qid.version);
     dest.writeLE(qid.path);
 }
 
-void encode9P(ByteWriter& dest, Protocol::Stat const& stat) {
+void encode9P(ByteWriter& dest, Stat const& stat) {
     dest.writeLE(stat.size);
     dest.writeLE(stat.type);
     dest.writeLE(stat.dev);
@@ -66,10 +66,10 @@ void encode9P(ByteWriter& dest, Protocol::Stat const& stat) {
     dest.write(stat.muid.view());
 }
 
-void writeHeader(ByteWriter& writer, Protocol::size_type msgSize, Protocol::MessageType type, byte tag) {
+void writeHeader(ByteWriter& writer, size_type msgSize, MessageType type, byte tag) {
     writer.writeLE(msgSize);
     writer.writeLE(static_cast<byte>(type));
-    writer.writeLE(Protocol::Tag(tag));
+    writer.writeLE(Tag(tag));
 }
 
 
@@ -77,8 +77,9 @@ void writeHeader(ByteWriter& writer, Protocol::size_type msgSize, Protocol::Mess
 TEST(P9_2000, testHeaderSize) {
     Protocol proc;
 
-    ASSERT_EQ(4u + 1u + 2u, proc.headerSize());
+    ASSERT_EQ(4u + 1u + 2u, headerSize());
 }
+
 
 TEST(P9_2000, testSettingFrameSize) {
     Protocol proc(127);
@@ -100,7 +101,7 @@ TEST(P9_2000, testParsingMessageHeader) {
     // Form a normal message with no data:
     auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
-    writeHeader(writer, 4 + 1 + 2, Protocol::MessageType::TVersion, 1);
+    writeHeader(writer, 4 + 1 + 2, MessageType::TVersion, 1);
 
     auto reader = ByteReader{memBuffer};
     auto res = proc.parseMessageHeader(reader);
@@ -108,7 +109,7 @@ TEST(P9_2000, testParsingMessageHeader) {
 
     auto header = res.unwrap();
     ASSERT_EQ(4u + 1u + 2u, header.messageSize);
-    ASSERT_EQ(Protocol::MessageType::TVersion, header.type);
+    ASSERT_EQ(MessageType::TVersion, header.type);
     ASSERT_EQ(1_us, header.tag);
 }
 
@@ -120,9 +121,9 @@ TEST(P9_2000, parsingMessageHeaderWithUnknownMessageType) {
     byte memBuffer[512];
     auto writer = ByteWriter{wrapMemory(memBuffer)};
 
-    writer.writeLE(Protocol::size_type(4 + 1 + 2));
+    writer.writeLE(size_type(4 + 1 + 2));
     writer.writeLE(static_cast<byte>(-1));
-    writer.writeLE(Protocol::Tag(1));
+    writer.writeLE(Tag(1));
 
     auto reader = ByteReader{wrapMemory(memBuffer)};
     ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
@@ -136,7 +137,7 @@ TEST(P9_2000, testParsingHeaderWithInsufficientData) {
     auto writer = ByteWriter{memBuffer};
 
     // Only write one header field. Should be not enough data to read a header.
-    writer.writeLE(Protocol::size_type(4 + 1 + 2));
+    writer.writeLE(size_type(4 + 1 + 2));
 
     auto reader = ByteReader{memBuffer};
     auto res = proc.parseMessageHeader(reader);
@@ -151,7 +152,7 @@ TEST(P9_2000, testParsingIllformedMessageHeader) {
     auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
     // Set declared message size less then header size.
-    writeHeader(writer, 1 + 2, Protocol::MessageType::TVersion, 1);
+    writeHeader(writer, 1 + 2, MessageType::TVersion, 1);
 
     Protocol proc;
     auto reader = ByteReader{memBuffer};
@@ -167,7 +168,7 @@ TEST(P9_2000, parsingIllFormedHeaderForMessagesLargerMTUShouldError) {
 
     proc.maxNegotiatedMessageSize(20);
     // Set declared message size to be more then negotiated message size
-    writeHeader(writer, proc.maxNegotiatedMessageSize() + 100, Protocol::MessageType::TVersion, 1);
+    writeHeader(writer, proc.maxNegotiatedMessageSize() + 100, MessageType::TVersion, 1);
 
     auto reader = ByteReader{memBuffer};
     ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
@@ -182,7 +183,7 @@ TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
     auto writer = ByteWriter{memBuffer};
 
     // Set declared message size to be more then negotiated message size
-    writeHeader(writer, proc.headerSize() + sizeof(int32), Protocol::MessageType::RVersion, 1);
+    writeHeader(writer, headerSize() + sizeof(int32), MessageType::RVersion, 1);
     writer.writeLE(byte(3));
 
     auto reader = ByteReader{memBuffer};
@@ -197,11 +198,11 @@ TEST(P9_2000, parseIncorrectlySizedLargerResponse) {
     MemoryManager _mem(1024);
     Protocol proc;
 
-    auto memBuffer = _mem.allocate(proc.headerSize() + sizeof(int32)*2);
+    auto memBuffer = _mem.allocate(headerSize() + sizeof(int32)*2);
     auto writer = ByteWriter{memBuffer};
 
     // Set declared message size to be more then negotiated message size
-    writeHeader(writer, proc.headerSize() + sizeof(int32), Protocol::MessageType::RVersion, 1);
+    writeHeader(writer, headerSize() + sizeof(int32), MessageType::RVersion, 1);
     writer.writeLE(static_cast<int64>(999999));
 
     auto reader = ByteReader{memBuffer};
@@ -230,19 +231,19 @@ protected:
 
     template<typename RequestType>
     Result<RequestType, Error>
-    getRequestOfFail(Protocol::MessageType expectType) {
+    getRequestOfFail(MessageType expectType) {
         _reader.limit(_writer.limit());
 
         return proc.parseMessageHeader(_reader)
-                .then([expectType](Protocol::MessageHeader&& header) {
+                .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
-                    ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                    : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
+                    ? Result<MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
+                    : Result<MessageHeader, Error>(Ok(std::move(header)));
                 })
-                .then([this](Protocol::MessageHeader&& header) {
+                .then([this](MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
                 })
-                .then([this](Protocol::RequestMessage&& msg) -> Result<RequestType, Error> {
+                .then([this](RequestMessage&& msg) -> Result<RequestType, Error> {
                     const bool isType = std::holds_alternative<RequestType>(msg);
 
                     if (!isType) {
@@ -264,19 +265,19 @@ protected:
 
     template<typename ResponseType>
     Result<ResponseType, Error>
-    getResponseOfFail(Protocol::MessageType expectType) {
+    getResponseOfFail(MessageType expectType) {
         _reader.limit(_writer.limit());
 
         return proc.parseMessageHeader(_reader)
-                .then([expectType](Protocol::MessageHeader&& header) {
+                .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
-                ? Result<Protocol::MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                : Result<Protocol::MessageHeader, Error>(Ok(std::move(header)));
+                ? Result<MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
+                : Result<MessageHeader, Error>(Ok(std::move(header)));
                 })
-                .then([this](Protocol::MessageHeader&& header) {
+                .then([this](MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
                 })
-                .then([this](Protocol::ResponseMessage&& msg) -> ResponseType {
+                .then([this](ResponseMessage&& msg) -> ResponseType {
                     const bool isType = std::holds_alternative<ResponseType>(msg);
 
                     [isType]() {
@@ -297,8 +298,8 @@ protected:
 protected:
 
     Protocol        proc;
-    MemoryManager   _memManager {Protocol::MAX_MESSAGE_SIZE};
-    MemoryResource  _memBuf{_memManager.allocate(Protocol::MAX_MESSAGE_SIZE)};
+    MemoryManager   _memManager {kMaxMesssageSize};
+    MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize)};
     ByteWriter      _writer{_memBuf};
     ByteReader      _reader{_memBuf};
 };
@@ -309,24 +310,24 @@ protected:
 TEST_F(P9Messages, createVersionRequest) {
     const auto testVersion = Protocol::PROTOCOL_VERSION;
 
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder(_writer, Protocol::NO_TAG)
             .version(testVersion)
             .build();
 
-    getRequestOfFail<Protocol::Request::Version>(Protocol::MessageType::TVersion)
-            .then([this, testVersion](Protocol::Request::Version const& request) {
+    getRequestOfFail<Request::Version>(MessageType::TVersion)
+            .then([this, testVersion](Request::Version const& request) {
                 EXPECT_EQ(proc.maxPossibleMessageSize(), request.msize);
                 EXPECT_EQ(testVersion, request.version);
             });
 }
 
 TEST_F(P9Messages, createVersionRespose) {
-    Protocol::ResponseBuilder(_writer, Protocol::NO_TAG)
+    ResponseBuilder(_writer, Protocol::NO_TAG)
             .version("9Pe", 718)
             .build();
 
-    getResponseOfFail<Protocol::Response::Version>(Protocol::MessageType::RVersion)
-            .then([](Protocol::Response::Version const& response) {
+    getResponseOfFail<Response::Version>(MessageType::RVersion)
+            .then([](Response::Version const& response) {
                 ASSERT_EQ(718, response.msize);
                 ASSERT_EQ("9Pe", response.version);
             });
@@ -334,14 +335,14 @@ TEST_F(P9Messages, createVersionRespose) {
 
 TEST_F(P9Messages, parseVersionRespose) {
     // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, proc.headerSize() + sizeof(int32) + sizeof(int16) + 2, Protocol::MessageType::RVersion, 1);
+    writeHeader(_writer, headerSize() + sizeof(int32) + sizeof(int16) + 2, MessageType::RVersion, 1);
     _writer.writeLE(static_cast<int32>(512));
     _writer.writeLE(static_cast<int16>(2));
     _writer.write(StringLiteral("9P").view());
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Version>(Protocol::MessageType::RVersion)
-            .then([](Protocol::Response::Version const& response) {
+    getResponseOfFail<Response::Version>(MessageType::RVersion)
+            .then([](Response::Version const& response) {
                 ASSERT_EQ(512, response.msize);
                 ASSERT_EQ("9P", response.version);
             });
@@ -349,12 +350,12 @@ TEST_F(P9Messages, parseVersionRespose) {
 
 
 TEST_F(P9Messages, createAuthRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .auth(312, "User mcUsers", "Somewhere near")
             .build();
 
-    getRequestOfFail<Protocol::Request::Auth>(Protocol::MessageType::TAuth)
-            .then([](Protocol::Request::Auth&& request) {
+    getRequestOfFail<Request::Auth>(MessageType::TAuth)
+            .then([](Request::Auth&& request) {
                 ASSERT_EQ(312, request.afid);
                 ASSERT_EQ("User mcUsers", request.uname);
                 ASSERT_EQ("Somewhere near", request.aname);
@@ -363,18 +364,18 @@ TEST_F(P9Messages, createAuthRequest) {
 
 
 TEST_F(P9Messages, createAuthRespose) {
-    auto const qid = Protocol::Qid {
+    auto const qid = Qid {
             71,
             17,
             8187
     };
 
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .auth(qid)
             .build();
 
-    getResponseOfFail<Protocol::Response::Auth>(Protocol::MessageType::RAuth)
-            .then([qid](Protocol::Response::Auth&& response) {
+    getResponseOfFail<Response::Auth>(MessageType::RAuth)
+            .then([qid](Response::Auth&& response) {
                 ASSERT_EQ(qid, response.qid);
             });
 }
@@ -382,15 +383,15 @@ TEST_F(P9Messages, createAuthRespose) {
 
 TEST_F(P9Messages, parseAuthRespose) {
     // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, proc.headerSize() + 13, Protocol::MessageType::RAuth, 1);
+    writeHeader(_writer, headerSize() + 13, MessageType::RAuth, 1);
 
     _writer.writeLE(byte(13));     // QID.type
     _writer.writeLE(static_cast<uint32>(91));   // QID.version
     _writer.writeLE(static_cast<uint64>(441));  // QID.path
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Auth>(Protocol::MessageType::RAuth)
-            .then([](Protocol::Response::Auth&& response) {
+    getResponseOfFail<Response::Auth>(MessageType::RAuth)
+            .then([](Response::Auth&& response) {
                 EXPECT_EQ(13, response.qid.type);
                 EXPECT_EQ(91, response.qid.version);
                 EXPECT_EQ(441, response.qid.path);
@@ -401,12 +402,12 @@ TEST_F(P9Messages, parseAuthRespose) {
 
 TEST_F(P9Messages, createErrorRespose) {
     auto const testError = StringLiteral{"Something went right :)"};
-    Protocol::ResponseBuilder(_writer, 3)
+    ResponseBuilder(_writer, 3)
             .error(testError)
             .build();
 
-    getResponseOfFail<Protocol::Response::Error>(Protocol::MessageType::RError)
-            .then([testError](Protocol::Response::Error&& response) {
+    getResponseOfFail<Response::Error>(MessageType::RError)
+            .then([testError](Response::Error&& response) {
                 ASSERT_EQ(testError, response.ename);
             });
 }
@@ -414,54 +415,54 @@ TEST_F(P9Messages, createErrorRespose) {
 TEST_F(P9Messages, parseErrorRespose) {
     const auto expectedErrorMessage = StringLiteral{"All good!"};
 
-    Protocol::Encoder(_writer)
-            .header(Protocol::MessageType::RError, 1, Protocol::Encoder::protocolSize(expectedErrorMessage))
+    styxe::Encoder{_writer}
+            .header(MessageType::RError, 1, styxe::Encoder::protocolSize(expectedErrorMessage))
             .encode(expectedErrorMessage);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Error>(Protocol::MessageType::RError)
-            .then([expectedErrorMessage](Protocol::Response::Error&& response) {
+    getResponseOfFail<Response::Error>(MessageType::RError)
+            .then([expectedErrorMessage](Response::Error&& response) {
                 EXPECT_EQ(expectedErrorMessage, response.ename);
             });
 }
 
 
 TEST_F(P9Messages, createFlushRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .flush(7711)
             .build();
 
-    getRequestOfFail<Protocol::Request::Flush>(Protocol::MessageType::TFlush)
-            .then([](Protocol::Request::Flush&& request) {
+    getRequestOfFail<Request::Flush>(MessageType::TFlush)
+            .then([](Request::Flush&& request) {
                 ASSERT_EQ(7711, request.oldtag);
             });
 }
 
 
 TEST_F(P9Messages, createFlushResponse) {
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .flush()
             .build();
 
-    getResponseOfFail<Protocol::Response::Flush>(Protocol::MessageType::RFlush);
+    getResponseOfFail<Response::Flush>(MessageType::RFlush);
 }
 
 
 TEST_F(P9Messages, parseFlushRespose) {
-    writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RFlush, 1);
+    writeHeader(_writer, headerSize(), MessageType::RFlush, 1);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Flush>(Protocol::MessageType::RFlush);
+    getResponseOfFail<Response::Flush>(MessageType::RFlush);
 }
 
 
 TEST_F(P9Messages, createAttachRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .attach(3310, 1841, "McFace", "close to u")
             .build();
 
-    getRequestOfFail<Protocol::Request::Attach>(Protocol::MessageType::TAttach)
-            .then([](Protocol::Request::Attach&& request) {
+    getRequestOfFail<Request::Attach>(MessageType::TAttach)
+            .then([](Request::Attach&& request) {
                 ASSERT_EQ(3310, request.fid);
                 ASSERT_EQ(1841, request.afid);
                 ASSERT_EQ("McFace", request.uname);
@@ -470,32 +471,32 @@ TEST_F(P9Messages, createAttachRequest) {
 }
 
 TEST_F(P9Messages, createAttachRespose) {
-    auto const qid = Protocol::Qid {
+    auto const qid = Qid {
             91,
             3,
             7771
     };
 
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .attach(qid)
             .build();
 
-    getResponseOfFail<Protocol::Response::Attach>(Protocol::MessageType::RAttach)
-            .then([qid](Protocol::Response::Attach&& response) {
+    getResponseOfFail<Response::Attach>(MessageType::RAttach)
+            .then([qid](Response::Attach&& response) {
                 ASSERT_EQ(qid, response.qid);
             });
 }
 
 TEST_F(P9Messages, parseAttachRespose) {
-    writeHeader(_writer, proc.headerSize() + 13, Protocol::MessageType::RAttach, 1);
+    writeHeader(_writer, headerSize() + 13, MessageType::RAttach, 1);
 
     _writer.writeLE(byte(81));                      // QID.type
     _writer.writeLE(static_cast<uint32>(3));        // QID.version
     _writer.writeLE(static_cast<uint64>(1049));     // QID.path
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Attach>(Protocol::MessageType::RAttach)
-            .then([](Protocol::Response::Attach&& response) {
+    getResponseOfFail<Response::Attach>(MessageType::RAttach)
+            .then([](Response::Attach&& response) {
                 EXPECT_EQ(81, response.qid.type);
                 EXPECT_EQ(3, response.qid.version);
                 EXPECT_EQ(1049, response.qid.path);
@@ -504,57 +505,57 @@ TEST_F(P9Messages, parseAttachRespose) {
 
 
 TEST_F(P9Messages, createOpenRequest) {
-    Protocol::RequestBuilder(_writer)
-            .open(517, Protocol::OpenMode::RDWR)
+    RequestBuilder{_writer}
+            .open(517, OpenMode::RDWR)
             .build();
 
-    getRequestOfFail<Protocol::Request::Open>(Protocol::MessageType::TOpen)
-            .then([](Protocol::Request::Open&& request) {
+    getRequestOfFail<Request::Open>(MessageType::TOpen)
+            .then([](Request::Open&& request) {
                 ASSERT_EQ(517, request.fid);
-                ASSERT_EQ(Protocol::OpenMode::RDWR, request.mode);
+                ASSERT_EQ(OpenMode::RDWR, request.mode);
             });
 }
 
 
 TEST_F(P9Messages, createOpenRespose) {
-    auto const qid = Protocol::Qid {
+    auto const qid = Qid {
                                         8,
                                         13,
                                         323
                                     };
 
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .open(qid, 817)
             .build();
 
-    getResponseOfFail<Protocol::Response::Open>(Protocol::MessageType::ROpen)
-            .then([qid](Protocol::Response::Open&& response) {
+    getResponseOfFail<Response::Open>(MessageType::ROpen)
+            .then([qid](Response::Open&& response) {
                 ASSERT_EQ(qid, response.qid);
                 ASSERT_EQ(817, response.iounit);
             });
 }
 
 TEST_F(P9Messages, parseOpenRespose) {
-    auto const qid = Protocol::Qid {
+    auto const qid = Qid {
             8,
             71,
             4173
     };
-    Protocol::size_type const iounit = 998;
+    size_type const iounit = 998;
 
     writeHeader(_writer,
-                proc.headerSize() +
-                Protocol::Encoder::protocolSize(qid) +
-                Protocol::Encoder::protocolSize(iounit),
-                Protocol::MessageType::ROpen, 1);
+                headerSize() +
+                styxe::Encoder::protocolSize(qid) +
+                styxe::Encoder::protocolSize(iounit),
+                MessageType::ROpen, 1);
     // qid
     encode9P(_writer, qid);
     // iounit
     _writer.writeLE(iounit);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Open>(Protocol::MessageType::ROpen)
-            .then([qid, iounit](Protocol::Response::Open&& response) {
+    getResponseOfFail<Response::Open>(MessageType::ROpen)
+            .then([qid, iounit](Response::Open&& response) {
                 EXPECT_EQ(qid, response.qid);
                 EXPECT_EQ(iounit, response.iounit);
             });
@@ -563,58 +564,58 @@ TEST_F(P9Messages, parseOpenRespose) {
 
 
 TEST_F(P9Messages, createCreateRequest) {
-    Protocol::RequestBuilder(_writer)
-            .create(1734, "mcFance", 11, Protocol::OpenMode::EXEC)
+    RequestBuilder{_writer}
+            .create(1734, "mcFance", 11, OpenMode::EXEC)
             .build();
 
-    getRequestOfFail<Protocol::Request::Create>(Protocol::MessageType::TCreate)
-            .then([](Protocol::Request::Create&& request) {
+    getRequestOfFail<Request::Create>(MessageType::TCreate)
+            .then([](Request::Create&& request) {
                 ASSERT_EQ(1734, request.fid);
                 ASSERT_EQ("mcFance", request.name);
                 ASSERT_EQ(11, request.perm);
-                ASSERT_EQ(Protocol::OpenMode::EXEC, request.mode);
+                ASSERT_EQ(OpenMode::EXEC, request.mode);
             });
 }
 
 TEST_F(P9Messages, createCreateRespose) {
-    auto const qid = Protocol::Qid {
+    auto const qid = Qid {
             8,
             13,
             323
     };
 
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .create(qid, 718)
             .build();
 
-    getResponseOfFail<Protocol::Response::Create>(Protocol::MessageType::RCreate)
-            .then([qid](Protocol::Response::Create&& response) {
+    getResponseOfFail<Response::Create>(MessageType::RCreate)
+            .then([qid](Response::Create&& response) {
                 ASSERT_EQ(qid, response.qid);
                 ASSERT_EQ(718, response.iounit);
             });
 }
 
 TEST_F(P9Messages, parseCreateRespose) {
-    auto const qid = Protocol::Qid {
+    auto const qid = Qid {
             8,
             13,
             323
     };
-    Protocol::size_type const iounit = 778;
+    size_type const iounit = 778;
 
     writeHeader(_writer,
-                proc.headerSize() +
-                Protocol::Encoder::protocolSize(qid) +
-                Protocol::Encoder::protocolSize(iounit),
-                Protocol::MessageType::RCreate, 1);
+                headerSize() +
+                styxe::Encoder::protocolSize(qid) +
+                styxe::Encoder::protocolSize(iounit),
+                MessageType::RCreate, 1);
 
     encode9P(_writer, qid);
     // iounit
     _writer.writeLE(iounit);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Create>(Protocol::MessageType::RCreate)
-            .then([qid](Protocol::Response::Create&& response) {
+    getResponseOfFail<Response::Create>(MessageType::RCreate)
+            .then([qid](Response::Create&& response) {
                 EXPECT_EQ(qid, response.qid);
                 EXPECT_EQ(778, response.iounit);
             });
@@ -622,12 +623,12 @@ TEST_F(P9Messages, parseCreateRespose) {
 
 
 TEST_F(P9Messages, createReadRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .read(7234, 18, 772)
             .build();
 
-    getRequestOfFail<Protocol::Request::Read>(Protocol::MessageType::TRead)
-            .then([](Protocol::Request::Read&& request) {
+    getRequestOfFail<Request::Read>(MessageType::TRead)
+            .then([](Request::Read&& request) {
                 ASSERT_EQ(7234, request.fid);
                 ASSERT_EQ(18, request.offset);
                 ASSERT_EQ(772, request.count);
@@ -637,12 +638,12 @@ TEST_F(P9Messages, createReadRequest) {
 TEST_F(P9Messages, createReadRespose) {
     const char content[] = "Good news everyone!";
     auto data = wrapMemory(content);
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .read(data)
             .build();
 
-    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RRead)
-            .then([data](Protocol::Response::Read&& response) {
+    getResponseOfFail<Response::Read>(MessageType::RRead)
+            .then([data](Response::Read&& response) {
                 ASSERT_EQ(data, response.data);
             });
 }
@@ -652,14 +653,14 @@ TEST_F(P9Messages, parseReadRespose) {
     const uint32 dataLen = messageData.size();
 
     // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, proc.headerSize() + sizeof(uint32) + dataLen, Protocol::MessageType::RRead, 1);
+    writeHeader(_writer, headerSize() + sizeof(uint32) + dataLen, MessageType::RRead, 1);
     // iounit
     _writer.writeLE(dataLen);
     _writer.write(messageData.view());
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RRead)
-            .then([dataLen, messageData](Protocol::Response::Read&& response) {
+    getResponseOfFail<Response::Read>(MessageType::RRead)
+            .then([dataLen, messageData](Response::Read&& response) {
                 EXPECT_EQ(dataLen, response.data.size());
                 EXPECT_EQ(response.data, messageData.view());
             });
@@ -670,12 +671,12 @@ TEST_F(P9Messages, createWriteRequest) {
     const char messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .write(15927, 98, data)
             .build();
 
-    getRequestOfFail<Protocol::Request::Write>(Protocol::MessageType::TWrite)
-            .then([data](Protocol::Request::Write&& request) {
+    getRequestOfFail<Request::Write>(MessageType::TWrite)
+            .then([data](Request::Write&& request) {
                 ASSERT_EQ(15927, request.fid);
                 ASSERT_EQ(98, request.offset);
                 ASSERT_EQ(data, request.data);
@@ -683,24 +684,24 @@ TEST_F(P9Messages, createWriteRequest) {
 }
 
 TEST_F(P9Messages, createWriteRespose) {
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .write(71717)
             .build();
 
-    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RWrite)
-            .then([](Protocol::Response::Write&& response) {
+    getResponseOfFail<Response::Write>(MessageType::RWrite)
+            .then([](Response::Write&& response) {
                 ASSERT_EQ(71717, response.count);
             });
 }
 
 TEST_F(P9Messages, parseWriteRespose) {
-    writeHeader(_writer, proc.headerSize() + sizeof(uint32), Protocol::MessageType::RWrite, 1);
+    writeHeader(_writer, headerSize() + sizeof(uint32), MessageType::RWrite, 1);
     // iounit
     _writer.writeLE(static_cast<uint32>(81177));
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RWrite)
-            .then([](Protocol::Response::Write&& response) {
+    getResponseOfFail<Response::Write>(MessageType::RWrite)
+            .then([](Response::Write&& response) {
                 EXPECT_EQ(81177, response.count);
             });
 }
@@ -708,74 +709,74 @@ TEST_F(P9Messages, parseWriteRespose) {
 
 
 TEST_F(P9Messages, createClunkRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .clunk(37509)
             .build();
 
-    getRequestOfFail<Protocol::Request::Clunk>(Protocol::MessageType::TClunk)
-            .then([](Protocol::Request::Clunk&& request) {
+    getRequestOfFail<Request::Clunk>(MessageType::TClunk)
+            .then([](Request::Clunk&& request) {
                 ASSERT_EQ(37509, request.fid);
             });
 }
 
 TEST_F(P9Messages, createClunkRespose) {
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .clunk()
             .build();
 
-    getResponseOfFail<Protocol::Response::Clunk>(Protocol::MessageType::RClunk);
+    getResponseOfFail<Response::Clunk>(MessageType::RClunk);
 }
 
 TEST_F(P9Messages, parseClunkRespose) {
-    writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RClunk, 1);
+    writeHeader(_writer, headerSize(), MessageType::RClunk, 1);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Clunk>(Protocol::MessageType::RClunk);
+    getResponseOfFail<Response::Clunk>(MessageType::RClunk);
 }
 
 
 
 TEST_F(P9Messages, createRemoveRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .remove(54329)
             .build();
 
-    getRequestOfFail<Protocol::Request::Remove>(Protocol::MessageType::TRemove)
-            .then([](Protocol::Request::Remove&& request) {
+    getRequestOfFail<Request::Remove>(MessageType::TRemove)
+            .then([](Request::Remove&& request) {
                 ASSERT_EQ(54329, request.fid);
             });
 }
 
 TEST_F(P9Messages, createRemoveRespose) {
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .remove()
             .build();
 
-    getResponseOfFail<Protocol::Response::Remove>(Protocol::MessageType::RRemove);
+    getResponseOfFail<Response::Remove>(MessageType::RRemove);
 }
 
 TEST_F(P9Messages, parseRemoveRespose) {
-    writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RRemove, 1);
+    writeHeader(_writer, headerSize(), MessageType::RRemove, 1);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Remove>(Protocol::MessageType::RRemove);
+    getResponseOfFail<Response::Remove>(MessageType::RRemove);
 }
 
 
 
 TEST_F(P9Messages, createStatRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .stat(7872)
             .build();
 
-    getRequestOfFail<Protocol::Request::StatRequest>(Protocol::MessageType::TStat)
-            .then([](Protocol::Request::StatRequest&& request) {
+    getRequestOfFail<Request::StatRequest>(MessageType::TStat)
+            .then([](Request::StatRequest&& request) {
                 ASSERT_EQ(7872, request.fid);
             });
 }
 
 TEST_F(P9Messages, createStatRespose) {
-    Protocol::Stat stat;
+    Stat stat;
     stat.atime = 12;
     stat.dev = 3310;
     stat.gid = "Nice user";
@@ -790,18 +791,18 @@ TEST_F(P9Messages, createStatRespose) {
     stat.type = 3;
     stat.uid = "User McUserface -2";
 
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .stat(stat)
             .build();
 
-    getResponseOfFail<Protocol::Response::Stat>(Protocol::MessageType::RStat)
-            .then([stat](Protocol::Response::Stat&& response) {
+    getResponseOfFail<Response::Stat>(MessageType::RStat)
+            .then([stat](Response::Stat&& response) {
                 ASSERT_EQ(stat, response.data);
             });
 }
 
 TEST_F(P9Messages, parseStatRespose) {
-    Protocol::Response::Stat statResponse;
+    Response::Stat statResponse;
     statResponse.dummySize = 1;
 
     statResponse.data.atime = 21;
@@ -819,15 +820,15 @@ TEST_F(P9Messages, parseStatRespose) {
     statResponse.data.size = DirListingWriter::sizeStat(statResponse.data);
 
     writeHeader(_writer,
-                Protocol::headerSize() + sizeof(statResponse.dummySize) + Protocol::Encoder::protocolSize(statResponse.data),
-                Protocol::MessageType::RStat,
+                headerSize() + sizeof(statResponse.dummySize) + styxe::Encoder::protocolSize(statResponse.data),
+                MessageType::RStat,
                 1);
     _writer.writeLE(statResponse.dummySize);
     encode9P(_writer, statResponse.data);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Stat>(Protocol::MessageType::RStat)
-            .then([statResponse](Protocol::Response::Stat&& response) {
+    getResponseOfFail<Response::Stat>(MessageType::RStat)
+            .then([statResponse](Response::Stat&& response) {
                 ASSERT_EQ(statResponse.dummySize, response.dummySize);
                 ASSERT_EQ(statResponse.data, response.data);
             });
@@ -835,7 +836,7 @@ TEST_F(P9Messages, parseStatRespose) {
 
 
 TEST_F(P9Messages, createWStatRequest) {
-    Protocol::Stat stat;
+    Stat stat;
     stat.atime = 21;
     stat.dev = 8828;
     stat.gid = "Other user";
@@ -850,30 +851,30 @@ TEST_F(P9Messages, createWStatRequest) {
     stat.type = 1;
     stat.uid = "Userface McUse";
 
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .writeStat(8193, stat)
             .build();
 
-    getRequestOfFail<Protocol::Request::WStat>(Protocol::MessageType::TWStat)
-            .then([stat](Protocol::Request::WStat&& request) {
+    getRequestOfFail<Request::WStat>(MessageType::TWStat)
+            .then([stat](Request::WStat&& request) {
                 ASSERT_EQ(8193, request.fid);
                 ASSERT_EQ(stat, request.stat);
             });
 }
 
 TEST_F(P9Messages, createWStatRespose) {
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .wstat()
             .build();
 
-    getResponseOfFail<Protocol::Response::WStat>(Protocol::MessageType::RWStat);
+    getResponseOfFail<Response::WStat>(MessageType::RWStat);
 }
 
 TEST_F(P9Messages, parseWStatRespose) {
-    writeHeader(_writer, proc.headerSize(), Protocol::MessageType::RWStat, 1);
+    writeHeader(_writer, headerSize(), MessageType::RWStat, 1);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::WStat>(Protocol::MessageType::RWStat);
+    getResponseOfFail<Response::WStat>(MessageType::RWStat);
 }
 
 
@@ -881,12 +882,12 @@ TEST_F(P9Messages, parseWStatRespose) {
 
 TEST_F(P9Messages, createWalkRequest) {
     auto const destPath = makePath("space", "knowhere");
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .walk(213, 124, destPath)
             .build();
 
-    getRequestOfFail<Protocol::Request::Walk>(Protocol::MessageType::TWalk)
-            .then([&destPath](Protocol::Request::Walk&& request) {
+    getRequestOfFail<Request::Walk>(MessageType::TWalk)
+            .then([&destPath](Request::Walk&& request) {
                 EXPECT_EQ(213, request.fid);
                 EXPECT_EQ(124, request.newfid);
                 EXPECT_EQ(destPath, request.path);
@@ -894,12 +895,12 @@ TEST_F(P9Messages, createWalkRequest) {
 }
 
 TEST_F(P9Messages, createWalkEmptyPathRequest) {
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .walk(7374, 542, Path())
             .build();
 
-    getRequestOfFail<Protocol::Request::Walk>(Protocol::MessageType::TWalk)
-            .then([](Protocol::Request::Walk&& request) {
+    getRequestOfFail<Request::Walk>(MessageType::TWalk)
+            .then([](Request::Walk&& request) {
                 ASSERT_EQ(7374, request.fid);
                 ASSERT_EQ(542, request.newfid);
                 ASSERT_TRUE(request.path.empty());
@@ -908,23 +909,23 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
 
 
 TEST_F(P9Messages, createWalkRespose) {
-    auto qids = makeArray<Protocol::Qid>(3);
+    auto qids = makeArray<Qid>(3);
     qids[2].path = 21;
     qids[2].version = 117;
     qids[2].type = 81;
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .walk(qids.view())
             .build();
 
-    getResponseOfFail<Protocol::Response::Walk>(Protocol::MessageType::RWalk)
-            .then([&qids](Protocol::Response::Walk&& response) {
+    getResponseOfFail<Response::Walk>(MessageType::RWalk)
+            .then([&qids](Response::Walk&& response) {
                 ASSERT_EQ(qids.size(), response.nqids);
                 ASSERT_EQ(qids[2], response.qids[2]);
             });
 }
 
 TEST_F(P9Messages, parseWalkRespose) {
-    auto const qid = Protocol::Qid {
+    auto const qid = Qid {
             87,
             5481,
             17
@@ -932,7 +933,7 @@ TEST_F(P9Messages, parseWalkRespose) {
 
     // Set declared message size to be more then negotiated message size
     const auto headPosition = _writer.position();
-    writeHeader(_writer, 0, Protocol::MessageType::RWalk, 1);
+    writeHeader(_writer, 0, MessageType::RWalk, 1);
     // nwqid
     _writer.writeLE(uint16(1));
     encode9P(_writer, qid);
@@ -940,11 +941,11 @@ TEST_F(P9Messages, parseWalkRespose) {
 
     const auto totalSize = _writer.position();
     _writer.limit(totalSize);
-    _writer.reset(headPosition);
-    _writer.writeLE(Protocol::size_type(totalSize));
+    _writer.position(headPosition);
+    _writer.writeLE(size_type(totalSize));
 
-    getResponseOfFail<Protocol::Response::Walk>(Protocol::MessageType::RWalk)
-            .then([](Protocol::Response::Walk&& response) {
+    getResponseOfFail<Response::Walk>(MessageType::RWalk)
+            .then([](Response::Walk&& response) {
                 EXPECT_EQ(1, response.nqids);
                 EXPECT_EQ(87, response.qids[0].type);
                 EXPECT_EQ(5481, response.qids[0].version);
@@ -965,12 +966,12 @@ TEST_F(P9E_Messages, createSessionRequest) {
     const byte sessionKey[8] = {8, 7, 6, 5, 4, 3, 2, 1};
     const auto data = wrapMemory(sessionKey);
 
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .session(data)
             .build();
 
-    getRequestOfFail<Protocol::Request::Session>(Protocol::MessageType::TSession)
-            .then([data](Protocol::Request::Session&& request) {
+    getRequestOfFail<Request::Session>(MessageType::TSession)
+            .then([data](Request::Session&& request) {
                 ASSERT_EQ(data, wrapMemory(request.key));
             });
 }
@@ -978,7 +979,7 @@ TEST_F(P9E_Messages, createSessionRequest) {
 TEST_F(P9E_Messages, createSessionRequest_NotEnoughData) {
     const byte sessionKey[5] = {8, 7, 6, 5, 4};
 
-    ASSERT_THROW(Protocol::RequestBuilder(_writer)
+    ASSERT_THROW(RequestBuilder{_writer}
                  .session(wrapMemory(sessionKey)),
                  Solace::Exception);
 }
@@ -988,15 +989,15 @@ TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
     auto keyData = wrapMemory(sessionKey);
 
     // Set declared message size to be more then negotiated message size
-    Protocol::Encoder(_writer)
-            .header(Protocol::MessageType::TSession, 1, keyData.size());
+    styxe::Encoder{_writer}
+            .header(MessageType::TSession, 1, keyData.size());
     _writer.write(keyData);
 
     auto headerResult = proc.parseMessageHeader(_reader);
     ASSERT_TRUE(headerResult.isOk());
 
     auto header = headerResult.unwrap();
-    ASSERT_EQ(Protocol::MessageType::TSession, header.type);
+    ASSERT_EQ(MessageType::TSession, header.type);
 
     // Make sure we can parse the message back.
     auto message = proc.parseRequest(header, _reader);
@@ -1004,32 +1005,32 @@ TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
 }
 
 TEST_F(P9E_Messages, createSessionRespose) {
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .session()
             .build();
 
-    getResponseOfFail<Protocol::Response::Session>(Protocol::MessageType::RSession);
+    getResponseOfFail<Response::Session>(MessageType::RSession);
 }
 
 TEST_F(P9E_Messages, parseSessionRespose) {
     // Set declared message size to be more then negotiated message size
-    Protocol::Encoder(_writer)
-            .header(Protocol::MessageType::RSession, 1, 0);
+    styxe::Encoder{_writer}
+            .header(MessageType::RSession, 1, 0);
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Session>(Protocol::MessageType::RSession);
+    getResponseOfFail<Response::Session>(MessageType::RSession);
 }
 
 
 
 TEST_F(P9E_Messages, createShortReadRequest) {
     const auto path = Path::parse("some/wierd/place").unwrap();
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .shortRead(32, path)
             .build();
 
-    getRequestOfFail<Protocol::Request::SRead>(Protocol::MessageType::TSRead)
-        .then([&path](Protocol::Request::SRead&& request) {
+    getRequestOfFail<Request::SRead>(MessageType::TSRead)
+        .then([&path](Request::SRead&& request) {
             ASSERT_EQ(32, request.fid);
             ASSERT_EQ(path, request.path);
         });
@@ -1039,12 +1040,12 @@ TEST_F(P9E_Messages, createShortReadRequest) {
 TEST_F(P9E_Messages, createShortReadRespose) {
     const char messageData[] = "This was somewhat important data d^_-b";
     auto data = wrapMemory(messageData);
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .shortRead(data)
             .build();
 
-    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RSRead)
-            .then([data](Protocol::Response::Read&& response) {
+    getResponseOfFail<Response::Read>(MessageType::RSRead)
+            .then([data](Response::Read&& response) {
                 EXPECT_EQ(data, response.data);
             });
 }
@@ -1055,14 +1056,14 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
     const uint32 dataLen = messageData.size();
 
     // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, proc.headerSize() + sizeof(uint32) + dataLen, Protocol::MessageType::RSRead, 1);
+    writeHeader(_writer, headerSize() + sizeof(uint32) + dataLen, MessageType::RSRead, 1);
     // iounit
     _writer.writeLE(dataLen);
     _writer.write(messageData.view());
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Read>(Protocol::MessageType::RSRead)
-            .then([messageData](Protocol::Response::Read&& response) {
+    getResponseOfFail<Response::Read>(MessageType::RSRead)
+            .then([messageData](Response::Read&& response) {
                 EXPECT_EQ(messageData.size(), response.data.size());
                 EXPECT_EQ(messageData.view(), response.data);
             });
@@ -1074,12 +1075,12 @@ TEST_F(P9E_Messages, createShortWriteRequest) {
     const char messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
-    Protocol::RequestBuilder(_writer)
+    RequestBuilder{_writer}
             .shortWrite(32, path, data)
             .build();
 
-    getRequestOfFail<Protocol::Request::SWrite>(Protocol::MessageType::TSWrite)
-        .then([&path, data](Protocol::Request::SWrite&& request) {
+    getRequestOfFail<Request::SWrite>(MessageType::TSWrite)
+        .then([&path, data](Request::SWrite&& request) {
             ASSERT_EQ(32, request.fid);
             ASSERT_EQ(path, request.path);
             ASSERT_EQ(data, request.data);
@@ -1088,25 +1089,25 @@ TEST_F(P9E_Messages, createShortWriteRequest) {
 
 
 TEST_F(P9E_Messages, createShortWriteRespose) {
-    Protocol::ResponseBuilder(_writer, 1)
+    ResponseBuilder(_writer, 1)
             .shortWrite(100500)
             .build();
 
-    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RSWrite)
-            .then([](Protocol::Response::Write&& response) {
+    getResponseOfFail<Response::Write>(MessageType::RSWrite)
+            .then([](Response::Write&& response) {
                 EXPECT_EQ(100500, response.count);
             });
 }
 
 
 TEST_F(P9E_Messages, parseShortWriteRespose) {
-    Protocol::Encoder(_writer)
-            .header(Protocol::MessageType::RSWrite, 1, sizeof(uint32))
+    styxe::Encoder{_writer}
+            .header(MessageType::RSWrite, 1, sizeof(uint32))
             .encode(static_cast<uint32>(81177));
     _writer.flip();
 
-    getResponseOfFail<Protocol::Response::Write>(Protocol::MessageType::RSWrite)
-            .then([](Protocol::Response::Write&& response) {
+    getResponseOfFail<Response::Write>(MessageType::RSWrite)
+            .then([](Response::Write&& response) {
                 EXPECT_EQ(81177, response.count);
             });
 }

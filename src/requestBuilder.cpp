@@ -24,8 +24,8 @@ using namespace styxe;
 
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::version(StringView version, size_type maxMessageSize) const {
+TypedWriter
+RequestBuilder::version(StringView version, size_type maxMessageSize) const {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -34,7 +34,7 @@ Protocol::RequestBuilder::version(StringView version, size_type maxMessageSize) 
             encode.protocolSize(version);   // Version string data
 
     auto const pos = _buffer.position();
-    auto header = makeHeaderWithPayload(MessageType::TVersion, NO_TAG, payloadSize);
+    auto header = makeHeaderWithPayload(MessageType::TVersion, Protocol::NO_TAG, payloadSize);
     encode.encode(header)
             .encode(maxMessageSize)
             .encode(version);
@@ -43,8 +43,8 @@ Protocol::RequestBuilder::version(StringView version, size_type maxMessageSize) 
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::auth(Fid afid, StringView userName, StringView attachName) const {
+TypedWriter
+RequestBuilder::auth(Fid afid, StringView userName, StringView attachName) const {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -64,8 +64,8 @@ Protocol::RequestBuilder::auth(Fid afid, StringView userName, StringView attachN
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::attach(Fid fid, Fid afid, StringView userName, StringView attachName) {
+TypedWriter
+RequestBuilder::attach(Fid fid, Fid afid, StringView userName, StringView attachName) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -87,8 +87,8 @@ Protocol::RequestBuilder::attach(Fid fid, Fid afid, StringView userName, StringV
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::clunk(Fid fid) {
+TypedWriter
+RequestBuilder::clunk(Fid fid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -104,8 +104,8 @@ Protocol::RequestBuilder::clunk(Fid fid) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::flush(Tag oldTransation) const {
+TypedWriter
+RequestBuilder::flush(Tag oldTransation) const {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -121,8 +121,8 @@ Protocol::RequestBuilder::flush(Tag oldTransation) const {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::remove(Fid fid) {
+TypedWriter
+RequestBuilder::remove(Fid fid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -138,8 +138,8 @@ Protocol::RequestBuilder::remove(Fid fid) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::open(Fid fid, Protocol::OpenMode mode) {
+TypedWriter
+RequestBuilder::open(Fid fid, OpenMode mode) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -157,8 +157,8 @@ Protocol::RequestBuilder::open(Fid fid, Protocol::OpenMode mode) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::create(Fid fid, StringView name, uint32 permissions, Protocol::OpenMode mode) {
+TypedWriter
+RequestBuilder::create(Fid fid, StringView name, uint32 permissions, OpenMode mode) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -180,8 +180,8 @@ Protocol::RequestBuilder::create(Fid fid, StringView name, uint32 permissions, P
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
+TypedWriter
+RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -201,8 +201,8 @@ Protocol::RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::write(Fid fid, uint64 offset, MemoryView data) {
+TypedWriter
+RequestBuilder::write(Fid fid, uint64 offset, MemoryView data) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -222,8 +222,8 @@ Protocol::RequestBuilder::write(Fid fid, uint64 offset, MemoryView data) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::walk(Fid fid, Fid nfid, Path const& path) {
+TypedWriter
+RequestBuilder::walk(Fid fid, Fid nfid, Path const& path) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -243,8 +243,8 @@ Protocol::RequestBuilder::walk(Fid fid, Fid nfid, Path const& path) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::stat(Fid fid) {
+TypedWriter
+RequestBuilder::stat(Fid fid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -260,8 +260,8 @@ Protocol::RequestBuilder::stat(Fid fid) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::writeStat(Fid fid, Stat const& stat) {
+TypedWriter
+RequestBuilder::writeStat(Fid fid, Stat const& stat) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -279,8 +279,8 @@ Protocol::RequestBuilder::writeStat(Fid fid, Stat const& stat) {
 }
 
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::session(MemoryView key) {
+TypedWriter
+RequestBuilder::session(MemoryView key) {
     assertIndexInRange(key.size(), 8, 9);
 
     // Compute message size first:
@@ -299,8 +299,8 @@ Protocol::RequestBuilder::session(MemoryView key) {
     return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::TypedWriter
-Protocol::RequestBuilder::shortRead(Fid rootFid, Path const& path) {
+TypedWriter
+RequestBuilder::shortRead(Fid rootFid, Path const& path) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -317,7 +317,7 @@ Protocol::RequestBuilder::shortRead(Fid rootFid, Path const& path) {
     return TypedWriter{_buffer, pos, header};
 }
 
-Protocol::TypedWriter Protocol::RequestBuilder::shortWrite(Fid rootFid, Path const& path, MemoryView data) {
+TypedWriter RequestBuilder::shortWrite(Fid rootFid, Path const& path, MemoryView data) {
     Encoder encode(_buffer);
 
     // Compute message size first:

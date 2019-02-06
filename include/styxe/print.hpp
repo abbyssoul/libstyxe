@@ -23,7 +23,7 @@
 
 namespace styxe {
 
-    std::ostream& operator<< (std::ostream& ostr, Protocol::MessageType t);
+    std::ostream& operator<< (std::ostream& ostr, MessageType t);
 
 }  // end of namespace styxe
 #endif  // STYXE_PRINT_HPP
