@@ -476,20 +476,21 @@ struct TypedWriter {
     TypedWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader head)
         : _buffer{buffer}
         , _pos{pos}
-        , header{head}
+        , _header{head}
     {}
 
+    constexpr Solace::ByteWriter& buffer() noexcept { return _buffer; }
     Solace::ByteWriter& build();
 
-    constexpr Tag tag() const noexcept { return header.tag; }
-    constexpr MessageType type() const noexcept { return header.type; }
-    constexpr size_type payloadSize() const noexcept { return header.payloadSize(); }
+    constexpr Tag tag() const noexcept { return _header.tag; }
+    constexpr MessageType type() const noexcept { return _header.type; }
+    constexpr size_type payloadSize() const noexcept { return _header.payloadSize(); }
 
 private:
     Solace::ByteWriter&     _buffer;
     Solace::ByteWriter::size_type _pos;
 
-    MessageHeader           header;
+    MessageHeader           _header;
 };
 
 

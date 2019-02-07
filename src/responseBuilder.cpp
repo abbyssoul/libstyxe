@@ -306,11 +306,11 @@ TypedWriter::build() {
     auto const messageSize = finalPos - _pos;  // Re-compute actual message size
     _buffer.position(_pos);  // Reset to the start position
 
-    header.messageSize = narrow_cast<size_type>(messageSize);
+    _header.messageSize = narrow_cast<size_type>(messageSize);
     Encoder encoder{_buffer};
-    encoder.encode(header);
+    encoder.encode(_header);
 
-    if (header.type == MessageType::RRead) {
+    if (_header.type == MessageType::RRead) {
         encoder.encode(narrow_cast<size_type>(finalPos - sizeof(size_type) - _buffer.position()));
     }
 
