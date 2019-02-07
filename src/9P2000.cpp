@@ -393,7 +393,7 @@ Parser::parseMessageHeader(ByteReader& src) const {
     }
 
     // Read message type:
-    byte messageBytecode;
+    byte messageBytecode{0};
     decoder.read(&messageBytecode);
     // don't want any funny messages.
     header.type = static_cast<MessageType>(messageBytecode);
