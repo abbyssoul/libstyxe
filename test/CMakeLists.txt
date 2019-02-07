@@ -7,6 +7,7 @@ set(TEST_SOURCE_FILES
         ci/teamcity_gtest.cpp
 
         test_9P2000.cpp
+        test_9P2000e.cpp
         test_9PMessageBuilder.cpp
     )
 

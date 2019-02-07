@@ -15,8 +15,7 @@
 */
 
 #include "styxe/9p2000.hpp"
-
-#include <solace/exception.hpp>
+#include "styxe/encoder.hpp"
 
 
 using namespace Solace;
@@ -34,7 +33,7 @@ RequestBuilder::version(StringView version, size_type maxMessageSize) const {
             encode.protocolSize(version);   // Version string data
 
     auto const pos = _buffer.position();
-    auto header = makeHeaderWithPayload(MessageType::TVersion, Protocol::NO_TAG, payloadSize);
+    auto header = makeHeaderWithPayload(MessageType::TVersion, Parser::NO_TAG, payloadSize);
     encode.encode(header)
             .encode(maxMessageSize)
             .encode(version);

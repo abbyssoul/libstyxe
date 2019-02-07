@@ -14,7 +14,7 @@
 *  limitations under the License.
 */
 /*******************************************************************************
- * libcadence Unit Test Suit
+ * libstyxe Unit Test Suit
  * @file: GTest entry point
  * @author: soultaker
  *

@@ -14,7 +14,7 @@
 *  limitations under the License.
 */
 /*******************************************************************************
- * libcadence Unit Test Suit
+ * libstyxe Unit Test Suit
  * @file: test/test_9PMessageBuilder.cpp
  *
  *******************************************************************************/
@@ -49,9 +49,8 @@ protected:
 
 
 TEST_F(P9MessageBuilder, dirListingMessage) {
-//    auto baseBuilder = ;
     auto responseWriter = ResponseBuilder{_buffer, 1}
-            .read(MemoryView{}); // Prime read request 0 size data!
+            .read(MemoryView{});  // Prime read request 0 size data!
 
     DirListingWriter writer{_buffer, 4096, 0};
 
@@ -84,11 +83,11 @@ TEST_F(P9MessageBuilder, dirListingMessage) {
     auto& buf = responseWriter.build();
     ByteReader reader{buf.viewRemaining()};
 
-    Protocol proc;
-    auto maybeHeader = proc.parseMessageHeader(reader);
+    Parser parser;
+    auto maybeHeader = parser.parseMessageHeader(reader);
     ASSERT_TRUE(maybeHeader.isOk());
 
-    auto maybeMessage = proc.parseResponse(maybeHeader.unwrap(), reader);
+    auto maybeMessage = parser.parseResponse(maybeHeader.unwrap(), reader);
     ASSERT_TRUE(maybeMessage.isOk());
 
     auto& message = maybeMessage.unwrap();

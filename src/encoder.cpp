@@ -14,7 +14,8 @@
 *  limitations under the License.
 */
 
-#include "styxe/9p2000.hpp"
+#include <styxe/encoder.hpp>
+
 
 #include <solace/utils.hpp>  // narrow_cast
 #include <limits>
@@ -27,33 +28,33 @@ using namespace styxe;
 
 
 size_type
-Encoder::protocolSize(const uint8& value) {
+Encoder::protocolSize(uint8 const& value) {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(const uint16& value) {
+Encoder::protocolSize(uint16 const& value) {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(const uint32& value) {
+Encoder::protocolSize(uint32 const& value) {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(const uint64& value) {
+Encoder::protocolSize(uint64 const& value) {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(const StringView& str) {
-    return sizeof(uint16) +         // Space for string var size
+Encoder::protocolSize(StringView const& str) {
+    return sizeof(var_datum_size_type) +         // Space for string var size
             str.size();             // Space for the actual string bytes
 }
 
 size_type
-Encoder::protocolSize(const Path& path) {
+Encoder::protocolSize(Path const& path) {
     assertIndexInRange(path.getComponentsCount(), 0,
                        static_cast<Path::size_type>(std::numeric_limits<uint16>::max()));
 
@@ -62,16 +63,14 @@ Encoder::protocolSize(const Path& path) {
         payloadSize += protocolSize(segment.view());
     }
 
-    return sizeof(uint16) +  // Var number of segments
+    return sizeof(var_datum_size_type) +  // Var number of segments
             payloadSize;
 }
 
 
 size_type
-Encoder::protocolSize(const Qid&) {
-    static constexpr size_type kQidSize = sizeof(Qid::type) +
-            sizeof(Qid::version) +
-            sizeof(Qid::path);
+Encoder::protocolSize(Qid const&) {
+    static constexpr size_type kQidSize = sizeof(Qid::type) + sizeof(Qid::version) + sizeof(Qid::path);
 
     // Qid has a fixed size of 13 bytes, lets keep it that way
     static_assert(kQidSize == 13, "Incorrect Qid struct size");
@@ -81,7 +80,7 @@ Encoder::protocolSize(const Qid&) {
 
 
 size_type
-Encoder::protocolSize(const Stat& stat) {
+Encoder::protocolSize(Stat const& stat) {
     return  protocolSize(stat.size) +
             protocolSize(stat.type) +
             protocolSize(stat.dev) +
@@ -104,13 +103,13 @@ Encoder::protocolSize(Solace::ArrayView<Qid> qids) {
 
     Qid uselessQid;
 
-    return sizeof(uint16) +  // Var number of elements
+    return sizeof(var_datum_size_type) +  // Var number of elements
             qids.size() * protocolSize(uselessQid);
 }
 
 
 size_type
-Encoder::protocolSize(const MemoryView& data) {
+Encoder::protocolSize(MemoryView const& data) {
     assertIndexInRange(data.size(), 0,
                        static_cast<MemoryView::size_type>(std::numeric_limits<size_type>::max()));
 
@@ -177,8 +176,11 @@ Encoder::encode(Qid qid) {
 
 Encoder&
 Encoder::encode(ArrayView<Qid> qids) {
-    encode(static_cast<uint16>(qids.size()));
-    for (auto qid : qids) {
+    // Encode variable datum size first:
+    encode(narrow_cast<var_datum_size_type>(qids.size()));
+
+    // Datum
+    for (auto const& qid : qids) {
         encode(qid);
     }
 
@@ -204,17 +206,19 @@ Encoder::encode(Stat const& stat) {
 
 Encoder&
 Encoder::encode(MemoryView data) {
-    encode(static_cast<size_type>(data.size()));
+    encode(narrow_cast<size_type>(data.size()));
     _dest.write(data);
 
     return (*this);
 }
 
 Encoder&
-Encoder::encode(const Path& path) {
-    encode(static_cast<uint16>(path.getComponentsCount()));
+Encoder::encode(Path const& path) {
+    // Encode variable datum size first:
+    encode(narrow_cast<var_datum_size_type>(path.getComponentsCount()));
 
-    for (const auto& component : path) {
+    // Datum
+    for (auto const& component : path) {
         encode(component.view());
     }
 

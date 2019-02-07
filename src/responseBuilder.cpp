@@ -15,12 +15,12 @@
 */
 
 #include "styxe/9p2000.hpp"
-
-#include <solace/exception.hpp>
+#include "styxe/encoder.hpp"
 
 
 using namespace Solace;
 using namespace styxe;
+
 
 
 auto noPayloadMessage(ByteWriter& buffer,
@@ -45,7 +45,7 @@ ResponseBuilder::version(StringView version, size_type maxMessageSize) {
             encoder.protocolSize(version);
 
     auto const pos = _buffer.position();
-    auto header = makeHeaderWithPayload(MessageType::RVersion, Protocol::NO_TAG, payloadSize);
+    auto header = makeHeaderWithPayload(MessageType::RVersion, Parser::NO_TAG, payloadSize);
     encoder.encode(header)
             .encode(maxMessageSize)
             .encode(version);
@@ -108,7 +108,7 @@ ResponseBuilder::attach(Qid qid) {
 }
 
 TypedWriter
-ResponseBuilder::walk(Solace::ArrayView<Qid> const& qids) {
+ResponseBuilder::walk(ArrayView<Qid> const& qids) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -212,13 +212,13 @@ ResponseBuilder::stat(const Stat& data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
-    uint16 const statSize = encoder.protocolSize(data);  // FIXME: Deal with stat data size over 64k
-    auto const payloadSize = narrow_cast<size_type>(sizeof(uint16) + statSize);
+    var_datum_size_type const statSize = encoder.protocolSize(data);  // FIXME: Deal with stat data size over 64k
+    auto const payloadSize = narrow_cast<size_type>(sizeof(var_datum_size_type) + statSize);
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RStat, _tag, payloadSize);
     encoder.encode(header)
-            .encode(statSize) //static_cast<uint16>(payloadSize))
+            .encode(statSize)
             .encode(data);
 
     return TypedWriter{_buffer, pos, header};
@@ -272,9 +272,14 @@ ResponseBuilder::shortWrite(size_type count) {
 }
 
 
+var_datum_size_type
+DirListingWriter::sizeStat(Stat const& stat) {
+   return narrow_cast<var_datum_size_type>(Encoder::protocolSize(stat) - sizeof(stat.size));
+}
+
 
 bool DirListingWriter::encode(Stat const& stat) {
-    const auto protoSize = _encoder.protocolSize(stat);
+    const auto protoSize = Encoder::protocolSize(stat);
     // Keep count of how many data we have traversed.
     _bytesTraversed += protoSize;
     if (_bytesTraversed <= offset) {  // Client is only interested in data pass the offset.
@@ -288,7 +293,28 @@ bool DirListingWriter::encode(Stat const& stat) {
     }
 
     // Only encode the data if we have some room left, as specified by 'count' arg.
-    _encoder.encode(stat);
+    Encoder{_dest}.encode(stat);
 
     return true;
+}
+
+
+
+ByteWriter&
+TypedWriter::build() {
+    auto const finalPos = _buffer.position();
+    auto const messageSize = finalPos - _pos;  // Re-compute actual message size
+    _buffer.position(_pos);  // Reset to the start position
+
+    header.messageSize = narrow_cast<size_type>(messageSize);
+    Encoder encoder{_buffer};
+    encoder.encode(header);
+
+    if (header.type == MessageType::RRead) {
+        encoder.encode(narrow_cast<size_type>(finalPos - sizeof(size_type) - _buffer.position()));
+    }
+
+    _buffer.position(finalPos);
+
+    return _buffer.flip();
 }

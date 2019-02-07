@@ -14,12 +14,13 @@
 *  limitations under the License.
 */
 /*******************************************************************************
- * libcadence Unit Test Suit
+ * libstyxe Unit Test Suit
  * @file: test/test_9P2000.cpp
  * @author: soultaker
  *
  *******************************************************************************/
 #include "styxe/9p2000.hpp"  // Class being tested
+#include "styxe/encoder.hpp"
 
 #include <solace/exception.hpp>
 #include <solace/output_utils.hpp>
@@ -75,14 +76,14 @@ void writeHeader(ByteWriter& writer, size_type msgSize, MessageType type, byte t
 
 
 TEST(P9_2000, testHeaderSize) {
-    Protocol proc;
+    Parser proc;
 
     ASSERT_EQ(4u + 1u + 2u, headerSize());
 }
 
 
 TEST(P9_2000, testSettingFrameSize) {
-    Protocol proc(127);
+    Parser proc(127);
 
     ASSERT_EQ(127u, proc.maxPossibleMessageSize());
     ASSERT_EQ(127u, proc.maxNegotiatedMessageSize());
@@ -96,7 +97,7 @@ TEST(P9_2000, testSettingFrameSize) {
 
 TEST(P9_2000, testParsingMessageHeader) {
     MemoryManager _mem(1024);
-    Protocol proc;
+    Parser proc;
 
     // Form a normal message with no data:
     auto memBuffer = _mem.allocate(512);
@@ -115,7 +116,7 @@ TEST(P9_2000, testParsingMessageHeader) {
 
 
 TEST(P9_2000, parsingMessageHeaderWithUnknownMessageType) {
-    Protocol proc;
+    Parser proc;
 
     // Form a normal message with no data:
     byte memBuffer[512];
@@ -131,7 +132,7 @@ TEST(P9_2000, parsingMessageHeaderWithUnknownMessageType) {
 
 TEST(P9_2000, testParsingHeaderWithInsufficientData) {
     MemoryManager _mem(1024);
-    Protocol proc;
+    Parser proc;
 
     auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
@@ -154,14 +155,14 @@ TEST(P9_2000, testParsingIllformedMessageHeader) {
     // Set declared message size less then header size.
     writeHeader(writer, 1 + 2, MessageType::TVersion, 1);
 
-    Protocol proc;
+    Parser proc;
     auto reader = ByteReader{memBuffer};
     ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
 }
 
 TEST(P9_2000, parsingIllFormedHeaderForMessagesLargerMTUShouldError) {
     MemoryManager _mem(1024);
-    Protocol proc;
+    Parser proc;
 
     auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
@@ -177,7 +178,7 @@ TEST(P9_2000, parsingIllFormedHeaderForMessagesLargerMTUShouldError) {
 
 TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
     MemoryManager _mem(1024);
-    Protocol proc;
+    Parser proc;
 
     auto memBuffer = _mem.allocate(512);
     auto writer = ByteWriter{memBuffer};
@@ -196,7 +197,7 @@ TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
 
 TEST(P9_2000, parseIncorrectlySizedLargerResponse) {
     MemoryManager _mem(1024);
-    Protocol proc;
+    Parser proc;
 
     auto memBuffer = _mem.allocate(headerSize() + sizeof(int32)*2);
     auto writer = ByteWriter{memBuffer};
@@ -231,7 +232,7 @@ protected:
 
     template<typename RequestType>
     Result<RequestType, Error>
-    getRequestOfFail(MessageType expectType) {
+    getRequestOrFail(MessageType expectType) {
         _reader.limit(_writer.limit());
 
         return proc.parseMessageHeader(_reader)
@@ -265,7 +266,7 @@ protected:
 
     template<typename ResponseType>
     Result<ResponseType, Error>
-    getResponseOfFail(MessageType expectType) {
+    getResponseOrFail(MessageType expectType) {
         _reader.limit(_writer.limit());
 
         return proc.parseMessageHeader(_reader)
@@ -277,14 +278,15 @@ protected:
                 .then([this](MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
                 })
-                .then([this](ResponseMessage&& msg) -> ResponseType {
+                .then([this](ResponseMessage&& msg) -> Result<ResponseType, Error> {
                     const bool isType = std::holds_alternative<ResponseType>(msg);
 
-                    [isType]() {
-                        ASSERT_TRUE(isType);
-                    } ();
+                    if (!isType) {
+                        []() { FAIL() << "Parsed request is on unexpected type"; } ();
+                        return Err(getCannedError(CannedError::UnsupportedMessageType));
+                    }
 
-                    return std::get<ResponseType>(std::move(msg));
+                    return Ok<ResponseType>(std::get<ResponseType>(std::move(msg)));
                 })
                 .mapError([](Error&& e) {
                     [&e]() {
@@ -297,7 +299,7 @@ protected:
 
 protected:
 
-    Protocol        proc;
+    Parser        proc;
     MemoryManager   _memManager {kMaxMesssageSize};
     MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize)};
     ByteWriter      _writer{_memBuf};
@@ -308,13 +310,13 @@ protected:
 
 
 TEST_F(P9Messages, createVersionRequest) {
-    const auto testVersion = Protocol::PROTOCOL_VERSION;
+    const auto testVersion = Parser::PROTOCOL_VERSION;
 
-    RequestBuilder(_writer, Protocol::NO_TAG)
+    RequestBuilder(_writer, Parser::NO_TAG)
             .version(testVersion)
             .build();
 
-    getRequestOfFail<Request::Version>(MessageType::TVersion)
+    getRequestOrFail<Request::Version>(MessageType::TVersion)
             .then([this, testVersion](Request::Version const& request) {
                 EXPECT_EQ(proc.maxPossibleMessageSize(), request.msize);
                 EXPECT_EQ(testVersion, request.version);
@@ -322,11 +324,11 @@ TEST_F(P9Messages, createVersionRequest) {
 }
 
 TEST_F(P9Messages, createVersionRespose) {
-    ResponseBuilder(_writer, Protocol::NO_TAG)
+    ResponseBuilder(_writer, Parser::NO_TAG)
             .version("9Pe", 718)
             .build();
 
-    getResponseOfFail<Response::Version>(MessageType::RVersion)
+    getResponseOrFail<Response::Version>(MessageType::RVersion)
             .then([](Response::Version const& response) {
                 ASSERT_EQ(718, response.msize);
                 ASSERT_EQ("9Pe", response.version);
@@ -341,7 +343,7 @@ TEST_F(P9Messages, parseVersionRespose) {
     _writer.write(StringLiteral("9P").view());
     _writer.flip();
 
-    getResponseOfFail<Response::Version>(MessageType::RVersion)
+    getResponseOrFail<Response::Version>(MessageType::RVersion)
             .then([](Response::Version const& response) {
                 ASSERT_EQ(512, response.msize);
                 ASSERT_EQ("9P", response.version);
@@ -354,7 +356,7 @@ TEST_F(P9Messages, createAuthRequest) {
             .auth(312, "User mcUsers", "Somewhere near")
             .build();
 
-    getRequestOfFail<Request::Auth>(MessageType::TAuth)
+    getRequestOrFail<Request::Auth>(MessageType::TAuth)
             .then([](Request::Auth&& request) {
                 ASSERT_EQ(312, request.afid);
                 ASSERT_EQ("User mcUsers", request.uname);
@@ -374,7 +376,7 @@ TEST_F(P9Messages, createAuthRespose) {
             .auth(qid)
             .build();
 
-    getResponseOfFail<Response::Auth>(MessageType::RAuth)
+    getResponseOrFail<Response::Auth>(MessageType::RAuth)
             .then([qid](Response::Auth&& response) {
                 ASSERT_EQ(qid, response.qid);
             });
@@ -390,7 +392,7 @@ TEST_F(P9Messages, parseAuthRespose) {
     _writer.writeLE(static_cast<uint64>(441));  // QID.path
     _writer.flip();
 
-    getResponseOfFail<Response::Auth>(MessageType::RAuth)
+    getResponseOrFail<Response::Auth>(MessageType::RAuth)
             .then([](Response::Auth&& response) {
                 EXPECT_EQ(13, response.qid.type);
                 EXPECT_EQ(91, response.qid.version);
@@ -406,7 +408,7 @@ TEST_F(P9Messages, createErrorRespose) {
             .error(testError)
             .build();
 
-    getResponseOfFail<Response::Error>(MessageType::RError)
+    getResponseOrFail<Response::Error>(MessageType::RError)
             .then([testError](Response::Error&& response) {
                 ASSERT_EQ(testError, response.ename);
             });
@@ -420,7 +422,7 @@ TEST_F(P9Messages, parseErrorRespose) {
             .encode(expectedErrorMessage);
     _writer.flip();
 
-    getResponseOfFail<Response::Error>(MessageType::RError)
+    getResponseOrFail<Response::Error>(MessageType::RError)
             .then([expectedErrorMessage](Response::Error&& response) {
                 EXPECT_EQ(expectedErrorMessage, response.ename);
             });
@@ -432,7 +434,7 @@ TEST_F(P9Messages, createFlushRequest) {
             .flush(7711)
             .build();
 
-    getRequestOfFail<Request::Flush>(MessageType::TFlush)
+    getRequestOrFail<Request::Flush>(MessageType::TFlush)
             .then([](Request::Flush&& request) {
                 ASSERT_EQ(7711, request.oldtag);
             });
@@ -444,7 +446,7 @@ TEST_F(P9Messages, createFlushResponse) {
             .flush()
             .build();
 
-    getResponseOfFail<Response::Flush>(MessageType::RFlush);
+    getResponseOrFail<Response::Flush>(MessageType::RFlush);
 }
 
 
@@ -452,7 +454,7 @@ TEST_F(P9Messages, parseFlushRespose) {
     writeHeader(_writer, headerSize(), MessageType::RFlush, 1);
     _writer.flip();
 
-    getResponseOfFail<Response::Flush>(MessageType::RFlush);
+    getResponseOrFail<Response::Flush>(MessageType::RFlush);
 }
 
 
@@ -461,7 +463,7 @@ TEST_F(P9Messages, createAttachRequest) {
             .attach(3310, 1841, "McFace", "close to u")
             .build();
 
-    getRequestOfFail<Request::Attach>(MessageType::TAttach)
+    getRequestOrFail<Request::Attach>(MessageType::TAttach)
             .then([](Request::Attach&& request) {
                 ASSERT_EQ(3310, request.fid);
                 ASSERT_EQ(1841, request.afid);
@@ -481,7 +483,7 @@ TEST_F(P9Messages, createAttachRespose) {
             .attach(qid)
             .build();
 
-    getResponseOfFail<Response::Attach>(MessageType::RAttach)
+    getResponseOrFail<Response::Attach>(MessageType::RAttach)
             .then([qid](Response::Attach&& response) {
                 ASSERT_EQ(qid, response.qid);
             });
@@ -495,7 +497,7 @@ TEST_F(P9Messages, parseAttachRespose) {
     _writer.writeLE(static_cast<uint64>(1049));     // QID.path
     _writer.flip();
 
-    getResponseOfFail<Response::Attach>(MessageType::RAttach)
+    getResponseOrFail<Response::Attach>(MessageType::RAttach)
             .then([](Response::Attach&& response) {
                 EXPECT_EQ(81, response.qid.type);
                 EXPECT_EQ(3, response.qid.version);
@@ -509,7 +511,7 @@ TEST_F(P9Messages, createOpenRequest) {
             .open(517, OpenMode::RDWR)
             .build();
 
-    getRequestOfFail<Request::Open>(MessageType::TOpen)
+    getRequestOrFail<Request::Open>(MessageType::TOpen)
             .then([](Request::Open&& request) {
                 ASSERT_EQ(517, request.fid);
                 ASSERT_EQ(OpenMode::RDWR, request.mode);
@@ -518,17 +520,13 @@ TEST_F(P9Messages, createOpenRequest) {
 
 
 TEST_F(P9Messages, createOpenRespose) {
-    auto const qid = Qid {
-                                        8,
-                                        13,
-                                        323
-                                    };
+    auto const qid = Qid {8, 13, 323};
 
     ResponseBuilder(_writer, 1)
             .open(qid, 817)
             .build();
 
-    getResponseOfFail<Response::Open>(MessageType::ROpen)
+    getResponseOrFail<Response::Open>(MessageType::ROpen)
             .then([qid](Response::Open&& response) {
                 ASSERT_EQ(qid, response.qid);
                 ASSERT_EQ(817, response.iounit);
@@ -536,11 +534,7 @@ TEST_F(P9Messages, createOpenRespose) {
 }
 
 TEST_F(P9Messages, parseOpenRespose) {
-    auto const qid = Qid {
-            8,
-            71,
-            4173
-    };
+    auto const qid = Qid {8, 71, 4173};
     size_type const iounit = 998;
 
     writeHeader(_writer,
@@ -554,7 +548,7 @@ TEST_F(P9Messages, parseOpenRespose) {
     _writer.writeLE(iounit);
     _writer.flip();
 
-    getResponseOfFail<Response::Open>(MessageType::ROpen)
+    getResponseOrFail<Response::Open>(MessageType::ROpen)
             .then([qid, iounit](Response::Open&& response) {
                 EXPECT_EQ(qid, response.qid);
                 EXPECT_EQ(iounit, response.iounit);
@@ -568,7 +562,7 @@ TEST_F(P9Messages, createCreateRequest) {
             .create(1734, "mcFance", 11, OpenMode::EXEC)
             .build();
 
-    getRequestOfFail<Request::Create>(MessageType::TCreate)
+    getRequestOrFail<Request::Create>(MessageType::TCreate)
             .then([](Request::Create&& request) {
                 ASSERT_EQ(1734, request.fid);
                 ASSERT_EQ("mcFance", request.name);
@@ -588,7 +582,7 @@ TEST_F(P9Messages, createCreateRespose) {
             .create(qid, 718)
             .build();
 
-    getResponseOfFail<Response::Create>(MessageType::RCreate)
+    getResponseOrFail<Response::Create>(MessageType::RCreate)
             .then([qid](Response::Create&& response) {
                 ASSERT_EQ(qid, response.qid);
                 ASSERT_EQ(718, response.iounit);
@@ -614,7 +608,7 @@ TEST_F(P9Messages, parseCreateRespose) {
     _writer.writeLE(iounit);
     _writer.flip();
 
-    getResponseOfFail<Response::Create>(MessageType::RCreate)
+    getResponseOrFail<Response::Create>(MessageType::RCreate)
             .then([qid](Response::Create&& response) {
                 EXPECT_EQ(qid, response.qid);
                 EXPECT_EQ(778, response.iounit);
@@ -627,7 +621,7 @@ TEST_F(P9Messages, createReadRequest) {
             .read(7234, 18, 772)
             .build();
 
-    getRequestOfFail<Request::Read>(MessageType::TRead)
+    getRequestOrFail<Request::Read>(MessageType::TRead)
             .then([](Request::Read&& request) {
                 ASSERT_EQ(7234, request.fid);
                 ASSERT_EQ(18, request.offset);
@@ -642,7 +636,7 @@ TEST_F(P9Messages, createReadRespose) {
             .read(data)
             .build();
 
-    getResponseOfFail<Response::Read>(MessageType::RRead)
+    getResponseOrFail<Response::Read>(MessageType::RRead)
             .then([data](Response::Read&& response) {
                 ASSERT_EQ(data, response.data);
             });
@@ -659,7 +653,7 @@ TEST_F(P9Messages, parseReadRespose) {
     _writer.write(messageData.view());
     _writer.flip();
 
-    getResponseOfFail<Response::Read>(MessageType::RRead)
+    getResponseOrFail<Response::Read>(MessageType::RRead)
             .then([dataLen, messageData](Response::Read&& response) {
                 EXPECT_EQ(dataLen, response.data.size());
                 EXPECT_EQ(response.data, messageData.view());
@@ -675,7 +669,7 @@ TEST_F(P9Messages, createWriteRequest) {
             .write(15927, 98, data)
             .build();
 
-    getRequestOfFail<Request::Write>(MessageType::TWrite)
+    getRequestOrFail<Request::Write>(MessageType::TWrite)
             .then([data](Request::Write&& request) {
                 ASSERT_EQ(15927, request.fid);
                 ASSERT_EQ(98, request.offset);
@@ -688,7 +682,7 @@ TEST_F(P9Messages, createWriteRespose) {
             .write(71717)
             .build();
 
-    getResponseOfFail<Response::Write>(MessageType::RWrite)
+    getResponseOrFail<Response::Write>(MessageType::RWrite)
             .then([](Response::Write&& response) {
                 ASSERT_EQ(71717, response.count);
             });
@@ -700,7 +694,7 @@ TEST_F(P9Messages, parseWriteRespose) {
     _writer.writeLE(static_cast<uint32>(81177));
     _writer.flip();
 
-    getResponseOfFail<Response::Write>(MessageType::RWrite)
+    getResponseOrFail<Response::Write>(MessageType::RWrite)
             .then([](Response::Write&& response) {
                 EXPECT_EQ(81177, response.count);
             });
@@ -713,7 +707,7 @@ TEST_F(P9Messages, createClunkRequest) {
             .clunk(37509)
             .build();
 
-    getRequestOfFail<Request::Clunk>(MessageType::TClunk)
+    getRequestOrFail<Request::Clunk>(MessageType::TClunk)
             .then([](Request::Clunk&& request) {
                 ASSERT_EQ(37509, request.fid);
             });
@@ -724,14 +718,14 @@ TEST_F(P9Messages, createClunkRespose) {
             .clunk()
             .build();
 
-    getResponseOfFail<Response::Clunk>(MessageType::RClunk);
+    getResponseOrFail<Response::Clunk>(MessageType::RClunk);
 }
 
 TEST_F(P9Messages, parseClunkRespose) {
     writeHeader(_writer, headerSize(), MessageType::RClunk, 1);
     _writer.flip();
 
-    getResponseOfFail<Response::Clunk>(MessageType::RClunk);
+    getResponseOrFail<Response::Clunk>(MessageType::RClunk);
 }
 
 
@@ -741,7 +735,7 @@ TEST_F(P9Messages, createRemoveRequest) {
             .remove(54329)
             .build();
 
-    getRequestOfFail<Request::Remove>(MessageType::TRemove)
+    getRequestOrFail<Request::Remove>(MessageType::TRemove)
             .then([](Request::Remove&& request) {
                 ASSERT_EQ(54329, request.fid);
             });
@@ -752,14 +746,14 @@ TEST_F(P9Messages, createRemoveRespose) {
             .remove()
             .build();
 
-    getResponseOfFail<Response::Remove>(MessageType::RRemove);
+    getResponseOrFail<Response::Remove>(MessageType::RRemove);
 }
 
 TEST_F(P9Messages, parseRemoveRespose) {
     writeHeader(_writer, headerSize(), MessageType::RRemove, 1);
     _writer.flip();
 
-    getResponseOfFail<Response::Remove>(MessageType::RRemove);
+    getResponseOrFail<Response::Remove>(MessageType::RRemove);
 }
 
 
@@ -769,7 +763,7 @@ TEST_F(P9Messages, createStatRequest) {
             .stat(7872)
             .build();
 
-    getRequestOfFail<Request::StatRequest>(MessageType::TStat)
+    getRequestOrFail<Request::StatRequest>(MessageType::TStat)
             .then([](Request::StatRequest&& request) {
                 ASSERT_EQ(7872, request.fid);
             });
@@ -795,7 +789,7 @@ TEST_F(P9Messages, createStatRespose) {
             .stat(stat)
             .build();
 
-    getResponseOfFail<Response::Stat>(MessageType::RStat)
+    getResponseOrFail<Response::Stat>(MessageType::RStat)
             .then([stat](Response::Stat&& response) {
                 ASSERT_EQ(stat, response.data);
             });
@@ -827,7 +821,7 @@ TEST_F(P9Messages, parseStatRespose) {
     encode9P(_writer, statResponse.data);
     _writer.flip();
 
-    getResponseOfFail<Response::Stat>(MessageType::RStat)
+    getResponseOrFail<Response::Stat>(MessageType::RStat)
             .then([statResponse](Response::Stat&& response) {
                 ASSERT_EQ(statResponse.dummySize, response.dummySize);
                 ASSERT_EQ(statResponse.data, response.data);
@@ -855,7 +849,7 @@ TEST_F(P9Messages, createWStatRequest) {
             .writeStat(8193, stat)
             .build();
 
-    getRequestOfFail<Request::WStat>(MessageType::TWStat)
+    getRequestOrFail<Request::WStat>(MessageType::TWStat)
             .then([stat](Request::WStat&& request) {
                 ASSERT_EQ(8193, request.fid);
                 ASSERT_EQ(stat, request.stat);
@@ -867,14 +861,14 @@ TEST_F(P9Messages, createWStatRespose) {
             .wstat()
             .build();
 
-    getResponseOfFail<Response::WStat>(MessageType::RWStat);
+    getResponseOrFail<Response::WStat>(MessageType::RWStat);
 }
 
 TEST_F(P9Messages, parseWStatRespose) {
     writeHeader(_writer, headerSize(), MessageType::RWStat, 1);
     _writer.flip();
 
-    getResponseOfFail<Response::WStat>(MessageType::RWStat);
+    getResponseOrFail<Response::WStat>(MessageType::RWStat);
 }
 
 
@@ -886,7 +880,7 @@ TEST_F(P9Messages, createWalkRequest) {
             .walk(213, 124, destPath)
             .build();
 
-    getRequestOfFail<Request::Walk>(MessageType::TWalk)
+    getRequestOrFail<Request::Walk>(MessageType::TWalk)
             .then([&destPath](Request::Walk&& request) {
                 EXPECT_EQ(213, request.fid);
                 EXPECT_EQ(124, request.newfid);
@@ -899,7 +893,7 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
             .walk(7374, 542, Path())
             .build();
 
-    getRequestOfFail<Request::Walk>(MessageType::TWalk)
+    getRequestOrFail<Request::Walk>(MessageType::TWalk)
             .then([](Request::Walk&& request) {
                 ASSERT_EQ(7374, request.fid);
                 ASSERT_EQ(542, request.newfid);
@@ -917,7 +911,7 @@ TEST_F(P9Messages, createWalkRespose) {
             .walk(qids.view())
             .build();
 
-    getResponseOfFail<Response::Walk>(MessageType::RWalk)
+    getResponseOrFail<Response::Walk>(MessageType::RWalk)
             .then([&qids](Response::Walk&& response) {
                 ASSERT_EQ(qids.size(), response.nqids);
                 ASSERT_EQ(qids[2], response.qids[2]);
@@ -944,170 +938,11 @@ TEST_F(P9Messages, parseWalkRespose) {
     _writer.position(headPosition);
     _writer.writeLE(size_type(totalSize));
 
-    getResponseOfFail<Response::Walk>(MessageType::RWalk)
+    getResponseOrFail<Response::Walk>(MessageType::RWalk)
             .then([](Response::Walk&& response) {
                 EXPECT_EQ(1, response.nqids);
                 EXPECT_EQ(87, response.qids[0].type);
                 EXPECT_EQ(5481, response.qids[0].version);
                 EXPECT_EQ(17, response.qids[0].path);
-            });
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// 9P2000.e
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class P9E_Messages :
-        public P9Messages {
-};
-
-TEST_F(P9E_Messages, createSessionRequest) {
-    const byte sessionKey[8] = {8, 7, 6, 5, 4, 3, 2, 1};
-    const auto data = wrapMemory(sessionKey);
-
-    RequestBuilder{_writer}
-            .session(data)
-            .build();
-
-    getRequestOfFail<Request::Session>(MessageType::TSession)
-            .then([data](Request::Session&& request) {
-                ASSERT_EQ(data, wrapMemory(request.key));
-            });
-}
-
-TEST_F(P9E_Messages, createSessionRequest_NotEnoughData) {
-    const byte sessionKey[5] = {8, 7, 6, 5, 4};
-
-    ASSERT_THROW(RequestBuilder{_writer}
-                 .session(wrapMemory(sessionKey)),
-                 Solace::Exception);
-}
-
-TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
-    const byte sessionKey[5] = {8, 7, 6, 5, 4};
-    auto keyData = wrapMemory(sessionKey);
-
-    // Set declared message size to be more then negotiated message size
-    styxe::Encoder{_writer}
-            .header(MessageType::TSession, 1, keyData.size());
-    _writer.write(keyData);
-
-    auto headerResult = proc.parseMessageHeader(_reader);
-    ASSERT_TRUE(headerResult.isOk());
-
-    auto header = headerResult.unwrap();
-    ASSERT_EQ(MessageType::TSession, header.type);
-
-    // Make sure we can parse the message back.
-    auto message = proc.parseRequest(header, _reader);
-    ASSERT_TRUE(message.isError());
-}
-
-TEST_F(P9E_Messages, createSessionRespose) {
-    ResponseBuilder(_writer, 1)
-            .session()
-            .build();
-
-    getResponseOfFail<Response::Session>(MessageType::RSession);
-}
-
-TEST_F(P9E_Messages, parseSessionRespose) {
-    // Set declared message size to be more then negotiated message size
-    styxe::Encoder{_writer}
-            .header(MessageType::RSession, 1, 0);
-    _writer.flip();
-
-    getResponseOfFail<Response::Session>(MessageType::RSession);
-}
-
-
-
-TEST_F(P9E_Messages, createShortReadRequest) {
-    const auto path = Path::parse("some/wierd/place").unwrap();
-    RequestBuilder{_writer}
-            .shortRead(32, path)
-            .build();
-
-    getRequestOfFail<Request::SRead>(MessageType::TSRead)
-        .then([&path](Request::SRead&& request) {
-            ASSERT_EQ(32, request.fid);
-            ASSERT_EQ(path, request.path);
-        });
-}
-
-
-TEST_F(P9E_Messages, createShortReadRespose) {
-    const char messageData[] = "This was somewhat important data d^_-b";
-    auto data = wrapMemory(messageData);
-    ResponseBuilder(_writer, 1)
-            .shortRead(data)
-            .build();
-
-    getResponseOfFail<Response::Read>(MessageType::RSRead)
-            .then([data](Response::Read&& response) {
-                EXPECT_EQ(data, response.data);
-            });
-}
-
-
-TEST_F(P9E_Messages, parseShortReadRespose) {
-    auto const messageData = StringLiteral{"This is a very important data d-_^b"};
-    const uint32 dataLen = messageData.size();
-
-    // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, headerSize() + sizeof(uint32) + dataLen, MessageType::RSRead, 1);
-    // iounit
-    _writer.writeLE(dataLen);
-    _writer.write(messageData.view());
-    _writer.flip();
-
-    getResponseOfFail<Response::Read>(MessageType::RSRead)
-            .then([messageData](Response::Read&& response) {
-                EXPECT_EQ(messageData.size(), response.data.size());
-                EXPECT_EQ(messageData.view(), response.data);
-            });
-}
-
-
-TEST_F(P9E_Messages, createShortWriteRequest) {
-    const auto path = Path::parse("some/wierd/place").unwrap();
-    const char messageData[] = "This is a very important data d-_^b";
-    auto data = wrapMemory(messageData);
-
-    RequestBuilder{_writer}
-            .shortWrite(32, path, data)
-            .build();
-
-    getRequestOfFail<Request::SWrite>(MessageType::TSWrite)
-        .then([&path, data](Request::SWrite&& request) {
-            ASSERT_EQ(32, request.fid);
-            ASSERT_EQ(path, request.path);
-            ASSERT_EQ(data, request.data);
-        });
-}
-
-
-TEST_F(P9E_Messages, createShortWriteRespose) {
-    ResponseBuilder(_writer, 1)
-            .shortWrite(100500)
-            .build();
-
-    getResponseOfFail<Response::Write>(MessageType::RSWrite)
-            .then([](Response::Write&& response) {
-                EXPECT_EQ(100500, response.count);
-            });
-}
-
-
-TEST_F(P9E_Messages, parseShortWriteRespose) {
-    styxe::Encoder{_writer}
-            .header(MessageType::RSWrite, 1, sizeof(uint32))
-            .encode(static_cast<uint32>(81177));
-    _writer.flip();
-
-    getResponseOfFail<Response::Write>(MessageType::RSWrite)
-            .then([](Response::Write&& response) {
-                EXPECT_EQ(81177, response.count);
             });
 }

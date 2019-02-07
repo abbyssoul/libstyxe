@@ -14,7 +14,7 @@
 *  limitations under the License.
 */
 
-#include "styxe/9p2000.hpp"
+#include <styxe/decoder.hpp>
 
 
 using namespace Solace;
@@ -98,6 +98,17 @@ Decoder::read(MemoryView* data) {
 Result<void, Error>
 Decoder::read(MutableMemoryView* data) {
     return read(static_cast<MemoryView*>(data));
+//    size_type dataSize = 0;
+//    // Read size of the following data.
+//    return read(&dataSize)
+//            .then([&]() {
+//                if (dataSize <= _src.remaining()) {
+//                    // Read the data. Note we only take a view into the actual message buffer.
+//                    data->write(_src.viewRemaining().slice(0, dataSize));
+//                }
+
+//                return _src.advance(dataSize);
+//            });
 }
 
 
@@ -107,7 +118,7 @@ Decoder::read(Path* path) {
 
     return read(&componentsCount)
             .then([&]() -> Result<void, Error> {
-                // FIXME: This is where PathBuilder can be handy.
+                // FIXME: This is where PathBuilder/PathView can be handy.
                 auto components = makeVector<String>(componentsCount);
 
                 for (decltype(componentsCount) i = 0; i < componentsCount; ++i) {

@@ -27,18 +27,18 @@ using namespace Solace;
 using namespace styxe;
 
 
-void dispayRequest(styxe::Protocol::Request&&) { /*no-op*/ }
-void dispayResponse(styxe::Protocol::Response&&) { /*no-op*/ }
+void dispayRequest(styxe::RequestMessage&&) { /*no-op*/ }
+void dispayResponse(styxe::ResponseMessage&&) { /*no-op*/ }
 
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-    Solace::ByteReader reader(Solace::wrapMemory(data, size));
+    ByteReader reader{wrapMemory(data, size)};
 
     // Case1: parse message header
-    styxe::Protocol proc;
+    styxe::Parser proc;
 
     proc.parseMessageHeader(reader)
-            .then([&](styxe::Protocol::MessageHeader&& header) {
+            .then([&](styxe::MessageHeader&& header) {
                 bool const isRequest = (static_cast<Solace::byte>(header.type) % 2) == 0;
                 if (isRequest) {
                     proc.parseRequest(header, reader)
@@ -55,7 +55,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
 inline
 void readDataAndTest(std::istream& in) {
-    std::vector<uint8_t> buf(styxe::Protocol::MAX_MESSAGE_SIZE);
+    std::vector<uint8_t> buf;
+    buf.reserve(styxe::kMaxMesssageSize);
+
     in.read(reinterpret_cast<char*>(buf.data()), buf.size());
     size_t const got = in.gcount();
 

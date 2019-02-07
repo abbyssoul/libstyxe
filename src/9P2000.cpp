@@ -15,6 +15,7 @@
 */
 
 #include "styxe/9p2000.hpp"
+#include "styxe/decoder.hpp"
 #include "styxe/version.hpp"
 
 #include <solace/assert.hpp>
@@ -29,10 +30,10 @@ static const Version   kLibVersion{STYXE_VERSION_MAJOR, STYXE_VERSION_MINOR, STY
 
 const size_type         styxe::kMaxMesssageSize = 8*1024;      // 8k should be enough for everyone, am I right?
 
-const StringLiteral     Protocol::PROTOCOL_VERSION = "9P2000.e";  // By default we want to talk via 9P2000.e proc
-const StringLiteral     Protocol::UNKNOWN_PROTOCOL_VERSION = "unknown";
-const Tag               Protocol::NO_TAG = static_cast<Tag>(~0);
-const Fid               Protocol::NOFID = static_cast<Fid>(~0);
+const StringLiteral     Parser::PROTOCOL_VERSION = "9P2000.e";  // By default we want to talk via 9P2000.e proc
+const StringLiteral     Parser::UNKNOWN_PROTOCOL_VERSION = "unknown";
+const Tag               Parser::NO_TAG = static_cast<Tag>(~0);
+const Fid               Parser::NOFID = static_cast<Fid>(~0);
 
 
 AtomValue const
@@ -63,6 +64,7 @@ Version const& styxe::getVersion() noexcept {
     return kLibVersion;
 }
 
+namespace  {  // Internal imlpementation details
 
 struct OkRespose {
     Result<ResponseMessage, Error>
@@ -338,7 +340,7 @@ parseWStatRequest(ByteReader& data) {
 
 Result<RequestMessage, Error>
 parseSessionRequest(ByteReader& data) {
-    auto msg = Request::Session{};
+    auto msg = Request_9P2000E::Session{};
     return Decoder{data}
             .read(&(msg.key[0]), &(msg.key[1]), &(msg.key[2]), &(msg.key[3]),
                   &(msg.key[4]), &(msg.key[5]), &(msg.key[6]), &(msg.key[7]))
@@ -347,7 +349,7 @@ parseSessionRequest(ByteReader& data) {
 
 Result<RequestMessage, Error>
 parseShortReadRequest(ByteReader& data) {
-    auto msg = Request::SRead{};
+    auto msg = Request_9P2000E::SRead{};
     return Decoder{data}
             .read(&msg.fid, &msg.path)
             .then(OkRequest(std::move(msg)));
@@ -355,16 +357,18 @@ parseShortReadRequest(ByteReader& data) {
 
 Result<RequestMessage, Error>
 parseShortWriteRequest(ByteReader& data) {
-    auto msg = Request::SWrite{};
+    auto msg = Request_9P2000E::SWrite{};
     return Decoder{data}
             .read(&msg.fid, &msg.path, &msg.data)
             .then(OkRequest(std::move(msg)));
 }
 
+}  // namespace
+
 
 
 Result<MessageHeader, Error>
-Protocol::parseMessageHeader(ByteReader& src) const {
+Parser::parseMessageHeader(ByteReader& src) const {
     auto const mandatoryHeaderSize = headerSize();
     auto const dataAvailable = src.remaining();
 
@@ -407,7 +411,7 @@ Protocol::parseMessageHeader(ByteReader& src) const {
 
 
 Result<ResponseMessage, Error>
-Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
+Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
     auto const expectedData = header.payloadSize();
 
     // Message data sanity check
@@ -445,7 +449,7 @@ Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
     case MessageType::RClunk:   return parseNoDataResponse<Response::Clunk>();
     case MessageType::RRemove:  return parseNoDataResponse<Response::Remove>();
     case MessageType::RWStat:   return parseNoDataResponse<Response::WStat>();
-    case MessageType::RSession: return parseNoDataResponse<Response::Session>();
+    case MessageType::RSession: return parseNoDataResponse<Response_9P2000E::Session>();
 
 
     default:
@@ -453,8 +457,8 @@ Protocol::parseResponse(MessageHeader const& header, ByteReader& data) const {
     }
 }
 
-Result<RequestMessage, Solace::Error>
-Protocol::parseRequest(MessageHeader const& header, ByteReader& data) const {
+Result<RequestMessage, Error>
+Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
     const auto expectedData = header.payloadSize();
 
     // Message data sanity check
@@ -497,41 +501,11 @@ Protocol::parseRequest(MessageHeader const& header, ByteReader& data) const {
     }
 }
 
+
 size_type
-Protocol::maxNegotiatedMessageSize(size_type newMessageSize) {
-    Solace::assertIndexInRange(newMessageSize, 0, maxPossibleMessageSize() + 1);
+Parser::maxNegotiatedMessageSize(size_type newMessageSize) {
+    assertIndexInRange(newMessageSize, 0, maxPossibleMessageSize() + 1);
     _maxNegotiatedMessageSize = std::min(newMessageSize, maxPossibleMessageSize());
 
     return _maxNegotiatedMessageSize;
-}
-
-
-Protocol::Protocol(size_type maxMassageSize, StringView version) :
-    _maxMassageSize(maxMassageSize),
-    _maxNegotiatedMessageSize(maxMassageSize),
-    _initialVersion(version),
-    _negotiatedVersion(makeString(version))
-{
-    // No-op
-}
-
-
-
-ByteWriter&
-TypedWriter::build() {
-    auto const finalPos = _buffer.position();
-    auto const messageSize = finalPos - _pos; // Compute actual message size
-    _buffer.position(_pos);  // Reset to the start position
-
-    header.messageSize = narrow_cast<size_type>(messageSize);
-    Encoder encoder{_buffer};
-    encoder.encode(header);
-
-    if (header.type == MessageType::RRead) {
-        encoder.encode(narrow_cast<size_type>(finalPos - sizeof(size_type) - _buffer.position()));
-    }
-
-    _buffer.position(finalPos);
-
-    return _buffer.flip();
 }

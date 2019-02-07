@@ -60,6 +60,9 @@ Solace::Error getCannedError(CannedError errorId) noexcept;
 /** Network protocol uses fixed width int32 to represent size of data in bytes */
 using size_type = Solace::uint32;
 
+/** Network protocol uses fixed width int16 to represent variable datum size */
+using var_datum_size_type = Solace::uint16;
+
 /** Type of message Tag */
 using Tag = Solace::uint16;
 
@@ -236,7 +239,7 @@ inline constexpr size_type headerSize() noexcept {
 }
 
 constexpr size_type MessageHeader::payloadSize() const noexcept {
-    // TODO: Do we care about negative sizes?
+    // Do we care about negative sizes?
     return messageSize - headerSize();
 }
 
@@ -245,150 +248,6 @@ inline
 MessageHeader makeHeaderWithPayload(MessageType type, Tag tag, size_type payloadSize) noexcept {
     return { headerSize() + payloadSize, type, tag };
 }
-
-/**
- * Helper class to decode data structures from the 9P2000 formatted messages.
- */
-class Decoder {
-public:
-
-    Decoder(Solace::ByteReader& src) :
-        _src(src)
-    {}
-
-    Decoder(Decoder const&) = delete;
-    Decoder& operator= (Decoder const&) = delete;
-
-    Solace::Result<void, Solace::Error> read(Solace::uint8* dest);
-    Solace::Result<void, Solace::Error> read(Solace::uint16* dest);
-    Solace::Result<void, Solace::Error> read(Solace::uint32* dest);
-    Solace::Result<void, Solace::Error> read(Solace::uint64* dest);
-    Solace::Result<void, Solace::Error> read(Solace::StringView* dest);
-    Solace::Result<void, Solace::Error> read(Solace::MemoryView* dest);
-    Solace::Result<void, Solace::Error> read(Solace::MutableMemoryView* dest);
-    Solace::Result<void, Solace::Error> read(Solace::Path* path);
-    Solace::Result<void, Solace::Error> read(Qid* qid);
-    Solace::Result<void, Solace::Error> read(Stat* stat);
-
-    template<typename T, typename... Args>
-    Solace::Result<void, Solace::Error> read(T* t, Args&&... args) {
-        return read(t)
-                .then([this, &args...]() { return read(std::forward<Args>(args)...); });
-    }
-
-private:
-    Solace::ByteReader& _src;
-};
-
-
-/**
- * Helper class to encode data into the protocol message format.
- */
-class Encoder {
-public:
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::uint8 const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::uint16 const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::uint32 const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::uint64 const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::StringView const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::String const& value) = delete;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::Path const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Qid const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Stat const& value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::ArrayView<Qid> value);
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::MemoryView const& value);
-
-public:
-
-    constexpr Encoder(Solace::ByteWriter& dest) noexcept
-        : _dest{dest}
-    {}
-
-    Encoder(Encoder const&) = delete;
-    Encoder& operator= (Encoder const&) = delete;
-
-    Encoder& header(Solace::byte customMessageType, Tag tag, size_type payloadSize);
-    Encoder& header(MessageType type, Tag tag, size_type payloadSize) {
-        return header(static_cast<Solace::byte>(type), tag, payloadSize);
-    }
-
-    Encoder& encode(MessageHeader header);
-
-    Encoder& encode(MessageType msgType) {
-        return encode(static_cast<Solace::byte>(msgType));
-    }
-
-    Encoder& encode(Solace::uint8 value);
-    Encoder& encode(Solace::uint16 value);
-    Encoder& encode(Solace::uint32 value);
-    Encoder& encode(Solace::uint64 value);
-    Encoder& encode(Solace::StringView str);
-    Encoder& encode(Solace::String const& str) = delete;
-    Encoder& encode(Solace::MemoryView data);
-    Encoder& encode(Solace::Path const& path);
-
-    Encoder& encode(Qid qid);
-    Encoder& encode(Solace::ArrayView<Qid> qids);
-    Encoder& encode(Stat const& stat);
-
-private:
-    Solace::ByteWriter& _dest;
-};
 
 
 
@@ -516,6 +375,11 @@ struct Request {
     };
 
 
+};
+
+
+/// 9P2000 protocol Erlang extension new messages
+struct Request_9P2000E {
     /**
      * A request to re-establish a session.
      */
@@ -540,6 +404,71 @@ struct Request {
         Solace::MemoryView data;   //!< A data to be written into the file.
     };
 };
+
+
+
+struct Response {
+
+    struct Version {
+        size_type           msize;
+        Solace::StringView  version;
+    };
+
+    struct Auth {
+        Qid  qid;
+    };
+
+    struct Attach {
+        Qid  qid;
+    };
+
+    struct Error {
+        Solace::StringView  ename;
+    };
+
+    struct Flush {};
+
+    struct Walk {
+        var_datum_size_type nqids;
+        Qid     qids[MAX_WELEM];
+    };
+
+    struct Open {
+        Qid  qid;
+        size_type iounit;
+    };
+
+    struct Create {
+        Qid  qid;
+        size_type iounit;
+    };
+
+    struct Read {
+        Solace::MutableMemoryView data;
+    };
+
+    struct Write {
+        size_type       count;
+    };
+
+    struct Clunk {};
+
+    struct Remove {};
+
+    struct Stat {
+        var_datum_size_type dummySize;
+        ::styxe::Stat data;
+    };
+
+    struct WStat {};
+};
+
+
+/// 9P2000 protocol Erlang extension new messages
+struct Response_9P2000E {
+    struct Session {};
+};
+
 
 
 struct TypedWriter {
@@ -611,66 +540,6 @@ private:
 };
 
 
-struct Response {
-
-    struct Version {
-        size_type           msize;
-        Solace::StringView  version;
-    };
-
-    struct Auth {
-        Qid  qid;
-    };
-
-    struct Attach {
-        Qid  qid;
-    };
-
-    struct Error {
-        Solace::StringView  ename;
-    };
-
-    struct Flush {};
-
-    struct Walk {
-        Solace::uint16 nqids;
-        Qid     qids[MAX_WELEM];
-    };
-
-    struct Open {
-        Qid  qid;
-        size_type iounit;
-    };
-
-    struct Create {
-        Qid  qid;
-        size_type iounit;
-    };
-
-    struct Read {
-        Solace::MutableMemoryView data;
-    };
-
-    struct Write {
-        size_type       count;
-    };
-
-    struct Clunk {};
-
-    struct Remove {};
-
-    struct Stat {
-        Solace::uint16 dummySize;
-        ::styxe::Stat data;
-    };
-
-    struct WStat {};
-
-    struct Session {};
-};
-
-
-
 
 /**
  * Helper class to build response messages.
@@ -728,9 +597,9 @@ using RequestMessage = std::variant<
                         Request::Remove,
                         Request::StatRequest,
                         Request::WStat,
-                        Request::Session,
-                        Request::SRead,
-                        Request::SWrite
+                        Request_9P2000E::Session,
+                        Request_9P2000E::SRead,
+                        Request_9P2000E::SWrite
                         >;
 
 using ResponseMessage = std::variant<
@@ -748,7 +617,7 @@ using ResponseMessage = std::variant<
                             Response::Remove,
                             Response::Stat,
                             Response::WStat,
-                            Response::Session
+                            Response_9P2000E::Session
                             >;
 
 
@@ -767,7 +636,7 @@ using ResponseMessage = std::variant<
  *
  * In order to create 9P2000 messages please @see RequestBuilder.
  */
-class Protocol {
+class Parser {
 public:
 
     /** String representing version of protocol. */
@@ -786,10 +655,10 @@ public:
 public:
 
     /// Default destructor
-    ~Protocol() noexcept = default;
+    ~Parser() noexcept = default;
 
-    Protocol(Protocol const& ) = delete;
-    Protocol& operator= (Protocol const& ) = delete;
+    Parser(Parser const& ) = delete;
+    Parser& operator= (Parser const& ) = delete;
 
     /**
      * Construct a new instance of the protocol.
@@ -798,8 +667,14 @@ public:
      * This is advertized by the protocol during version/size negotiation.
      * @param version Supported protocol version. This is advertized by the protocol during version/size negotiation.
      */
-    Protocol(size_type maxMassageSize = kMaxMesssageSize,
-             Solace::StringView version = PROTOCOL_VERSION);
+    Parser(size_type maxMassageSize = kMaxMesssageSize,
+           Solace::StringView version = PROTOCOL_VERSION) noexcept
+        : _maxMassageSize(maxMassageSize)
+        , _maxNegotiatedMessageSize(maxMassageSize)
+        , _initialVersion(version)
+        , _negotiatedVersion(makeString(version))
+    {
+    }
 
     /**
      * Get maximum message size supported by the protocol instance.
@@ -929,6 +804,8 @@ bool operator == (Stat const& lhs, Stat const& rhs) noexcept {
  */
 struct DirListingWriter {
 
+    static var_datum_size_type sizeStat(Stat const& stat);
+
     /**
      * @brief Create an instance of Dir listing writer that encodes no more then 'inCount' bytes after the offset.
      * @param inCount Maximum number of bytes that can be written into dest.
@@ -938,7 +815,7 @@ struct DirListingWriter {
     constexpr DirListingWriter(Solace::ByteWriter& dest, Solace::uint32 inCount, Solace::uint64 inOffset) noexcept
         : offset{inOffset}
         , count{inCount}
-        , _encoder{dest}
+        , _dest{dest}
     {}
 
 
@@ -949,10 +826,6 @@ struct DirListingWriter {
      */
     bool encode(Stat const& stat);
 
-    static Solace::uint16 sizeStat(Stat const& stat) {
-        return Solace::narrow_cast<Solace::uint16>(Encoder::protocolSize(stat) - sizeof(stat.size));
-    }
-
     constexpr auto bytesTraversed() const noexcept { return _bytesTraversed; }
     constexpr auto bytesEncoded() const noexcept { return _bytesEncoded; }
 
@@ -962,7 +835,7 @@ private:
     Solace::uint32 const count;
     Solace::uint32 _bytesEncoded{0};
 
-    Encoder _encoder;
+    Solace::ByteWriter& _dest;
 };
 
 
