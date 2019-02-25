@@ -557,7 +557,7 @@ public:
     TypedWriter auth(Qid qid);
     TypedWriter error(Solace::StringView message);
     TypedWriter error(Solace::Error const& err) {
-        return error(err.toString());
+        return error(err.toString().view());
     }
 
     TypedWriter flush();
