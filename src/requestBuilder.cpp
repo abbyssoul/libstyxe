@@ -144,13 +144,13 @@ RequestBuilder::open(Fid fid, OpenMode mode) {
     // Compute message size first:
     auto const payloadSize =
             encode.protocolSize(fid) +                // Fid of the file to open
-            encode.protocolSize(static_cast<byte>(mode));                // Mode of the file to open
+            encode.protocolSize(mode.mode);                // Mode of the file to open
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TOpen, _tag, payloadSize);
     encode.encode(header)
             .encode(fid)
-            .encode(static_cast<byte>(mode));
+            .encode(mode.mode);
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -165,7 +165,7 @@ RequestBuilder::create(Fid fid, StringView name, uint32 permissions, OpenMode mo
             encode.protocolSize(fid) +
             encode.protocolSize(name) +
             encode.protocolSize(permissions) +
-            encode.protocolSize(static_cast<byte>(mode));
+            encode.protocolSize(mode.mode);
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TCreate, _tag, payloadSize);
@@ -173,7 +173,7 @@ RequestBuilder::create(Fid fid, StringView name, uint32 permissions, OpenMode mo
             .encode(fid)
             .encode(name)
             .encode(permissions)
-            .encode(static_cast<byte>(mode));
+            .encode(mode.mode);
 
     return TypedWriter{_buffer, pos, header};
 }

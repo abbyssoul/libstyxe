@@ -51,16 +51,23 @@ template<typename T>
 Quoted<T> quote(T const& t, char q='\"') { return Quoted<T>(t, q); }
 
 
+
 std::ostream& operator<< (std::ostream& ostr, OpenMode mode) {
-    switch (mode) {
-    case OpenMode::READ: ostr << "READ"; break;
+    byte const op = (mode.mode & 0x03);
+    switch (op) {
+    case OpenMode::READ:  ostr << "READ"; break;
     case OpenMode::WRITE: ostr << "WRITE"; break;
-    case OpenMode::RDWR: ostr << "RDWR"; break;
-    case OpenMode::EXEC: ostr << "EXEC"; break;
-    case OpenMode::TRUNC: ostr << "TRUNC"; break;
-    case OpenMode::CEXEC: ostr << "CEXEC"; break;
-    case OpenMode::RCLOSE: ostr << "RCLOSE"; break;
+    case OpenMode::RDWR:  ostr << "RDWR"; break;
+    case OpenMode::EXEC:  ostr << "EXEC"; break;
     }
+
+    // Extra modes:
+    if (mode.mode & OpenMode::TRUNC)
+        ostr << "(TRUNC)";
+    if (mode.mode & OpenMode::CEXEC)
+        ostr << "(CEXEC)";
+    if (mode.mode & OpenMode::RCLOSE)
+        ostr << "(RCLOSE)";
 
     return ostr;
 }

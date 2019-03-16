@@ -86,15 +86,31 @@ extern const size_type kMaxMesssageSize;
 /**
  *  Flags for the mode field in Topen and Tcreate messages
  */
-enum class OpenMode : Solace::byte {
-    READ   = 0,     //!< open read-only
-    WRITE  = 1,     //!< open write-only
-    RDWR   = 2,     //!< open read-write
-    EXEC   = 3,     //!< execute (== read but check execute permission)
-    TRUNC  = 16,    //!< or'ed in (except for exec), truncate file first
-    CEXEC  = 32,    //!< or'ed in, close on exec
-    RCLOSE = 64,    //!< or'ed in, remove on close
+struct OpenMode {
+    static const Solace::byte READ   = 0;     //!< open read-only
+    static const Solace::byte WRITE  = 1;     //!< open write-only
+    static const Solace::byte RDWR   = 2;     //!< open read-write
+    static const Solace::byte EXEC   = 3;     //!< execute (== read but check execute permission)
+    static const Solace::byte TRUNC  = 16;    //!< or'ed in (except for exec), truncate file first
+    static const Solace::byte CEXEC  = 32;    //!< or'ed in, close on exec
+    static const Solace::byte RCLOSE = 64;    //!< or'ed in, remove on close
+
+    constexpr OpenMode() noexcept
+        : mode{0}
+    {}
+
+    constexpr OpenMode(Solace::byte m) noexcept
+        : mode{m}
+    {}
+
+    OpenMode& operator= (Solace::byte rhs) noexcept {
+        mode = rhs;
+        return *this;
+    }
+
+    Solace::byte mode;
 };
+
 
 
 /**
@@ -754,6 +770,14 @@ private:
     Solace::StringView const    _initialVersion;            /// Initial value of the used protocol version.
     Solace::String              _negotiatedVersion;         /// Negotiated value of the protocol version.
 };
+
+
+inline
+bool operator== (OpenMode lhs, Solace::byte rhs) noexcept { return (lhs.mode == rhs); }
+inline
+bool operator== (Solace::byte lhs, OpenMode rhs) noexcept { return (lhs == rhs.mode); }
+inline
+bool operator== (OpenMode lhs, OpenMode rhs) noexcept { return (lhs.mode == rhs.mode); }
 
 
 inline

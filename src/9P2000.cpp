@@ -36,6 +36,15 @@ const Tag               Parser::NO_TAG = static_cast<Tag>(~0);
 const Fid               Parser::NOFID = static_cast<Fid>(~0);
 
 
+const byte OpenMode::READ;
+const byte OpenMode::WRITE;
+const byte OpenMode::RDWR;
+const byte OpenMode::EXEC;
+const byte OpenMode::TRUNC;
+const byte OpenMode::CEXEC;
+const byte OpenMode::RCLOSE;
+
+
 AtomValue const
 styxe::kProtocolErrorCatergory = atom("9p2000");
 
@@ -266,7 +275,7 @@ parseOpenRequest(ByteReader& data) {
     auto msg = Request::Open{};
     return Decoder{data}
             .read(&msg.fid, &openMode)
-            .then([&msg, &openMode]() { msg.mode = static_cast<OpenMode>(openMode); })
+            .then([&msg, &openMode]() { msg.mode = openMode; })
             .then(OkRequest(std::move(msg)));
 }
 
@@ -278,7 +287,7 @@ parseCreateRequest(ByteReader& data) {
     auto msg = Request::Create{};
     return Decoder{data}
             .read(&msg.fid, &msg.name, &msg.perm, &openMode)
-            .then([&msg, &openMode]() { msg.mode = static_cast<OpenMode>(openMode); })
+            .then([&msg, &openMode]() { msg.mode = openMode; })
             .then(OkRequest(std::move(msg)));
 }
 
