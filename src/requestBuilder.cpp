@@ -293,7 +293,7 @@ RequestBuilder::session(MemoryView key) {
             .encode(header);
 //            .encode(key);
 
-    _buffer.write(key, 8);
+    _buffer.write(key);
 
     return TypedWriter{_buffer, pos, header};
 }
