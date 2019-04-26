@@ -26,38 +26,37 @@ namespace styxe {
 /**
  * Helper class to encode data into the protocol message format.
  */
-class Encoder {
-public:
+struct Encoder {
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::uint8 const& value);
+	static size_type protocolSize(Solace::uint8 const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::uint16 const& value);
+	static size_type protocolSize(Solace::uint16 const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::uint32 const& value);
+	static size_type protocolSize(Solace::uint32 const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::uint64 const& value);
+	static size_type protocolSize(Solace::uint64 const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::StringView const& value);
+	static size_type protocolSize(Solace::StringView const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
@@ -69,31 +68,31 @@ public:
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::Path const& value);
+	static size_type protocolSize(Solace::Path const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Qid const& value);
+	static size_type protocolSize(Qid const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Stat const& value);
+	static size_type protocolSize(Stat const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::ArrayView<Qid> value);
+	static size_type protocolSize(Solace::ArrayView<Qid> value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-    static size_type protocolSize(Solace::MemoryView const& value);
+	static size_type protocolSize(Solace::MemoryView const& value) noexcept;
 
 public:
 
@@ -109,12 +108,6 @@ public:
         return header(static_cast<Solace::byte>(type), tag, payloadSize);
     }
 
-    Encoder& encode(MessageHeader header);
-
-    Encoder& encode(MessageType msgType) {
-        return encode(static_cast<Solace::byte>(msgType));
-    }
-
     Encoder& encode(Solace::uint8 value);
     Encoder& encode(Solace::uint16 value);
     Encoder& encode(Solace::uint32 value);
@@ -124,11 +117,18 @@ public:
     Encoder& encode(Solace::MemoryView data);
     Encoder& encode(Solace::Path const& path);
 
-    Encoder& encode(Qid qid);
+	Encoder& encode(MessageHeader header);
+
+	Encoder& encode(MessageType msgType) {
+		return encode(static_cast<Solace::byte>(msgType));
+	}
+
+	Encoder& encode(Qid qid);
     Encoder& encode(Solace::ArrayView<Qid> qids);
     Encoder& encode(Stat const& stat);
 
 private:
+
     Solace::ByteWriter& _dest;
 };
 

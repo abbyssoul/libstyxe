@@ -28,33 +28,33 @@ using namespace styxe;
 
 
 size_type
-Encoder::protocolSize(uint8 const& value) {
+Encoder::protocolSize(uint8 const& value) noexcept {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(uint16 const& value) {
+Encoder::protocolSize(uint16 const& value) noexcept {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(uint32 const& value) {
+Encoder::protocolSize(uint32 const& value) noexcept {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(uint64 const& value) {
+Encoder::protocolSize(uint64 const& value) noexcept {
     return sizeof(value);
 }
 
 size_type
-Encoder::protocolSize(StringView const& str) {
+Encoder::protocolSize(StringView const& str) noexcept {
     return sizeof(var_datum_size_type) +         // Space for string var size
             str.size();             // Space for the actual string bytes
 }
 
 size_type
-Encoder::protocolSize(Path const& path) {
+Encoder::protocolSize(Path const& path) noexcept {
     assertIndexInRange(path.getComponentsCount(), 0,
                        static_cast<Path::size_type>(std::numeric_limits<uint16>::max()));
 
@@ -69,7 +69,7 @@ Encoder::protocolSize(Path const& path) {
 
 
 size_type
-Encoder::protocolSize(Qid const&) {
+Encoder::protocolSize(Qid const&) noexcept {
     static constexpr size_type kQidSize = sizeof(Qid::type) + sizeof(Qid::version) + sizeof(Qid::path);
 
     // Qid has a fixed size of 13 bytes, lets keep it that way
@@ -80,7 +80,7 @@ Encoder::protocolSize(Qid const&) {
 
 
 size_type
-Encoder::protocolSize(Stat const& stat) {
+Encoder::protocolSize(Stat const& stat) noexcept {
     return  protocolSize(stat.size) +
             protocolSize(stat.type) +
             protocolSize(stat.dev) +
@@ -97,7 +97,7 @@ Encoder::protocolSize(Stat const& stat) {
 
 
 size_type
-Encoder::protocolSize(Solace::ArrayView<Qid> qids) {
+Encoder::protocolSize(Solace::ArrayView<Qid> qids) noexcept {
     assertIndexInRange(qids.size(), 0,
                        static_cast<ArrayView<Qid>::size_type>(std::numeric_limits<uint16>::max()));
 
@@ -109,7 +109,7 @@ Encoder::protocolSize(Solace::ArrayView<Qid> qids) {
 
 
 size_type
-Encoder::protocolSize(MemoryView const& data) {
+Encoder::protocolSize(MemoryView const& data) noexcept {
     assertIndexInRange(data.size(), 0,
                        static_cast<MemoryView::size_type>(std::numeric_limits<size_type>::max()));
 
@@ -124,7 +124,6 @@ Encoder::header(Solace::byte customMessageType, Tag tag, size_type payloadSize) 
             .encode(customMessageType)
             .encode(tag);
 }
-
 
 
 Encoder&

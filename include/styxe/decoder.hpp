@@ -26,11 +26,10 @@ namespace styxe {
 /**
  * Helper class to decode data structures from the 9P2000 formatted messages.
  */
-class Decoder {
-public:
+struct Decoder {
 
-    Decoder(Solace::ByteReader& src) :
-        _src(src)
+	constexpr Decoder(Solace::ByteReader& src)  noexcept
+		: _src(src)
     {}
 
     Decoder(Decoder const&) = delete;
