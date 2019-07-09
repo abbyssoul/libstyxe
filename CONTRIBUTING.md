@@ -3,7 +3,7 @@
 Thank you so much for your interest in contributing!
 This project is in active development and all contributions are welcomed.
 
-There are multiple ways you can help. For example you can [Submit a patch](#submitting-patch) or you can [Contribute documentation](#submitting-docs). If you have encountered an issue while using the library in your project please [Report errors or bugs](#reporting-bugs) to help us fix the issue. If you feel that this library is misssing something feel free to [Request a feature/improvement](#requesting-feature) - it might be that other people can benefit from this feature.
+There are multiple ways you can help. For example you can [Submit a patch](#submitting-patch) or you can [Contribute documentation](#submitting-docs). If you have encountered an issue while using the library in your project please [Report errors or bugs](#reporting-bugs) to help us fix the issue. If you feel that this library is missing something feel free to [Request a feature/improvement](#requesting-feature) - it might be that other people can benefit from this feature.
 
 ## Submit a patch
 If you want to fix an issue or add a feature - code contribution is the best way to do it. Easiest way to submit a patch is by raising a pull request (PR):
@@ -12,15 +12,15 @@ If you want to fix an issue or add a feature - code contribution is the best way
 * Make any necessary changes to the source code. Please see [coding convention](docs/coding_convention.md) about code style.
 * Include any [additional documentation](#contribute-documentation) the changes might be needed.
 * When adding new feature it is essential to write tests that verify that your contribution works as expected.
-* When fixing exising issues it is essential to update existing tests accordingly.
+* When fixing existing issues it is essential to update existing tests accordingly.
 * All code changes are subject to automatic code quality checks run as part of CI. Code changes can not be accepted if they fail quality check so please make sure this checks pass by run `make codecheck` locally before submitting.
 * Write clear, concise commit message(s) using [conventional-changelog format](https://github.com/conventional-changelog/conventional-changelog-angular/blob/master/convention.md).
 * Go to https://github.com/abbyssoul/libstyxe/pulls and open a new pull request with your changes.
 * If your PR is connected to an open issue, add a line in your PR's description that says `Fixes: #123`, where `#123` is the number of the issue you're fixing.
 
 ### Testing
-This project is commited to maintaining higest level of code quality. That is why any new feature submitted must be covered by expensive unit tests and pass code quality checks.
-For fixes it is natural that existing test coverage was not sufficent to vet it. Thus it is expected that exising tests will be extended to cover issue being fixed when ever possible. This helps to avoid re-occurance of the issue as code changes over time.
+This project is committed to maintaining highest level of code quality. That is why any new feature submitted must be covered by expensive unit tests and pass code quality checks.
+For fixes it is natural that existing test coverage was not sufficient to vet it. Thus it is expected that exising tests will be extended to cover issue being fixed when ever possible. This helps to avoid re-occurrence of the issue as code changes over time.
 
 
 ## Reporting errors or bugs
@@ -44,7 +44,7 @@ Documentation is essential part of any project. To contribute documentation:
 * Clone the project.
 * Edit or add any relevant documentation.
 * Make sure your changes are formatted correctly and consistently with the rest of the documentation.
-* Re-read what you wrote, and run a spellchecker on it to make sure you didn't miss anything.
+* Re-read what you wrote, and run a spell-checker on it to make sure you didn't miss anything.
 * Write clear, concise commit message(s) using [conventional-changelog format](https://github.com/conventional-changelog/conventional-changelog-angular/blob/master/convention.md). Documentation commits should use `docs(<component>): <message>`.
 * Go to https://github.com/abbyssoul/libstyxe/pulls and open a new pull request with your changes.
 * If your PR is connected to an open issue, add a line in your PR's description that says `Fixes: #123`, where `#123` is the number of the issue you're fixing.

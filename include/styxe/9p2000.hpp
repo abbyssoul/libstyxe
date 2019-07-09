@@ -805,10 +805,10 @@ bool operator == (Stat const& lhs, Stat const& rhs) noexcept {
 
 
 /**
- * @brief A helper class that allows to build responce content for DIR `read` request.
+ * @brief A helper class that allows to build response content for DIR `read` request.
  * @see Protocol::Request::Read
  *
- * This is a helper class design to help server implementors to build DIR read responce.
+ * This is a helper class design to help server implementors to build DIR read response.
  * May responsibility is of this class is to keep track of offset and count received from the request.
  * The implementation only measures how much data is would have encoded untill it reaches 'offset' value.
  * Only after that data provided to encode will be actually encoded
