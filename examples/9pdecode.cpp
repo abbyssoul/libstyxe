@@ -311,6 +311,7 @@ int usage(const char* progname) {
 
     return EXIT_SUCCESS;
 }
+
 /**
  * A simple example of decoding a 9P message from a file / stdin and printing it in a human readable format.
  */
@@ -359,4 +360,3 @@ int main(int argc, char* const* argv) {
 
     return EXIT_SUCCESS;
 }
-
