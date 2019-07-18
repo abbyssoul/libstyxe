@@ -4,6 +4,11 @@ compiler:
   - gcc
 os:
   - linux
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "V+hzBkW1v7lMoq+MQ2Q232b4vun0FMoQIs7d+en5npZygjPs2l+coxg20Cx2w+sCDOBUC4yHBb7y9snMJIhBmwJTgokq9Ia4LEeC2lFe1juh3NmPPs1Ul4CykGQNJROApK/vpKkJ9lx8rBmlJB21iqLWOHYd9MWItnVnbWaPFDL5rX7C7SFiOv2/C+qpMGl+Ro9DXM8C1kq0tat7ZYUZLJUZHp0gkP/2p3GQ4/w6wPXA1Jb3SPiBuDK9zidln1EqI6dP9JTDSnmYmV/qy5ZCIHkMyGtWTcrfb1JJ+Es5V8IbAjoaDav914mw3y6QmQ237CFRUvkUU+eadZTk7SWeB4lfBnm8Fvn4otO5BC1D+WhlqG29W/t0zFa7Azqe/PdxbvBsrBqOAuLzUeYnqxe0XaUwoWlp48LPwkYUBcqViWsz1RvmhhTE7WEw7CcpoOz+zjPOszFgLyLQ88+NF5twakV7oUeG/4WNTV1uoAq/yqIutXLLYwN4yNGYn75Bii/j6kV/4O34vsvbqu1XQEVXMBsHPptgECxqxjIZ5faJNpkCDz+XS8BliKt4GBm+Vm3tBhQ+wrquZPrNTwqB25Ll70XxPu0LQ9lcg+entGv9+goJWiAK67D/vu3Qa5LYdOo8lhxd7ne5wYLUkGhfTmdsuywtyhN1gmIrpK1pP8AZRq0="
 addons:
  apt:
    update: true
@@ -29,13 +34,15 @@ addons:
    - curl
  coverity_scan:
   project:
-      name: "abbyssoul/libstyxe"
-      description: "9P2000 protocol implementation"
+    name: "abbyssoul/libstyxe"
+    description: "9P2000 protocol implementation"
   notification_email: abbyssoul@gmail.com
+  build_command_prepend: "<Your build preprocessing command here>"
   build_command: make
   branch_pattern: coverity_scan
 
 before_install:
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
   - sudo -H pip3 install --upgrade pip
   - sudo -H pip3 install cpplint cpp-coveralls
   - sudo -H pip3 install conan --upgrade
