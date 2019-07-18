@@ -1,14 +1,19 @@
-libstyxe
-==================
+# libstyxe [![C++ standard][c++-standard-shield]][c++-standard-link] [![License][license-shield]][license-link]
+---
 [![TravisCI][travis-shield]][travis-link]
-[![License][license-shield]][license-link]
+[![LGTM][LGTM-shield]][LGTM-link]
 
-[travis-shield]: https://travis-ci.org/abbyssoul/libstyxe.png?branch=master
-[travis-link]: https://travis-ci.org/abbyssoul/libstyxe
+[c++-standard-shield]: https://img.shields.io/badge/c%2B%2B-14/17/20-blue.svg
+[c++-standard-link]: https://en.wikipedia.org/wiki/C%2B%2B#Standardization
 [license-shield]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [license-link]: https://opensource.org/licenses/Apache-2.0
+[travis-shield]: https://travis-ci.org/abbyssoul/libstyxe.png?branch=master
+[travis-link]: https://travis-ci.org/abbyssoul/libstyxe
+[LGTM-shield]: https://img.shields.io/lgtm/grade/cpp/github/abbyssoul/libstyxe.svg
+[LGTM-link]: https://lgtm.com/projects/g/abbyssoul/libstyxe/alerts/
 
-An implementation of 9P2000 protocol.
+
+Parser for 9P2000 protocol messages.
 
 It also includes 9P2000.e extension. To learn more about the extension please see http://erlangonxen.org/more/9p2000e
 
@@ -81,14 +86,6 @@ Note test framework used is *gtest* and it is managed via git modules.
 Don't forget to do `git submodule update --init --recursive` on a new checkout to pull sub-module dependencies.
 
 
-## Contributing changes
-The framework is work in progress and contributions are very welcomed.
-Please see  [`CONTRIBUTING.md`](CONTRIBUTING.md) for details on how to contribute to
-this project.
-
-Please note that in order to maintain code quality a set of static code analysis tools is used as part of the build process.
-Thus all contributions must be verified by this tools before PR can be accepted.
-
 
 # Building
 
@@ -147,9 +144,19 @@ make codecheck
 ```
 
 
+## Contributing changes
+The framework is work in progress and contributions are very welcomed.
+Please see  [`CONTRIBUTING.md`](CONTRIBUTING.md) for details on how to contribute to
+this project.
+
+Please note that in order to maintain code quality a set of static code analysis tools is used as part of the build process.
+Thus all contributions must be verified by this tools before PR can be accepted.
+
+
 ## License
-Please see LICENSE file for details
+The library available under Apache License 2.0
+Please see [`LICENSE`](LICENSE) for details.
 
 
 ## Authors
-Please see AUTHORS file for the list of contributors
+Please see [`AUTHORS`](AUTHORS) file for the list of contributors.

@@ -1,0 +1,25 @@
+extraction:
+    cpp:
+        prepare:
+            packages:
+                - "python3"
+                - "python3-dev"
+                - "python3-yaml"
+                - "python3-wheel"
+                - "python3-setuptools"
+                - "python3-pip"
+                - "python3-cryptography"
+                - "python3-mccabe"
+        after_prepare:
+            - "pip3 install --user conan"
+            - "ls ~/.local/bin"
+            - "export PATH=$PATH:~/.local/bin"
+            - "conan --version"
+            - "conan profile new default --detect"
+            - "conan profile update settings.compiler.version=8 default"
+            - "conan profile update settings.compiler.libcxx=libstdc++11 default"
+            - "conan remote add abbyssoul https://api.bintray.com/conan/abbyssoul/public-conan"
+
+        configure:
+            command:
+                - ./configure --enable-debug
