@@ -1,7 +1,9 @@
 # libstyxe [![C++ standard][c++-standard-shield]][c++-standard-link] [![License][license-shield]][license-link]
 ---
 [![TravisCI][travis-shield]][travis-link]
+[![Codecov][codecov-shield]][codecov-link]
 [![Coverity][coverity-shield]][coverity-link]
+[![Coverage Status][coveralls-shield]][coveralls-link]
 [![LGTM][LGTM-shield]][LGTM-link]
 
 
@@ -11,8 +13,12 @@
 [license-link]: https://opensource.org/licenses/Apache-2.0
 [travis-shield]: https://travis-ci.org/abbyssoul/libstyxe.png?branch=master
 [travis-link]: https://travis-ci.org/abbyssoul/libstyxe
+[codecov-shield]: https://codecov.io/gh/abbyssoul/libstyxe/branch/master/graph/badge.svg
+[codecov-link]: https://codecov.io/gh/abbyssoul/libstyxe
 [coverity-shield]: https://scan.coverity.com/projects/18800/badge.svg
 [coverity-link]: https://scan.coverity.com/projects/abbyssoul-libstyxe
+[coveralls-shield]: https://coveralls.io/repos/github/abbyssoul/libstyxe/badge.svg?branch=master
+[coveralls-link]: https://coveralls.io/github/abbyssoul/libstyxe?branch=master
 [LGTM-shield]: https://img.shields.io/lgtm/grade/cpp/github/abbyssoul/libstyxe.svg
 [LGTM-link]: https://lgtm.com/projects/g/abbyssoul/libstyxe/alerts/
 
