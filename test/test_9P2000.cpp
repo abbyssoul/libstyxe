@@ -96,16 +96,14 @@ TEST(P9_2000, testSettingFrameSize) {
 }
 
 TEST(P9_2000, testParsingMessageHeader) {
-    MemoryManager _mem(1024);
-    Parser proc;
-
     // Form a normal message with no data:
-    auto memBuffer = _mem.allocate(512);
-    auto writer = ByteWriter{memBuffer};
+	byte buffer[16];
+	auto writer = ByteWriter{wrapMemory(buffer)};
     writeHeader(writer, 4 + 1 + 2, MessageType::TVersion, 1);
 
-    auto reader = ByteReader{memBuffer};
-    auto res = proc.parseMessageHeader(reader);
+	auto reader = ByteReader{writer.viewWritten()};
+	auto res = Parser{}
+			.parseMessageHeader(reader);
     ASSERT_TRUE(res.isOk());
 
     auto header = res.unwrap();
@@ -116,79 +114,66 @@ TEST(P9_2000, testParsingMessageHeader) {
 
 
 TEST(P9_2000, parsingMessageHeaderWithUnknownMessageType) {
-    Parser proc;
-
     // Form a normal message with no data:
-    byte memBuffer[512];
-    auto writer = ByteWriter{wrapMemory(memBuffer)};
+	byte buffer[16];
+	auto writer = ByteWriter{wrapMemory(buffer)};
 
     writer.writeLE(size_type(4 + 1 + 2));
     writer.writeLE(static_cast<byte>(-1));
     writer.writeLE(Tag(1));
 
-    auto reader = ByteReader{wrapMemory(memBuffer)};
-    ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
+	auto reader = ByteReader{writer.viewWritten()};
+	ASSERT_TRUE(Parser{}.parseMessageHeader(reader).isError());
 }
 
 TEST(P9_2000, testParsingHeaderWithInsufficientData) {
-    MemoryManager _mem(1024);
-    Parser proc;
-
-    auto memBuffer = _mem.allocate(512);
-    auto writer = ByteWriter{memBuffer};
+	byte buffer[16];
+	auto writer = ByteWriter{wrapMemory(buffer)};
 
     // Only write one header field. Should be not enough data to read a header.
     writer.writeLE(size_type(4 + 1 + 2));
+	// NOTE: type and tag are not written
 
-    auto reader = ByteReader{memBuffer};
-    auto res = proc.parseMessageHeader(reader);
-
-    ASSERT_TRUE(res.isError());
+	auto reader = ByteReader{writer.viewWritten()};
+	ASSERT_TRUE(Parser{}.parseMessageHeader(reader).isError());
 }
 
 
 TEST(P9_2000, testParsingIllformedMessageHeader) {
-    MemoryManager _mem(1024);
-
-    auto memBuffer = _mem.allocate(512);
-    auto writer = ByteWriter{memBuffer};
-    // Set declared message size less then header size.
+	byte buffer[16];
+	auto writer = ByteWriter{wrapMemory(buffer)};
+	// Set declared message size less then header size.
     writeHeader(writer, 1 + 2, MessageType::TVersion, 1);
 
-    Parser proc;
-    auto reader = ByteReader{memBuffer};
-    ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
+	auto reader = ByteReader{writer.viewWritten()};
+	ASSERT_TRUE(Parser{}.parseMessageHeader(reader).isError());
 }
 
 TEST(P9_2000, parsingIllFormedHeaderForMessagesLargerMTUShouldError) {
-    MemoryManager _mem(1024);
-    Parser proc;
+	byte buffer[16];
+	auto writer = ByteWriter{wrapMemory(buffer)};
 
-    auto memBuffer = _mem.allocate(512);
-    auto writer = ByteWriter{memBuffer};
-
+	Parser proc;
     proc.maxNegotiatedMessageSize(20);
     // Set declared message size to be more then negotiated message size
     writeHeader(writer, proc.maxNegotiatedMessageSize() + 100, MessageType::TVersion, 1);
 
-    auto reader = ByteReader{memBuffer};
-    ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
+	auto reader = ByteReader{writer.viewWritten()};
+	ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
 }
 
 
 TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
-    MemoryManager _mem(1024);
-    Parser proc;
-
-    auto memBuffer = _mem.allocate(512);
-    auto writer = ByteWriter{memBuffer};
+	byte buffer[16];
+	auto writer = ByteWriter{wrapMemory(buffer)};
 
     // Set declared message size to be more then negotiated message size
     writeHeader(writer, headerSize() + sizeof(int32), MessageType::RVersion, 1);
     writer.writeLE(byte(3));
 
-    auto reader = ByteReader{memBuffer};
-    auto header = proc.parseMessageHeader(reader);
+	Parser proc;
+	auto reader = ByteReader{writer.viewWritten()};
+	auto header = proc.parseMessageHeader(reader);
     ASSERT_TRUE(header.isOk());
 
     auto message = proc.parseResponse(header.unwrap(), reader);
@@ -196,21 +181,19 @@ TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
 }
 
 TEST(P9_2000, parseIncorrectlySizedLargerResponse) {
-    MemoryManager _mem(1024);
-    Parser proc;
-
-    auto memBuffer = _mem.allocate(headerSize() + sizeof(int32)*2);
-    auto writer = ByteWriter{memBuffer};
+	byte buffer[headerSize() + 2*sizeof(int32)];
+	auto writer = ByteWriter{wrapMemory(buffer)};
 
     // Set declared message size to be more then negotiated message size
     writeHeader(writer, headerSize() + sizeof(int32), MessageType::RVersion, 1);
     writer.writeLE(static_cast<int64>(999999));
 
-    auto reader = ByteReader{memBuffer};
-    auto header = proc.parseMessageHeader(reader);
+	auto reader = ByteReader{writer.viewWritten()};
+	Parser proc;
+	auto header = proc.parseMessageHeader(reader);
     ASSERT_TRUE(header.isOk());
 
-    auto message = proc.parseResponse(header.unwrap(), reader);
+	auto message = proc.parseResponse(*header, reader);
     ASSERT_TRUE(message.isError());
 }
 
@@ -244,7 +227,7 @@ protected:
                 .then([this](MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
                 })
-                .then([this](RequestMessage&& msg) -> Result<RequestType, Error> {
+				.then([](RequestMessage&& msg) -> Result<RequestType, Error> {
                     const bool isType = std::holds_alternative<RequestType>(msg);
 
                     if (!isType) {
@@ -278,7 +261,7 @@ protected:
                 .then([this](MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
                 })
-                .then([this](ResponseMessage&& msg) -> Result<ResponseType, Error> {
+				.then([](ResponseMessage&& msg) -> Result<ResponseType, Error> {
                     const bool isType = std::holds_alternative<ResponseType>(msg);
 
                     if (!isType) {
@@ -299,7 +282,7 @@ protected:
 
 protected:
 
-    Parser        proc;
+	Parser			proc;
     MemoryManager   _memManager {kMaxMesssageSize};
     MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize)};
     ByteWriter      _writer{_memBuf};
