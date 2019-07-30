@@ -37,7 +37,8 @@ addons:
     name: "abbyssoul/libstyxe"
     description: "9P2000 protocol implementation"
   notification_email: abbyssoul@gmail.com
-  build_command: make
+  build_command_prepend: "./configure --disable-sanitizer"
+  build_command: make coverage_report
   branch_pattern: coverity_scan
 
 before_install:
