@@ -38,7 +38,6 @@ addons:
     name: "abbyssoul/libstyxe"
     description: "9P2000 protocol implementation"
   notification_email: abbyssoul@gmail.com
-  build_command_prepend: "<Your build preprocessing command here>"
   build_command: make
   branch_pattern: coverity_scan
 
