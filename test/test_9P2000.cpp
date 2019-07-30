@@ -181,7 +181,7 @@ TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
 }
 
 TEST(P9_2000, parseIncorrectlySizedLargerResponse) {
-	byte buffer[headerSize() + 2*sizeof(int32)];
+	byte buffer[16];
 	auto writer = ByteWriter{wrapMemory(buffer)};
 
     // Set declared message size to be more then negotiated message size
