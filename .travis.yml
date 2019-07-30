@@ -30,7 +30,6 @@ addons:
    - doxygen
    - libc6-dbg  # needed by Valgrind
    - valgrind
-   - ggcov
    - lcov
    - curl
  coverity_scan:
