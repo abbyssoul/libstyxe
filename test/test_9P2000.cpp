@@ -220,18 +220,18 @@ protected:
         return proc.parseMessageHeader(_reader)
                 .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
-                    ? Result<MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                    : Result<MessageHeader, Error>(Ok(std::move(header)));
+							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
+							: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
                 })
 				.then([](RequestMessage&& msg) -> Result<RequestType, Error> {
-                    const bool isType = std::holds_alternative<RequestType>(msg);
+					bool const isType = std::holds_alternative<RequestType>(msg);
 
                     if (!isType) {
                         []() { FAIL() << "Parsed request is on unexpected type"; } ();
-                        return Err(getCannedError(CannedError::UnsupportedMessageType));
+						return getCannedError(CannedError::UnsupportedMessageType);
                     }
 
                     return Ok<RequestType>(std::get<RequestType>(std::move(msg)));
@@ -253,19 +253,19 @@ protected:
 
         return proc.parseMessageHeader(_reader)
                 .then([expectType](MessageHeader&& header) {
-                    return (header.type != expectType)
-                ? Result<MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                : Result<MessageHeader, Error>(Ok(std::move(header)));
+					return (header.type != expectType)
+							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
+							: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
                 })
 				.then([](ResponseMessage&& msg) -> Result<ResponseType, Error> {
-                    const bool isType = std::holds_alternative<ResponseType>(msg);
+					bool const isType = std::holds_alternative<ResponseType>(msg);
 
                     if (!isType) {
                         []() { FAIL() << "Parsed request is on unexpected type"; } ();
-                        return Err(getCannedError(CannedError::UnsupportedMessageType));
+						return getCannedError(CannedError::UnsupportedMessageType);
                     }
 
                     return Ok<ResponseType>(std::get<ResponseType>(std::move(msg)));
@@ -292,7 +292,7 @@ protected:
 
 
 TEST_F(P9Messages, createVersionRequest) {
-    const auto testVersion = Parser::PROTOCOL_VERSION;
+	auto const testVersion = Parser::PROTOCOL_VERSION;
 
     RequestBuilder(_writer, Parser::NO_TAG)
             .version(testVersion)
@@ -397,7 +397,7 @@ TEST_F(P9Messages, createErrorRespose) {
 }
 
 TEST_F(P9Messages, parseErrorRespose) {
-    const auto expectedErrorMessage = StringLiteral{"All good!"};
+	auto const expectedErrorMessage = StringLiteral{"All good!"};
 
     styxe::Encoder{_writer}
             .header(MessageType::RError, 1, styxe::Encoder::protocolSize(expectedErrorMessage))
@@ -612,7 +612,7 @@ TEST_F(P9Messages, createReadRequest) {
 }
 
 TEST_F(P9Messages, createReadRespose) {
-    const char content[] = "Good news everyone!";
+	char const content[] = "Good news everyone!";
     auto data = wrapMemory(content);
     ResponseBuilder(_writer, 1)
             .read(data)
@@ -626,7 +626,7 @@ TEST_F(P9Messages, createReadRespose) {
 
 TEST_F(P9Messages, parseReadRespose) {
     auto const messageData = StringLiteral{"This is a very important data d-_^b"};
-    const uint32 dataLen = messageData.size();
+	uint32 const dataLen = messageData.size();
 
     // Set declared message size to be more then negotiated message size
     writeHeader(_writer, headerSize() + sizeof(uint32) + dataLen, MessageType::RRead, 1);
@@ -644,7 +644,7 @@ TEST_F(P9Messages, parseReadRespose) {
 
 
 TEST_F(P9Messages, createWriteRequest) {
-    const char messageData[] = "This is a very important data d-_^b";
+	char const messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
     RequestBuilder{_writer}
@@ -908,14 +908,14 @@ TEST_F(P9Messages, parseWalkRespose) {
     };
 
     // Set declared message size to be more then negotiated message size
-    const auto headPosition = _writer.position();
+	auto const headPosition = _writer.position();
     writeHeader(_writer, 0, MessageType::RWalk, 1);
     // nwqid
     _writer.writeLE(uint16(1));
     encode9P(_writer, qid);
 
 
-    const auto totalSize = _writer.position();
+	auto const totalSize = _writer.position();
     _writer.limit(totalSize);
     _writer.position(headPosition);
     _writer.writeLE(size_type(totalSize));

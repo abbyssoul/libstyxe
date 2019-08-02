@@ -209,7 +209,7 @@ parseWalkResponse(ByteReader& data) {
                 for (decltype(fcall.nqids) i = 0; i < fcall.nqids; ++i) {
                     auto r = decoder.read(&fcall.qids[i]);
                     if (!r) {
-                        return Err<Error>(r.moveError());
+						return r.moveError();
                     }
                 }
 
@@ -383,7 +383,7 @@ Parser::parseMessageHeader(ByteReader& src) const {
 
     // Check that we have enough data to read mandatory message header
     if (dataAvailable < mandatoryHeaderSize) {
-        return Err(getCannedError(CannedError::IllFormedHeader));
+		return getCannedError(CannedError::IllFormedHeader);
     }
 
     Decoder decoder{src};
@@ -393,12 +393,12 @@ Parser::parseMessageHeader(ByteReader& src) const {
 
     // Sanity checks:
     if (header.messageSize < mandatoryHeaderSize) {
-        return Err(getCannedError(CannedError::IllFormedHeader_FrameTooShort));
+		return getCannedError(CannedError::IllFormedHeader_FrameTooShort);
     }
 
     // It is a serious error if we got a message of a size bigger than negotiated one.
     if (header.messageSize > maxNegotiatedMessageSize()) {
-        return Err(getCannedError(CannedError::IllFormedHeader_TooBig));
+		return getCannedError(CannedError::IllFormedHeader_TooBig);
     }
 
     // Read message type:
@@ -408,14 +408,14 @@ Parser::parseMessageHeader(ByteReader& src) const {
     header.type = static_cast<MessageType>(messageBytecode);
     if (header.type < MessageType::_beginSupportedMessageCode ||
         header.type >= MessageType::_endSupportedMessageCode) {
-        return Err(getCannedError(CannedError::UnsupportedMessageType));
+		return getCannedError(CannedError::UnsupportedMessageType);
     }
 
     // Read message tag. Tags are provided by the client and can not be checked by the message parser.
     // Unless we are provided with the expected tag...
     decoder.read(&header.tag);
 
-    return Ok(header);
+	return Ok(header);
 }
 
 
@@ -426,17 +426,17 @@ Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
     // Message data sanity check
     // Just paranoid about huge messages exciding frame size getting through.
     if (header.messageSize > maxNegotiatedMessageSize()) {
-        return Err(getCannedError(CannedError::IllFormedHeader_TooBig));
+		return getCannedError(CannedError::IllFormedHeader_TooBig);
     }
 
     // Make sure we have been given enough data to read a message as requested in the message size.
     if (expectedData > data.remaining()) {
-        return Err(getCannedError(CannedError::NotEnoughData));
+		return getCannedError(CannedError::NotEnoughData);
     }
 
     // Make sure there is no extra data in the buffer.
     if (expectedData < data.remaining()) {
-        return Err(getCannedError(CannedError::MoreThenExpectedData));
+		return getCannedError(CannedError::MoreThenExpectedData);
     }
 
     switch (header.type) {
@@ -462,7 +462,7 @@ Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
 
 
     default:
-        return Err(getCannedError(CannedError::UnsupportedMessageType));
+		return getCannedError(CannedError::UnsupportedMessageType);
     }
 }
 
@@ -473,17 +473,17 @@ Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
     // Message data sanity check
     // Just paranoid about huge messages exciding frame size getting through.
     if (header.messageSize > maxNegotiatedMessageSize()) {
-        return Err(getCannedError(CannedError::IllFormedHeader_TooBig));
+		return getCannedError(CannedError::IllFormedHeader_TooBig);
     }
 
     // Make sure we have been given enough data to read a message as requested in the message size.
     if (expectedData > data.remaining()) {
-        return Err(getCannedError(CannedError::NotEnoughData));
+		return getCannedError(CannedError::NotEnoughData);
     }
 
     // Make sure there is no extra unexpected data in the buffer.
     if (expectedData < data.remaining()) {
-        return Err(getCannedError(CannedError::MoreThenExpectedData));
+		return getCannedError(CannedError::MoreThenExpectedData);
     }
 
     switch (header.type) {
@@ -506,7 +506,7 @@ Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
     case MessageType::TSWrite:  return parseShortWriteRequest(data);
 
     default:
-        return Err(getCannedError(CannedError::UnsupportedMessageType));
+		return getCannedError(CannedError::UnsupportedMessageType);
     }
 }
 

@@ -48,7 +48,7 @@ Decoder::read(StringView* dest) {
 
     return _src.readLE(dataSize)
             .then([&]() {
-                StringView view(_src.viewRemaining().dataAs<const char>(), dataSize);
+				StringView view(_src.viewRemaining().dataAs<char const>(), dataSize);
                 return _src.advance(dataSize)
                         .then([dest, &view]() {
                             *dest = view;
@@ -98,17 +98,6 @@ Decoder::read(MemoryView* data) {
 Result<void, Error>
 Decoder::read(MutableMemoryView* data) {
     return read(static_cast<MemoryView*>(data));
-//    size_type dataSize = 0;
-//    // Read size of the following data.
-//    return read(&dataSize)
-//            .then([&]() {
-//                if (dataSize <= _src.remaining()) {
-//                    // Read the data. Note we only take a view into the actual message buffer.
-//                    data->write(_src.viewRemaining().slice(0, dataSize));
-//                }
-
-//                return _src.advance(dataSize);
-//            });
 }
 
 
@@ -128,7 +117,6 @@ Decoder::read(Path* path) {
                         return result;
                     }
 
-                    // FIXME: Performance kick in the nuts!
                     components.emplace_back(makeString(component));
                 }
 

@@ -51,18 +51,18 @@ protected:
         return proc.parseMessageHeader(_reader)
                 .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
-                    ? Result<MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                    : Result<MessageHeader, Error>(Ok(std::move(header)));
+					? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
+					: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
                 })
-                .then([this](RequestMessage&& msg) -> Result<RequestType, Error> {
-                    const bool isType = std::holds_alternative<RequestType>(msg);
+				.then([](RequestMessage&& msg) -> Result<RequestType, Error> {
+					bool const isType = std::holds_alternative<RequestType>(msg);
 
                     if (!isType) {
                         []() { FAIL() << "Parsed request is on unexpected type"; } ();
-                        return Err(getCannedError(CannedError::UnsupportedMessageType));
+						return getCannedError(CannedError::UnsupportedMessageType);
                     }
 
                     return Ok<RequestType>(std::get<RequestType>(std::move(msg)));
@@ -85,18 +85,18 @@ protected:
         return proc.parseMessageHeader(_reader)
                 .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
-                ? Result<MessageHeader, Error>(Err(getCannedError(CannedError::UnsupportedMessageType)))
-                : Result<MessageHeader, Error>(Ok(std::move(header)));
+				? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
+				: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
                 })
-                .then([this](ResponseMessage&& msg) -> Result<ResponseType, Error> {
-                    const bool isType = std::holds_alternative<ResponseType>(msg);
+				.then([](ResponseMessage&& msg) -> Result<ResponseType, Error> {
+					bool const isType = std::holds_alternative<ResponseType>(msg);
 
                     if (!isType) {
                         []() { FAIL() << "Parsed request is on unexpected type"; } ();
-                        return Err(getCannedError(CannedError::UnsupportedMessageType));
+						return getCannedError(CannedError::UnsupportedMessageType);
                     }
 
                     return Ok<ResponseType>(std::get<ResponseType>(std::move(msg)));
@@ -121,8 +121,8 @@ protected:
 
 
 TEST_F(P9E_Messages, createSessionRequest) {
-    const byte sessionKey[8] = {8, 7, 6, 5, 4, 3, 2, 1};
-    const auto data = wrapMemory(sessionKey);
+	byte const sessionKey[8] = {8, 7, 6, 5, 4, 3, 2, 1};
+	auto const data = wrapMemory(sessionKey);
 
     RequestBuilder{_writer}
             .session(data)
@@ -135,7 +135,7 @@ TEST_F(P9E_Messages, createSessionRequest) {
 }
 
 TEST_F(P9E_Messages, createSessionRequest_NotEnoughData) {
-    const byte sessionKey[5] = {8, 7, 6, 5, 4};
+	byte const sessionKey[5] = {8, 7, 6, 5, 4};
 
     ASSERT_THROW(RequestBuilder{_writer}
                  .session(wrapMemory(sessionKey)),
@@ -144,7 +144,7 @@ TEST_F(P9E_Messages, createSessionRequest_NotEnoughData) {
 
 
 TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
-    const byte sessionKey[5] = {8, 7, 6, 5, 4};
+	byte const sessionKey[5] = {8, 7, 6, 5, 4};
     auto keyData = wrapMemory(sessionKey);
 
     // Set declared message size to be more then negotiated message size
@@ -183,7 +183,7 @@ TEST_F(P9E_Messages, parseSessionRespose) {
 
 
 TEST_F(P9E_Messages, createShortReadRequest) {
-    const auto path = Path::parse("some/wierd/place").unwrap();
+	auto const path = Path::parse("some/wierd/place").unwrap();
     RequestBuilder{_writer}
             .shortRead(32, path)
             .build();
@@ -197,7 +197,7 @@ TEST_F(P9E_Messages, createShortReadRequest) {
 
 
 TEST_F(P9E_Messages, createShortReadRespose) {
-    const char messageData[] = "This was somewhat important data d^_-b";
+	char const messageData[] = "This was somewhat important data d^_-b";
     auto data = wrapMemory(messageData);
     ResponseBuilder(_writer, 1)
             .shortRead(data)
@@ -229,8 +229,8 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
 
 
 TEST_F(P9E_Messages, createShortWriteRequest) {
-    const auto path = Path::parse("some/wierd/place").unwrap();
-    const char messageData[] = "This is a very important data d-_^b";
+	auto const path = Path::parse("some/wierd/place").unwrap();
+	char const messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
     RequestBuilder{_writer}

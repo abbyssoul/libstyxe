@@ -208,7 +208,7 @@ ResponseBuilder::remove() {
 
 
 TypedWriter
-ResponseBuilder::stat(const Stat& data) {
+ResponseBuilder::stat(Stat const& data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -279,7 +279,7 @@ DirListingWriter::sizeStat(Stat const& stat) {
 
 
 bool DirListingWriter::encode(Stat const& stat) {
-    const auto protoSize = Encoder::protocolSize(stat);
+	auto const protoSize = Encoder::protocolSize(stat);
     // Keep count of how many data we have traversed.
     _bytesTraversed += protoSize;
     if (_bytesTraversed <= offset) {  // Client is only interested in data pass the offset.
