@@ -131,8 +131,7 @@ TEST(P9_2000, testParsingHeaderWithInsufficientData) {
 	auto writer = ByteWriter{wrapMemory(buffer)};
 
     // Only write one header field. Should be not enough data to read a header.
-    writer.writeLE(size_type(4 + 1 + 2));
-	// NOTE: type and tag are not written
+	writer.writeLE(size_type(4 + 1 + 2));  // type and tag are not written deliberately
 
 	auto reader = ByteReader{writer.viewWritten()};
 	ASSERT_TRUE(Parser{}.parseMessageHeader(reader).isError());
