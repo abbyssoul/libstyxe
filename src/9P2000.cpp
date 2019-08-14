@@ -113,7 +113,7 @@ parseErrorResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.ename)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -123,7 +123,7 @@ parseVersionResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.msize, &fcall.version)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -133,7 +133,7 @@ parseAuthResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.qid)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -143,7 +143,7 @@ parseAttachResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.qid)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -153,7 +153,7 @@ parseOpenResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.qid, &fcall.iounit)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -163,7 +163,7 @@ parseCreateResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.qid, &fcall.iounit)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -173,7 +173,7 @@ parseReadResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.data)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -183,7 +183,7 @@ parseWriteResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.count)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -193,7 +193,7 @@ parseStatResponse(ByteReader& data) {
 
     return Decoder{data}
             .read(&fcall.dummySize, &fcall.data)
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -204,10 +204,10 @@ parseWalkResponse(ByteReader& data) {
     Decoder decoder{data};
 
     // FIXME: Non-sense!
-    return decoder.read(&fcall.nqids)
-            .then([&decoder, &fcall]() -> Result<void, Error> {
-                for (decltype(fcall.nqids) i = 0; i < fcall.nqids; ++i) {
-                    auto r = decoder.read(&fcall.qids[i]);
+	return decoder.read(&fcall.nqids)
+			.then([&]() -> Result<void, Error> {
+				for (decltype(fcall.nqids) i = 0; i < fcall.nqids; ++i) {
+					auto r = decoder.read(&(fcall.qids[i]));
                     if (!r) {
 						return r.moveError();
                     }
@@ -215,7 +215,7 @@ parseWalkResponse(ByteReader& data) {
 
                 return Ok();
             })
-            .then(OkRespose(std::move(fcall)));
+			.then(OkRespose{std::move(fcall)});
 }
 
 

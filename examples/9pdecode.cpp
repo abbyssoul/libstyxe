@@ -72,14 +72,28 @@ std::ostream& operator<< (std::ostream& ostr, OpenMode mode) {
     return ostr;
 }
 
+
 std::ostream& operator<< (std::ostream& ostr, Qid const& qid) {
     return ostr << '{'
                 << "type: " << static_cast<int>(qid.type) << ", "
                 << "ver: "  << qid.version << ", "
                 << "path: " << qid.path
                 << '}';
-
 }
+
+std::ostream& operator<< (std::ostream& ostr, WalkPath const& path) {
+	WalkPath::size_type i = 0;
+	WalkPath::size_type const count = path.size();
+	for (auto pathSegment : path) {
+		ostr << pathSegment;
+		if (i + 1 != count)
+			ostr << '/';
+		++i;
+	}
+
+	return ostr;
+}
+
 
 std::ostream& operator<< (std::ostream& ostr, Stat const& stat) {
     return ostr << '{'
@@ -169,13 +183,8 @@ struct VisitRequest {
         std::cout << ": "
                   << req.fid << ' '
                   << req.newfid << ' '
-                  << req.path.getComponentsCount() << ' ' << '[';
-
-        for (Path::size_type i = 0; i < req.path.getComponentsCount(); ++i) {
-            std::cout << quote(req.path.getComponent(i));
-            if (i + 1 != req.path.getComponentsCount())
-                std::cout << ", ";
-        }
+				  << req.path.size() << ' ' << '['
+				  << req.path;
 
         std::cout << ']' << std::endl;
     }
@@ -186,13 +195,13 @@ struct VisitRequest {
 
     void operator()(Request_9P2000E::SRead const& req) {
         std::cout << ": " << req.fid << ' '
-                  << quote(req.path.toString())
-                  << std::endl;
+				  << '\'' << req.path << '\''
+				  << std::endl;
     }
 
     void operator()(Request_9P2000E::SWrite const& req) {
         std::cout << ": " << req.fid << ' '
-                  << quote(req.path.toString())
+				  << '\'' << req.path << '\''
                   << " DATA[" << req.data << "]"
                   << std::endl;
     }
@@ -221,13 +230,16 @@ struct VisitResponse {
     }
 
     void operator()(Response::Walk const& resp) {
-        std::cout << ": " << resp.nqids
+		std::cout << ": " << resp.nqids
                   << " [";
-         for (uint i = 0; i < resp.nqids; ++i) {
-             std::cout << resp.qids[i];
-             if (i + 1 != resp.nqids)
-                std::cout << ", ";
-         }
+
+		const auto nqids = resp.nqids;
+		size_t i = 0;
+		for (auto const& qid : resp.qids) {
+			std::cout << qid;
+			if (i + 1 != nqids)
+			std::cout << ", ";
+		}
          std::cout << ']' << std::endl;
     }
 

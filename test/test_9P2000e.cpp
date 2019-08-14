@@ -69,7 +69,7 @@ protected:
                 })
                 .mapError([](Error&& e) -> Error {
                     [&e]() {
-                        FAIL() << e.toString();
+						FAIL() << e;
                     } ();
 
                     return e;
@@ -121,8 +121,8 @@ protected:
 
 
 TEST_F(P9E_Messages, createSessionRequest) {
-	byte const sessionKey[8] = {8, 7, 6, 5, 4, 3, 2, 1};
-	auto const data = wrapMemory(sessionKey);
+	byte sessionKey[8] = {8, 7, 6, 5, 4, 3, 2, 1};
+	auto const data = arrayView(sessionKey);
 
     RequestBuilder{_writer}
             .session(data)
@@ -135,10 +135,10 @@ TEST_F(P9E_Messages, createSessionRequest) {
 }
 
 TEST_F(P9E_Messages, createSessionRequest_NotEnoughData) {
-	byte const sessionKey[5] = {8, 7, 6, 5, 4};
+	byte sessionKey[5] = {8, 7, 6, 5, 4};
 
     ASSERT_THROW(RequestBuilder{_writer}
-                 .session(wrapMemory(sessionKey)),
+				 .session(arrayView(sessionKey)),
                  Solace::Exception);
 }
 
@@ -183,16 +183,19 @@ TEST_F(P9E_Messages, parseSessionRespose) {
 
 
 TEST_F(P9E_Messages, createShortReadRequest) {
-	auto const path = Path::parse("some/wierd/place").unwrap();
     RequestBuilder{_writer}
-            .shortRead(32, path)
+			.shortRead(32)
+			.path("some")
+			.path("wierd")
+			.path("place")
             .build();
 
     getRequestOrFail<Request_9P2000E::SRead>(MessageType::TSRead)
-        .then([&path](Request_9P2000E::SRead&& request) {
+		.then([](Request_9P2000E::SRead&& request) {
             ASSERT_EQ(32, request.fid);
-            ASSERT_EQ(path, request.path);
-        });
+			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ("some", *request.path.begin());
+		});
 }
 
 
@@ -229,20 +232,24 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
 
 
 TEST_F(P9E_Messages, createShortWriteRequest) {
-	auto const path = Path::parse("some/wierd/place").unwrap();
 	char const messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
     RequestBuilder{_writer}
-            .shortWrite(32, path, data)
-            .build();
+			.shortWrite(32)
+			.path("some")
+			.path("wierd")
+			.path("place")
+			.data(data)
+			.build();
 
     getRequestOrFail<Request_9P2000E::SWrite>(MessageType::TSWrite)
-        .then([&path, data](Request_9P2000E::SWrite&& request) {
+		.then([data](Request_9P2000E::SWrite&& request) {
             ASSERT_EQ(32, request.fid);
-            ASSERT_EQ(path, request.path);
             ASSERT_EQ(data, request.data);
-        });
+			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ("some", *request.path.begin());
+		});
 }
 
 

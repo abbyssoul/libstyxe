@@ -53,19 +53,19 @@ Encoder::protocolSize(StringView const& str) noexcept {
             str.size();             // Space for the actual string bytes
 }
 
-size_type
-Encoder::protocolSize(Path const& path) noexcept {
-    assertIndexInRange(path.getComponentsCount(), 0,
-                       static_cast<Path::size_type>(std::numeric_limits<uint16>::max()));
+//size_type
+//Encoder::protocolSize(Path const& path) noexcept {
+//    assertIndexInRange(path.getComponentsCount(), 0,
+//                       static_cast<Path::size_type>(std::numeric_limits<uint16>::max()));
 
-    size_type payloadSize = 0;
-    for (auto& segment : path) {
-        payloadSize += protocolSize(segment.view());
-    }
+//    size_type payloadSize = 0;
+//    for (auto& segment : path) {
+//        payloadSize += protocolSize(segment.view());
+//    }
 
-    return sizeof(var_datum_size_type) +  // Var number of segments
-            payloadSize;
-}
+//    return sizeof(var_datum_size_type) +  // Var number of segments
+//            payloadSize;
+//}
 
 
 size_type
@@ -211,16 +211,16 @@ Encoder::encode(MemoryView data) {
     return (*this);
 }
 
-Encoder&
-Encoder::encode(Path const& path) {
-    // Encode variable datum size first:
-    encode(narrow_cast<var_datum_size_type>(path.getComponentsCount()));
+//Encoder&
+//Encoder::encode(Path const& path) {
+//    // Encode variable datum size first:
+//    encode(narrow_cast<var_datum_size_type>(path.getComponentsCount()));
 
-    // Datum
-    for (auto const& component : path) {
-        encode(component.view());
-    }
+//    // Datum
+//    for (auto const& component : path) {
+//        encode(component.view());
+//    }
 
-    return (*this);
-}
+//    return (*this);
+//}
 

@@ -648,7 +648,8 @@ TEST_F(P9Messages, createWriteRequest) {
     auto data = wrapMemory(messageData);
 
     RequestBuilder{_writer}
-            .write(15927, 98, data)
+			.write(15927, 98)
+			.data(data)
             .build();
 
     getRequestOrFail<Request::Write>(MessageType::TWrite)
@@ -857,22 +858,24 @@ TEST_F(P9Messages, parseWStatRespose) {
 
 
 TEST_F(P9Messages, createWalkRequest) {
-    auto const destPath = makePath("space", "knowhere");
     RequestBuilder{_writer}
-            .walk(213, 124, destPath)
+			.walk(213, 124)
+			.path("space")
+			.path("knowhere")
             .build();
 
     getRequestOrFail<Request::Walk>(MessageType::TWalk)
-            .then([&destPath](Request::Walk&& request) {
+			.then([](Request::Walk&& request) {
                 EXPECT_EQ(213, request.fid);
                 EXPECT_EQ(124, request.newfid);
-                EXPECT_EQ(destPath, request.path);
-            });
+				EXPECT_EQ(2, request.path.size());
+				EXPECT_EQ("space", *request.path.begin());
+			});
 }
 
 TEST_F(P9Messages, createWalkEmptyPathRequest) {
     RequestBuilder{_writer}
-            .walk(7374, 542, Path())
+			.walk(7374, 542)
             .build();
 
     getRequestOrFail<Request::Walk>(MessageType::TWalk)
@@ -889,13 +892,14 @@ TEST_F(P9Messages, createWalkRespose) {
     qids[2].path = 21;
     qids[2].version = 117;
     qids[2].type = 81;
+
     ResponseBuilder(_writer, 1)
             .walk(qids.view())
             .build();
 
     getResponseOrFail<Response::Walk>(MessageType::RWalk)
             .then([&qids](Response::Walk&& response) {
-                ASSERT_EQ(qids.size(), response.nqids);
+				ASSERT_EQ(qids.size(), response.nqids);
                 ASSERT_EQ(qids[2], response.qids[2]);
             });
 }
@@ -922,7 +926,7 @@ TEST_F(P9Messages, parseWalkRespose) {
 
     getResponseOrFail<Response::Walk>(MessageType::RWalk)
             .then([](Response::Walk&& response) {
-                EXPECT_EQ(1, response.nqids);
+				EXPECT_EQ(1, response.nqids);
                 EXPECT_EQ(87, response.qids[0].type);
                 EXPECT_EQ(5481, response.qids[0].version);
                 EXPECT_EQ(17, response.qids[0].path);

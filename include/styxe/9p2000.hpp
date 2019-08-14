@@ -21,10 +21,10 @@
 #include <solace/string.hpp>
 #include <solace/byteReader.hpp>
 #include <solace/byteWriter.hpp>
+#include <solace/variableSpan.hpp>
 
 #include <solace/result.hpp>
 #include <solace/error.hpp>
-#include <solace/path.hpp>
 
 
 #include <variant>
@@ -69,11 +69,7 @@ using Tag = Solace::uint16;
 /** Type of file identifiers client uses to identify a ``current file`` on the server*/
 using Fid = Solace::uint32;
 
-
-/** Compile time constants (probably should be removed) */
-enum Consts {
-    MAX_WELEM = 16
-};
+using WalkPath = Solace::VariableSpan<Solace::StringView>;
 
 
 /**
@@ -310,13 +306,12 @@ struct Request {
 
     /**
      * A message to causes the server to change the current file
-     * associated with a fid to be a file in the directory that is the old current file,
-     * or one of its subdirectories.
+	 * associated with a fid to be a file in the directory that is identified by following a given path.
      */
     struct Walk {
         Fid             fid;            //!< Fid of the directory where to start walk from.
         Fid             newfid;         //!< A client provided new fid representing resulting file.
-        Solace::Path    path;           //!< A path to walk from the fid.
+		WalkPath		path;           //!< A path to walk from the fid.
     };
 
     /**
@@ -408,16 +403,16 @@ struct Request_9P2000E {
      */
     struct SRead {
         Fid             fid;    //!< Fid of the root directory to walk the path from.
-        Solace::Path    path;   //!< A path to the file to be read.
+		WalkPath		path;   //!< A path to the file to be read.
     };
 
     /**
      * A request to overwrite file contents.
      */
     struct SWrite {
-        Fid                         fid;    //!< Fid of the root directory to walk the path from.
-        Solace::Path                path;   //!< A path to the file to be read.
-        Solace::MemoryView data;   //!< A data to be written into the file.
+		Fid			        fid;    //!< Fid of the root directory to walk the path from.
+		WalkPath			path;   //!< A path to the file to be read.
+		Solace::MemoryView	data;   //!< A data to be written into the file.
     };
 };
 
@@ -445,13 +440,13 @@ struct Response {
     struct Flush {};
 
     struct Walk {
-        var_datum_size_type nqids;
-        Qid     qids[MAX_WELEM];
+		var_datum_size_type nqids;
+		Qid qids[16];
     };
 
     struct Open {
-        Qid  qid;
-        size_type iounit;
+		Qid			qid;
+		size_type	iounit;
     };
 
     struct Create {
@@ -489,7 +484,7 @@ struct Response_9P2000E {
 
 struct TypedWriter {
 
-    TypedWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader head)
+	constexpr TypedWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader head) noexcept
         : _buffer{buffer}
         , _pos{pos}
         , _header{head}
@@ -503,20 +498,57 @@ struct TypedWriter {
     constexpr size_type payloadSize() const noexcept { return _header.payloadSize(); }
 
 private:
-    Solace::ByteWriter&     _buffer;
-    Solace::ByteWriter::size_type _pos;
+	Solace::ByteWriter&				_buffer;
+	Solace::ByteWriter::size_type	_pos;
 
-    MessageHeader           _header;
+	MessageHeader					_header;
 };
 
 
 /**
  * Helper class to build Request messages.
  */
-class RequestBuilder {
+struct RequestBuilder {
+	struct DataWriter
+			: public TypedWriter
+	{
+		DataWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader head) noexcept
+			: TypedWriter{buffer, pos, head}
+		{}
+
+		TypedWriter data(Solace::MemoryView data);
+	};
+
+	struct PathWriter
+			: public TypedWriter
+	{
+		PathWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader head) noexcept;
+
+		PathWriter& path(Solace::StringView pathSegment);
+
+		TypedWriter done() noexcept { return *this; }
+
+	private:
+		Solace::ByteWriter::size_type	_segmentsPos;
+		WalkPath::size_type				_nSegments{0};
+	};
+
+	struct PathDataWriter
+			: public DataWriter
+	{
+		PathDataWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader head) noexcept;
+
+		PathDataWriter& path(Solace::StringView pathSegment);
+
+	private:
+		Solace::ByteWriter::size_type	_segmentsPos;
+		WalkPath::size_type				_nSegments{0};
+	};
+
+
 public:
 
-    RequestBuilder(Solace::ByteWriter& dest, Tag tag = 1) noexcept
+	constexpr RequestBuilder(Solace::ByteWriter& dest, Tag tag = 1) noexcept
         : _tag{tag}
         , _buffer{dest}
     {}
@@ -533,23 +565,24 @@ public:
     TypedWriter flush(Tag oldTransation) const;
     TypedWriter attach(Fid fid, Fid afid,
                             Solace::StringView userName, Solace::StringView attachName);
-    TypedWriter walk(Fid fid, Fid nfid, Solace::Path const& path);
     TypedWriter open(Fid fid, OpenMode mode);
     TypedWriter create(Fid fid,
                             Solace::StringView name,
                             Solace::uint32 permissions,
                             OpenMode mode);
     TypedWriter read(Fid fid, Solace::uint64 offset, size_type count);
-    TypedWriter write(Fid fid, Solace::uint64 offset, Solace::MemoryView data);
+	DataWriter write(Fid fid, Solace::uint64 offset);
     TypedWriter clunk(Fid fid);
     TypedWriter remove(Fid fid);
     TypedWriter stat(Fid fid);
     TypedWriter writeStat(Fid fid, Stat const& stat);
+	PathWriter walk(Fid fid, Fid nfid);
+
 
     /* 9P2000.e extention */
-    TypedWriter session(Solace::MemoryView key);
-    TypedWriter shortRead(Fid rootFid, Solace::Path const& path);
-    TypedWriter shortWrite(Fid rootFid, Solace::Path const& path, Solace::MemoryView data);
+	TypedWriter session(Solace::ArrayView<Solace::byte> key);
+	PathWriter shortRead(Fid rootFid);
+	PathDataWriter shortWrite(Fid rootFid);
 
 private:
     Tag const               _tag;
@@ -578,7 +611,7 @@ public:
 
     TypedWriter flush();
     TypedWriter attach(Qid qid);
-    TypedWriter walk(Solace::ArrayView<Qid> const& qids);
+	TypedWriter walk(Solace::ArrayView<Qid> qids);
     TypedWriter open(Qid qid, size_type iounit);
     TypedWriter create(Qid qid, size_type iounit);
     TypedWriter read(Solace::MemoryView data);

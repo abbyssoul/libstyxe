@@ -108,7 +108,7 @@ ResponseBuilder::attach(Qid qid) {
 }
 
 TypedWriter
-ResponseBuilder::walk(ArrayView<Qid> const& qids) {
+ResponseBuilder::walk(Solace::ArrayView<Qid> qids) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -310,8 +310,9 @@ TypedWriter::build() {
     Encoder encoder{_buffer};
     encoder.encode(_header);
 
-    if (_header.type == MessageType::RRead) {
-        encoder.encode(narrow_cast<size_type>(finalPos - sizeof(size_type) - _buffer.position()));
+	if (_header.type == MessageType::RRead || _header.type == MessageType::RSRead) {
+		auto const dataSize = narrow_cast<size_type>(finalPos - _buffer.position() - sizeof(size_type));
+		encoder.encode(dataSize);
     }
 
     _buffer.position(finalPos);

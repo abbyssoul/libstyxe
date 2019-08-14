@@ -30,28 +30,35 @@ namespace styxe {
  */
 struct Decoder {
 
-	constexpr Decoder(Solace::ByteReader& src)  noexcept
-		: _src(src)
+	constexpr Decoder(Solace::ByteReader& src) noexcept
+		: _src{src}
     {}
 
     Decoder(Decoder const&) = delete;
     Decoder& operator= (Decoder const&) = delete;
 
-    Solace::Result<void, Solace::Error> read(Solace::uint8* dest);
+	Solace::Result<void, Solace::Error> read(Solace::uint8* dest);
     Solace::Result<void, Solace::Error> read(Solace::uint16* dest);
     Solace::Result<void, Solace::Error> read(Solace::uint32* dest);
     Solace::Result<void, Solace::Error> read(Solace::uint64* dest);
     Solace::Result<void, Solace::Error> read(Solace::StringView* dest);
     Solace::Result<void, Solace::Error> read(Solace::MemoryView* dest);
     Solace::Result<void, Solace::Error> read(Solace::MutableMemoryView* dest);
-    Solace::Result<void, Solace::Error> read(Solace::Path* path);
+	Solace::Result<void, Solace::Error> read(WalkPath* path);
     Solace::Result<void, Solace::Error> read(Qid* qid);
-    Solace::Result<void, Solace::Error> read(Stat* stat);
+	Solace::Result<void, Solace::Error> read(Stat* stat);
 
     template<typename T, typename... Args>
     Solace::Result<void, Solace::Error> read(T* t, Args&&... args) {
-        return read(t)
-                .then([this, &args...]() { return read(std::forward<Args>(args)...); });
+		auto r = read(t);
+		if (!r)
+			return r.moveError();
+
+		((r = read(std::forward<Args>(args))) && ...);
+		if (!r)
+			return r.moveError();
+
+		return Solace::Ok();
     }
 
 private:

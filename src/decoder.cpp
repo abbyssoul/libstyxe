@@ -23,7 +23,7 @@ using namespace styxe;
 
 Result<void, Error>
 Decoder::read(uint8* dest) {
-    return _src.readLE(*dest);
+	return _src.readLE(*dest);
 }
 
 
@@ -100,7 +100,7 @@ Decoder::read(MutableMemoryView* data) {
     return read(static_cast<MemoryView*>(data));
 }
 
-
+/*
 Result<void, Error>
 Decoder::read(Path* path) {
     uint16 componentsCount = 0;
@@ -126,4 +126,21 @@ Decoder::read(Path* path) {
             });
 
 }
+*/
 
+Result<void, Error>
+Decoder::read(WalkPath* path) {
+	WalkPath::size_type componentsCount = 0;
+
+	return read(&componentsCount)
+			.then([&]() {
+				*path = WalkPath{componentsCount, _src.viewRemaining()};
+				// Advance the byteReader:
+				ByteReader::size_type skip = 0;
+				for (auto segment : *path) {
+					skip += sizeof(var_datum_size_type) + segment.size();
+				}
+
+				return _src.advance(skip);
+			});
+}

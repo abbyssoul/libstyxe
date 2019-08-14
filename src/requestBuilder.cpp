@@ -21,6 +21,70 @@
 using namespace Solace;
 using namespace styxe;
 
+TypedWriter
+RequestBuilder::DataWriter::data(MemoryView data) {
+	Encoder{buffer()}.encode(data);
+
+	return *this;
+}
+
+
+RequestBuilder::PathWriter::PathWriter(ByteWriter& writer,
+									   ByteWriter::size_type pos,
+									   MessageHeader head) noexcept
+	: TypedWriter{writer, pos, head}
+	, _segmentsPos{writer.position()}
+{
+	Encoder{writer}
+		.encode(_nSegments);
+}
+
+RequestBuilder::PathWriter&
+RequestBuilder::PathWriter::path(StringView pathSegment) {
+	_nSegments += 1;
+
+	auto& writer = buffer();
+	Encoder encoder(writer);
+
+	auto const currentPos = writer.position();
+	writer.position(_segmentsPos);
+	encoder.encode(_nSegments);
+	writer.position(currentPos);
+
+	encoder.encode(pathSegment);
+
+	return *this;
+}
+
+RequestBuilder::PathDataWriter::PathDataWriter(ByteWriter& writer,
+											   ByteWriter::size_type pos,
+											   MessageHeader head) noexcept
+	: DataWriter{writer, pos, head}
+	, _segmentsPos{writer.position()}
+{
+	Encoder{writer}
+		.encode(_nSegments);
+}
+
+
+RequestBuilder::PathDataWriter&
+RequestBuilder::PathDataWriter::path(StringView pathSegment) {
+	_nSegments += 1;
+
+	auto& writer = buffer();
+	Encoder encoder(writer);
+
+	auto const currentPos = writer.position();
+	writer.position(_segmentsPos);
+	encoder.encode(_nSegments);
+	writer.position(currentPos);
+
+	encoder.encode(pathSegment);
+
+	return *this;
+}
+
+
 
 
 TypedWriter
@@ -200,45 +264,44 @@ RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
 }
 
 
-TypedWriter
-RequestBuilder::write(Fid fid, uint64 offset, MemoryView data) {
+RequestBuilder::DataWriter
+RequestBuilder::write(Fid fid, uint64 offset) {
     Encoder encode(_buffer);
 
     // Compute message size first:
     auto const payloadSize =
             encode.protocolSize(fid) +
             encode.protocolSize(offset) +
-            encode.protocolSize(data);
+			encode.protocolSize(MemoryView{});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TWrite, _tag, payloadSize);
     encode.encode(header)
             .encode(fid)
-            .encode(offset)
-            .encode(data);
+			.encode(offset);
+//            .encode(data);
 
-    return TypedWriter{_buffer, pos, header};
+	return DataWriter{_buffer, pos, header};
 }
 
 
-TypedWriter
-RequestBuilder::walk(Fid fid, Fid nfid, Path const& path) {
+RequestBuilder::PathWriter
+RequestBuilder::walk(Fid fid, Fid nfid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
     auto const payloadSize =
             encode.protocolSize(fid) +
             encode.protocolSize(nfid) +
-            encode.protocolSize(path);
+			encode.protocolSize(WalkPath::size_type{0});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TWalk, _tag, payloadSize);
     encode.encode(header)
             .encode(fid)
-            .encode(nfid)
-            .encode(path);
+			.encode(nfid);
 
-    return TypedWriter{_buffer, pos, header};
+	return PathWriter{_buffer, pos, header};
 }
 
 
@@ -279,12 +342,12 @@ RequestBuilder::writeStat(Fid fid, Stat const& stat) {
 
 
 TypedWriter
-RequestBuilder::session(MemoryView key) {
-    assertIndexInRange(key.size(), 8, 9);
+RequestBuilder::session(Solace::ArrayView<byte> key) {
+	assertTrue(key.size() == 8);
 
     // Compute message size first:
     auto const payloadSize =
-            8;  // Key size is fixed to be 8 bites.
+			8;  // Key size is fixed to be 8 bytes.
 //            protocolSize(key);
 
     auto const pos = _buffer.position();
@@ -293,45 +356,45 @@ RequestBuilder::session(MemoryView key) {
             .encode(header);
 //            .encode(key);
 
-    _buffer.write(key);
+	_buffer.write(key.view());
 
     return TypedWriter{_buffer, pos, header};
 }
 
-TypedWriter
-RequestBuilder::shortRead(Fid rootFid, Path const& path) {
+RequestBuilder::PathWriter
+RequestBuilder::shortRead(Fid rootFid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
     auto const payloadSize =
             encode.protocolSize(rootFid) +
-            encode.protocolSize(path);
+			encode.protocolSize(WalkPath::size_type{0});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TSRead, _tag, payloadSize);
     encode.encode(header)
-            .encode(rootFid)
-            .encode(path);
+			.encode(rootFid);
 
-    return TypedWriter{_buffer, pos, header};
+	return PathWriter{_buffer, pos, header};
 }
 
-TypedWriter RequestBuilder::shortWrite(Fid rootFid, Path const& path, MemoryView data) {
+RequestBuilder::PathDataWriter
+RequestBuilder::shortWrite(Fid rootFid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
     auto const payloadSize =
             encode.protocolSize(rootFid) +
-            encode.protocolSize(path) +
-            encode.protocolSize(data);
+			encode.protocolSize(WalkPath::size_type{0}) +
+			encode.protocolSize(MemoryView{});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TSWrite, _tag, payloadSize);
     encode.encode(header)
-            .encode(rootFid)
-            .encode(path)
-            .encode(data);
+			.encode(rootFid);
+//            .encode(path)
+//            .encode(data);
 
-    return TypedWriter{_buffer, pos, header};
+	return PathDataWriter{_buffer, pos, header};
 }
 

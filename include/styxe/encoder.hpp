@@ -68,12 +68,6 @@ struct Encoder {
      * @param value Value to store in the message.
      * @return Number of bytes required to represent the value given.
      */
-	static size_type protocolSize(Solace::Path const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
 	static size_type protocolSize(Qid const& value) noexcept;
     /**
      * Compute the number of bytes in the buffer required to store a given value.
@@ -115,7 +109,6 @@ public:
     Encoder& encode(Solace::StringView str);
     Encoder& encode(Solace::String const& str) = delete;
     Encoder& encode(Solace::MemoryView data);
-    Encoder& encode(Solace::Path const& path);
 
 	Encoder& encode(MessageHeader header);
 

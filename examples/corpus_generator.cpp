@@ -18,6 +18,7 @@
 #include "styxe/encoder.hpp"
 #include "styxe/print.hpp"
 
+#include <solace/array.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -50,8 +51,12 @@ styxe::Stat genStats(StringView uid, StringView gid) {
 }
 
 
-void dumpMessage(std::string const& dest, ByteWriter const& buffer) {
-    std::ofstream output(dest);
+void dumpMessage(std::string const& corpusDir, styxe::MessageType type, ByteWriter const& buffer) {
+
+	std::stringstream sb;
+	sb << type;
+
+	std::ofstream output(corpusDir + "/" + sb.str());
 
     auto writenData = buffer.viewRemaining();
     output.write(writenData.dataAs<char>(), writenData.size());
@@ -59,14 +64,15 @@ void dumpMessage(std::string const& dest, ByteWriter const& buffer) {
 
 
 void dumpMessage(std::string const& corpusDir, styxe::TypedWriter&& req) {
-    auto& buffer = req.build();
-
-    std::stringstream sb;
-    sb << req.type();
-
-    dumpMessage(corpusDir + "/" + sb.str(), buffer);
-    buffer.clear();
+	dumpMessage(corpusDir, req.type(), req.build());
+	req.buffer().clear();
 }
+
+void dumpMessage(std::string const& corpusDir, styxe::RequestBuilder::PathWriter&& req) {
+	dumpMessage(corpusDir, req.type(), req.build());
+	req.buffer().clear();
+}
+
 
 
 int main(int argc, char const **argv) {
@@ -104,8 +110,12 @@ int main(int argc, char const **argv) {
     dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
             .attach(3, 18, userName, "someFile"));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
-                .walk(18, 42, makePath("one", "two", "file")));
+	dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+				.walk(18, 42)
+				.path("one")
+				.path("two")
+				.path("file")
+				.done());
 
     dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
                 .open(42, styxe::OpenMode::READ));
@@ -117,7 +127,9 @@ int main(int argc, char const **argv) {
                 .read(42, 12, 418));
 
     dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
-                .write(24, 12, wrapMemory(data).fill(0xf1)));
+				.write(24, 12)
+				.data(wrapMemory(data).fill(0xf1))
+				);
 
     dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
                 .clunk(24));
@@ -134,9 +146,20 @@ int main(int argc, char const **argv) {
     dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
                 .session(wrapMemory(data, 8)));
     dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
-                .shortRead(3, makePath("some", "location", "where", "file")));
+				.shortRead(3)
+				.path("some")
+				.path("location")
+				.path("where")
+				.path("file")
+				.done());
     dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
-                .shortWrite(7, makePath("some", "location", "where", "file"), wrapMemory(data)));
+				.shortWrite(7)
+				.path("some")
+				.path("location")
+				.path("where")
+				.path("file")
+				.data(wrapMemory(data))
+				);
 
 
     /// Dump response messages
