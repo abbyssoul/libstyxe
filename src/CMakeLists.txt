@@ -1,6 +1,6 @@
 
 set(SOURCE_FILES
-        9P2000.cpp
+        9p2000.cpp
         debug.cpp
         decoder.cpp
         encoder.cpp
