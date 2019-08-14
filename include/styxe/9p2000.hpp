@@ -69,7 +69,7 @@ using Tag = Solace::uint16;
 /** Type of file identifiers client uses to identify a ``current file`` on the server*/
 using Fid = Solace::uint32;
 
-using WalkPath = Solace::VariableSpan<Solace::StringView>;
+using WalkPath = Solace::VariableSpan<Solace::StringView, var_datum_size_type, Solace::EncoderType::LittleEndian>;
 
 
 /**

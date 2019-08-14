@@ -100,33 +100,6 @@ Decoder::read(MutableMemoryView* data) {
     return read(static_cast<MemoryView*>(data));
 }
 
-/*
-Result<void, Error>
-Decoder::read(Path* path) {
-    uint16 componentsCount = 0;
-
-    return read(&componentsCount)
-            .then([&]() -> Result<void, Error> {
-                // FIXME: This is where PathBuilder/PathView can be handy.
-                auto components = makeVector<String>(componentsCount);
-
-                for (decltype(componentsCount) i = 0; i < componentsCount; ++i) {
-                    StringView component;
-                    auto result = read(&component);
-                    if (!result) {  // Break on first error
-                        return result;
-                    }
-
-                    components.emplace_back(makeString(component));
-                }
-
-                *path = makePath(components.toArray());
-
-                return Ok();
-            });
-
-}
-*/
 
 Result<void, Error>
 Decoder::read(WalkPath* path) {
