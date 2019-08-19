@@ -19,6 +19,8 @@
  * Specific test 9P2000.e
  *******************************************************************************/
 #include "styxe/9p2000.hpp"  // Class being tested
+#include "styxe/responseWriter.hpp"
+#include "styxe/requestWriter.hpp"
 #include "styxe/encoder.hpp"
 
 #include <solace/exception.hpp>
@@ -124,7 +126,7 @@ TEST_F(P9E_Messages, createSessionRequest) {
 	byte sessionKey[8] = {8, 7, 6, 5, 4, 3, 2, 1};
 	auto const data = arrayView(sessionKey);
 
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .session(data)
             .build();
 
@@ -137,7 +139,7 @@ TEST_F(P9E_Messages, createSessionRequest) {
 TEST_F(P9E_Messages, createSessionRequest_NotEnoughData) {
 	byte sessionKey[5] = {8, 7, 6, 5, 4};
 
-    ASSERT_THROW(RequestBuilder{_writer}
+	ASSERT_THROW(RequestWriter{_writer}
 				 .session(arrayView(sessionKey)),
                  Solace::Exception);
 }
@@ -164,7 +166,7 @@ TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
 }
 
 TEST_F(P9E_Messages, createSessionRespose) {
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .session()
             .build();
 
@@ -183,7 +185,7 @@ TEST_F(P9E_Messages, parseSessionRespose) {
 
 
 TEST_F(P9E_Messages, createShortReadRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
 			.shortRead(32)
 			.path("some")
 			.path("wierd")
@@ -202,7 +204,7 @@ TEST_F(P9E_Messages, createShortReadRequest) {
 TEST_F(P9E_Messages, createShortReadRespose) {
 	char const messageData[] = "This was somewhat important data d^_-b";
     auto data = wrapMemory(messageData);
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .shortRead(data)
             .build();
 
@@ -235,7 +237,7 @@ TEST_F(P9E_Messages, createShortWriteRequest) {
 	char const messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
 			.shortWrite(32)
 			.path("some")
 			.path("wierd")
@@ -254,7 +256,7 @@ TEST_F(P9E_Messages, createShortWriteRequest) {
 
 
 TEST_F(P9E_Messages, createShortWriteRespose) {
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .shortWrite(100500)
             .build();
 

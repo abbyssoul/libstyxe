@@ -4,8 +4,8 @@ set(SOURCE_FILES
         debug.cpp
         decoder.cpp
         encoder.cpp
-        requestBuilder.cpp
-        responseBuilder.cpp
+        requestWriter.cpp
+        responseWriter.cpp
         )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})

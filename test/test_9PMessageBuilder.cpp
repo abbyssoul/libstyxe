@@ -18,7 +18,7 @@
  * @file: test/test_9PMessageBuilder.cpp
  *
  *******************************************************************************/
-#include "styxe/9p2000.hpp"  // Class being tested
+#include "styxe/responseWriter.hpp"  // Class being tested
 
 #include <solace/exception.hpp>
 
@@ -49,7 +49,7 @@ protected:
 
 
 TEST_F(P9MessageBuilder, dirListingMessage) {
-    auto responseWriter = ResponseBuilder{_buffer, 1}
+	auto responseWriter = ResponseWriter{_buffer, 1}
             .read(MemoryView{});  // Prime read request 0 size data!
 
     DirListingWriter writer{_buffer, 4096, 0};

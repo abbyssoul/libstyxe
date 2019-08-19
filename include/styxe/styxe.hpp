@@ -21,5 +21,7 @@
 
 #include "version.hpp"
 #include "9p2000.hpp"
+#include "responseWriter.hpp"
+#include "requestWriter.hpp"
 
 #endif  // STYXE_STYX_HPP

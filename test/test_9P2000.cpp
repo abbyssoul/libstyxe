@@ -20,6 +20,8 @@
  *
  *******************************************************************************/
 #include "styxe/9p2000.hpp"  // Class being tested
+#include "styxe/requestWriter.hpp"
+#include "styxe/responseWriter.hpp"
 #include "styxe/encoder.hpp"
 
 #include <solace/exception.hpp>
@@ -294,7 +296,7 @@ protected:
 TEST_F(P9Messages, createVersionRequest) {
 	auto const testVersion = Parser::PROTOCOL_VERSION;
 
-    RequestBuilder(_writer, Parser::NO_TAG)
+	RequestWriter{_writer, Parser::NO_TAG}
             .version(testVersion)
             .build();
 
@@ -306,7 +308,7 @@ TEST_F(P9Messages, createVersionRequest) {
 }
 
 TEST_F(P9Messages, createVersionRespose) {
-    ResponseBuilder(_writer, Parser::NO_TAG)
+	ResponseWriter{_writer, Parser::NO_TAG}
             .version("9Pe", 718)
             .build();
 
@@ -334,7 +336,7 @@ TEST_F(P9Messages, parseVersionRespose) {
 
 
 TEST_F(P9Messages, createAuthRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .auth(312, "User mcUsers", "Somewhere near")
             .build();
 
@@ -354,7 +356,7 @@ TEST_F(P9Messages, createAuthRespose) {
             8187
     };
 
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .auth(qid)
             .build();
 
@@ -386,7 +388,7 @@ TEST_F(P9Messages, parseAuthRespose) {
 
 TEST_F(P9Messages, createErrorRespose) {
     auto const testError = StringLiteral{"Something went right :)"};
-    ResponseBuilder(_writer, 3)
+	ResponseWriter{_writer, 3}
             .error(testError)
             .build();
 
@@ -412,7 +414,7 @@ TEST_F(P9Messages, parseErrorRespose) {
 
 
 TEST_F(P9Messages, createFlushRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .flush(7711)
             .build();
 
@@ -424,7 +426,7 @@ TEST_F(P9Messages, createFlushRequest) {
 
 
 TEST_F(P9Messages, createFlushResponse) {
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .flush()
             .build();
 
@@ -441,7 +443,7 @@ TEST_F(P9Messages, parseFlushRespose) {
 
 
 TEST_F(P9Messages, createAttachRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .attach(3310, 1841, "McFace", "close to u")
             .build();
 
@@ -461,7 +463,7 @@ TEST_F(P9Messages, createAttachRespose) {
             7771
     };
 
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .attach(qid)
             .build();
 
@@ -489,7 +491,7 @@ TEST_F(P9Messages, parseAttachRespose) {
 
 
 TEST_F(P9Messages, createOpenRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .open(517, OpenMode::RDWR)
             .build();
 
@@ -504,7 +506,7 @@ TEST_F(P9Messages, createOpenRequest) {
 TEST_F(P9Messages, createOpenRespose) {
     auto const qid = Qid {8, 13, 323};
 
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .open(qid, 817)
             .build();
 
@@ -540,7 +542,7 @@ TEST_F(P9Messages, parseOpenRespose) {
 
 
 TEST_F(P9Messages, createCreateRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .create(1734, "mcFance", 11, OpenMode::EXEC)
             .build();
 
@@ -560,7 +562,7 @@ TEST_F(P9Messages, createCreateRespose) {
             323
     };
 
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .create(qid, 718)
             .build();
 
@@ -599,7 +601,7 @@ TEST_F(P9Messages, parseCreateRespose) {
 
 
 TEST_F(P9Messages, createReadRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .read(7234, 18, 772)
             .build();
 
@@ -614,7 +616,7 @@ TEST_F(P9Messages, createReadRequest) {
 TEST_F(P9Messages, createReadRespose) {
 	char const content[] = "Good news everyone!";
     auto data = wrapMemory(content);
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .read(data)
             .build();
 
@@ -647,7 +649,7 @@ TEST_F(P9Messages, createWriteRequest) {
 	char const messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
 			.write(15927, 98)
 			.data(data)
             .build();
@@ -661,7 +663,7 @@ TEST_F(P9Messages, createWriteRequest) {
 }
 
 TEST_F(P9Messages, createWriteRespose) {
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .write(71717)
             .build();
 
@@ -686,7 +688,7 @@ TEST_F(P9Messages, parseWriteRespose) {
 
 
 TEST_F(P9Messages, createClunkRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .clunk(37509)
             .build();
 
@@ -697,7 +699,7 @@ TEST_F(P9Messages, createClunkRequest) {
 }
 
 TEST_F(P9Messages, createClunkRespose) {
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .clunk()
             .build();
 
@@ -714,7 +716,7 @@ TEST_F(P9Messages, parseClunkRespose) {
 
 
 TEST_F(P9Messages, createRemoveRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .remove(54329)
             .build();
 
@@ -725,7 +727,7 @@ TEST_F(P9Messages, createRemoveRequest) {
 }
 
 TEST_F(P9Messages, createRemoveRespose) {
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .remove()
             .build();
 
@@ -742,7 +744,7 @@ TEST_F(P9Messages, parseRemoveRespose) {
 
 
 TEST_F(P9Messages, createStatRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .stat(7872)
             .build();
 
@@ -768,7 +770,7 @@ TEST_F(P9Messages, createStatRespose) {
     stat.type = 3;
     stat.uid = "User McUserface -2";
 
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .stat(stat)
             .build();
 
@@ -828,7 +830,7 @@ TEST_F(P9Messages, createWStatRequest) {
     stat.type = 1;
     stat.uid = "Userface McUse";
 
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
             .writeStat(8193, stat)
             .build();
 
@@ -840,7 +842,7 @@ TEST_F(P9Messages, createWStatRequest) {
 }
 
 TEST_F(P9Messages, createWStatRespose) {
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .wstat()
             .build();
 
@@ -858,7 +860,7 @@ TEST_F(P9Messages, parseWStatRespose) {
 
 
 TEST_F(P9Messages, createWalkRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
 			.walk(213, 124)
 			.path("space")
 			.path("knowhere")
@@ -874,7 +876,7 @@ TEST_F(P9Messages, createWalkRequest) {
 }
 
 TEST_F(P9Messages, createWalkEmptyPathRequest) {
-    RequestBuilder{_writer}
+	RequestWriter{_writer}
 			.walk(7374, 542)
             .build();
 
@@ -893,7 +895,7 @@ TEST_F(P9Messages, createWalkRespose) {
     qids[2].version = 117;
     qids[2].type = 81;
 
-    ResponseBuilder(_writer, 1)
+	ResponseWriter{_writer, 1}
             .walk(qids.view())
             .build();
 

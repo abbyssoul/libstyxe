@@ -14,7 +14,7 @@
 *  limitations under the License.
 */
 
-#include "styxe/9p2000.hpp"
+#include "styxe/responseWriter.hpp"
 #include "styxe/encoder.hpp"
 
 
@@ -36,7 +36,7 @@ auto noPayloadMessage(ByteWriter& buffer,
 
 
 TypedWriter
-ResponseBuilder::version(StringView version, size_type maxMessageSize) {
+ResponseWriter::version(StringView version, size_type maxMessageSize) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -54,7 +54,7 @@ ResponseBuilder::version(StringView version, size_type maxMessageSize) {
 }
 
 TypedWriter
-ResponseBuilder::auth(Qid qid) {
+ResponseWriter::auth(Qid qid) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -70,7 +70,7 @@ ResponseBuilder::auth(Qid qid) {
 }
 
 TypedWriter
-ResponseBuilder::error(StringView message) {
+ResponseWriter::error(StringView message) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -86,13 +86,13 @@ ResponseBuilder::error(StringView message) {
 }
 
 TypedWriter
-ResponseBuilder::flush() {
+ResponseWriter::flush() {
     return noPayloadMessage(_buffer, MessageType::RFlush, _tag);
 }
 
 
 TypedWriter
-ResponseBuilder::attach(Qid qid) {
+ResponseWriter::attach(Qid qid) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -108,7 +108,7 @@ ResponseBuilder::attach(Qid qid) {
 }
 
 TypedWriter
-ResponseBuilder::walk(Solace::ArrayView<Qid> qids) {
+ResponseWriter::walk(Solace::ArrayView<Qid> qids) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -124,7 +124,7 @@ ResponseBuilder::walk(Solace::ArrayView<Qid> qids) {
 }
 
 TypedWriter
-ResponseBuilder::open(Qid qid, size_type iounit) {
+ResponseWriter::open(Qid qid, size_type iounit) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -143,7 +143,7 @@ ResponseBuilder::open(Qid qid, size_type iounit) {
 
 
 TypedWriter
-ResponseBuilder::create(Qid qid, size_type iounit) {
+ResponseWriter::create(Qid qid, size_type iounit) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -162,7 +162,7 @@ ResponseBuilder::create(Qid qid, size_type iounit) {
 
 
 TypedWriter
-ResponseBuilder::read(MemoryView data) {
+ResponseWriter::read(MemoryView data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -179,7 +179,7 @@ ResponseBuilder::read(MemoryView data) {
 
 
 TypedWriter
-ResponseBuilder::write(size_type count) {
+ResponseWriter::write(size_type count) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -196,19 +196,19 @@ ResponseBuilder::write(size_type count) {
 
 
 TypedWriter
-ResponseBuilder::clunk() {
+ResponseWriter::clunk() {
     return noPayloadMessage(_buffer, MessageType::RClunk, _tag);
 }
 
 
 TypedWriter
-ResponseBuilder::remove() {
+ResponseWriter::remove() {
     return noPayloadMessage(_buffer, MessageType::RRemove, _tag);
 }
 
 
 TypedWriter
-ResponseBuilder::stat(Stat const& data) {
+ResponseWriter::stat(Stat const& data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -226,20 +226,20 @@ ResponseBuilder::stat(Stat const& data) {
 
 
 TypedWriter
-ResponseBuilder::wstat() {
+ResponseWriter::wstat() {
     return noPayloadMessage(_buffer, MessageType::RWStat, _tag);
 }
 
 
 TypedWriter
-ResponseBuilder::session() {
+ResponseWriter::session() {
     return noPayloadMessage(_buffer, MessageType::RSession, _tag);
 }
 
 
 
 TypedWriter
-ResponseBuilder::shortRead(MemoryView data) {
+ResponseWriter::shortRead(MemoryView data) {
     Encoder encoder{_buffer};
 
     // Compute message size first:
@@ -256,7 +256,7 @@ ResponseBuilder::shortRead(MemoryView data) {
 
 
 TypedWriter
-ResponseBuilder::shortWrite(size_type count) {
+ResponseWriter::shortWrite(size_type count) {
     Encoder encoder{_buffer};
 
     // Compute message size first:

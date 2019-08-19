@@ -14,7 +14,7 @@
 *  limitations under the License.
 */
 
-#include "styxe/9p2000.hpp"
+#include "styxe/requestWriter.hpp"
 #include "styxe/encoder.hpp"
 
 
@@ -22,14 +22,14 @@ using namespace Solace;
 using namespace styxe;
 
 TypedWriter
-RequestBuilder::DataWriter::data(MemoryView data) {
+RequestWriter::DataWriter::data(MemoryView data) {
 	Encoder{buffer()}.encode(data);
 
 	return *this;
 }
 
 
-RequestBuilder::PathWriter::PathWriter(ByteWriter& writer,
+RequestWriter::PathWriter::PathWriter(ByteWriter& writer,
 									   ByteWriter::size_type pos,
 									   MessageHeader head) noexcept
 	: TypedWriter{writer, pos, head}
@@ -39,8 +39,8 @@ RequestBuilder::PathWriter::PathWriter(ByteWriter& writer,
 		.encode(_nSegments);
 }
 
-RequestBuilder::PathWriter&
-RequestBuilder::PathWriter::path(StringView pathSegment) {
+RequestWriter::PathWriter&
+RequestWriter::PathWriter::path(StringView pathSegment) {
 	_nSegments += 1;
 
 	auto& writer = buffer();
@@ -56,7 +56,7 @@ RequestBuilder::PathWriter::path(StringView pathSegment) {
 	return *this;
 }
 
-RequestBuilder::PathDataWriter::PathDataWriter(ByteWriter& writer,
+RequestWriter::PathDataWriter::PathDataWriter(ByteWriter& writer,
 											   ByteWriter::size_type pos,
 											   MessageHeader head) noexcept
 	: DataWriter{writer, pos, head}
@@ -67,8 +67,8 @@ RequestBuilder::PathDataWriter::PathDataWriter(ByteWriter& writer,
 }
 
 
-RequestBuilder::PathDataWriter&
-RequestBuilder::PathDataWriter::path(StringView pathSegment) {
+RequestWriter::PathDataWriter&
+RequestWriter::PathDataWriter::path(StringView pathSegment) {
 	_nSegments += 1;
 
 	auto& writer = buffer();
@@ -88,7 +88,7 @@ RequestBuilder::PathDataWriter::path(StringView pathSegment) {
 
 
 TypedWriter
-RequestBuilder::version(StringView version, size_type maxMessageSize) const {
+RequestWriter::version(StringView version, size_type maxMessageSize) const {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -107,7 +107,7 @@ RequestBuilder::version(StringView version, size_type maxMessageSize) const {
 
 
 TypedWriter
-RequestBuilder::auth(Fid afid, StringView userName, StringView attachName) const {
+RequestWriter::auth(Fid afid, StringView userName, StringView attachName) const {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -128,7 +128,7 @@ RequestBuilder::auth(Fid afid, StringView userName, StringView attachName) const
 
 
 TypedWriter
-RequestBuilder::attach(Fid fid, Fid afid, StringView userName, StringView attachName) {
+RequestWriter::attach(Fid fid, Fid afid, StringView userName, StringView attachName) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -151,7 +151,7 @@ RequestBuilder::attach(Fid fid, Fid afid, StringView userName, StringView attach
 
 
 TypedWriter
-RequestBuilder::clunk(Fid fid) {
+RequestWriter::clunk(Fid fid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -168,7 +168,7 @@ RequestBuilder::clunk(Fid fid) {
 
 
 TypedWriter
-RequestBuilder::flush(Tag oldTransation) const {
+RequestWriter::flush(Tag oldTransation) const {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -185,7 +185,7 @@ RequestBuilder::flush(Tag oldTransation) const {
 
 
 TypedWriter
-RequestBuilder::remove(Fid fid) {
+RequestWriter::remove(Fid fid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -202,7 +202,7 @@ RequestBuilder::remove(Fid fid) {
 
 
 TypedWriter
-RequestBuilder::open(Fid fid, OpenMode mode) {
+RequestWriter::open(Fid fid, OpenMode mode) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -221,7 +221,7 @@ RequestBuilder::open(Fid fid, OpenMode mode) {
 
 
 TypedWriter
-RequestBuilder::create(Fid fid, StringView name, uint32 permissions, OpenMode mode) {
+RequestWriter::create(Fid fid, StringView name, uint32 permissions, OpenMode mode) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -244,7 +244,7 @@ RequestBuilder::create(Fid fid, StringView name, uint32 permissions, OpenMode mo
 
 
 TypedWriter
-RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
+RequestWriter::read(Fid fid, uint64 offset, size_type count) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -264,8 +264,8 @@ RequestBuilder::read(Fid fid, uint64 offset, size_type count) {
 }
 
 
-RequestBuilder::DataWriter
-RequestBuilder::write(Fid fid, uint64 offset) {
+RequestWriter::DataWriter
+RequestWriter::write(Fid fid, uint64 offset) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -285,8 +285,8 @@ RequestBuilder::write(Fid fid, uint64 offset) {
 }
 
 
-RequestBuilder::PathWriter
-RequestBuilder::walk(Fid fid, Fid nfid) {
+RequestWriter::PathWriter
+RequestWriter::walk(Fid fid, Fid nfid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -306,7 +306,7 @@ RequestBuilder::walk(Fid fid, Fid nfid) {
 
 
 TypedWriter
-RequestBuilder::stat(Fid fid) {
+RequestWriter::stat(Fid fid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -323,7 +323,7 @@ RequestBuilder::stat(Fid fid) {
 
 
 TypedWriter
-RequestBuilder::writeStat(Fid fid, Stat const& stat) {
+RequestWriter::writeStat(Fid fid, Stat const& stat) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -342,7 +342,7 @@ RequestBuilder::writeStat(Fid fid, Stat const& stat) {
 
 
 TypedWriter
-RequestBuilder::session(Solace::ArrayView<byte> key) {
+RequestWriter::session(Solace::ArrayView<byte> key) {
 	assertTrue(key.size() == 8);
 
     // Compute message size first:
@@ -361,8 +361,8 @@ RequestBuilder::session(Solace::ArrayView<byte> key) {
     return TypedWriter{_buffer, pos, header};
 }
 
-RequestBuilder::PathWriter
-RequestBuilder::shortRead(Fid rootFid) {
+RequestWriter::PathWriter
+RequestWriter::shortRead(Fid rootFid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -378,8 +378,8 @@ RequestBuilder::shortRead(Fid rootFid) {
 	return PathWriter{_buffer, pos, header};
 }
 
-RequestBuilder::PathDataWriter
-RequestBuilder::shortWrite(Fid rootFid) {
+RequestWriter::PathDataWriter
+RequestWriter::shortWrite(Fid rootFid) {
     Encoder encode(_buffer);
 
     // Compute message size first:
