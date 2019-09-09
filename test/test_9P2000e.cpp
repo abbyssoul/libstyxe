@@ -54,7 +54,7 @@ protected:
                 .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
 					? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
-					: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
+					: Result<MessageHeader, Error>{types::okTag, std::move(header)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
@@ -87,8 +87,8 @@ protected:
         return proc.parseMessageHeader(_reader)
                 .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
-				? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
-				: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
+					? Result<MessageHeader, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)}
+					: Result<MessageHeader, Error>{types::okTag, std::move(header)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
@@ -116,7 +116,7 @@ protected:
 
     Parser          proc;
     MemoryManager   _memManager {kMaxMesssageSize};
-    MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize)};
+	MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize).unwrap()};
     ByteWriter      _writer{_memBuf};
     ByteReader      _reader{_memBuf};
 };

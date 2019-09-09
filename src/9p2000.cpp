@@ -77,7 +77,7 @@ namespace  {  // Internal imlpementation details
 
 struct OkRespose {
     Result<ResponseMessage, Error>
-    operator() () { return Result<ResponseMessage, Error>(types::OkTag{}, std::move(fcall)); }
+	operator() () { return Result<ResponseMessage, Error>(types::okTag, in_place, std::move(fcall)); }
 
     ResponseMessage fcall;
 
@@ -89,7 +89,7 @@ struct OkRespose {
 
 struct OkRequest {
     Result<RequestMessage, Error>
-    operator() () { return Result<RequestMessage, Error>(types::OkTag{}, std::move(fcall)); }
+	operator() () { return Result<RequestMessage, Error>(types::okTag, in_place, std::move(fcall)); }
 
     RequestMessage fcall;
 
@@ -103,7 +103,7 @@ struct OkRequest {
 template<typename T>
 Result<ResponseMessage, Error>
 parseNoDataResponse() {
-    return Result<ResponseMessage, Error>(types::OkTag{}, T{});
+	return Result<ResponseMessage, Error>{types::okTag, T{}};
 }
 
 

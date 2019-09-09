@@ -31,15 +31,16 @@ using namespace styxe;
 
 class P9MessageBuilder : public ::testing::Test {
 public:
-    P9MessageBuilder() :
-        _memManager(kMaxMesssageSize)
+
+	P9MessageBuilder()
+		: _memManager{kMaxMesssageSize}
     {}
 
 
 protected:
 
     void SetUp() override {
-        _buffer = _memManager.allocate(kMaxMesssageSize);
+		_buffer = _memManager.allocate(kMaxMesssageSize).unwrap();
         _buffer.viewRemaining().fill(0xFE);
     }
 

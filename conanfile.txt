@@ -1,5 +1,5 @@
 [requires]
-libsolace/0.2.3@abbyssoul/stable
+libsolace/0.3.1@abbyssoul/stable
 
 [options]
 libsolace:shared=False

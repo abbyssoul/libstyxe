@@ -223,7 +223,7 @@ protected:
                 .then([expectType](MessageHeader&& header) {
                     return (header.type != expectType)
 							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
-							: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
+							: Result<MessageHeader, Error>{types::okTag, std::move(header)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseRequest(header, _reader);
@@ -255,9 +255,9 @@ protected:
 
         return proc.parseMessageHeader(_reader)
                 .then([expectType](MessageHeader&& header) {
-					return (header.type != expectType)
-							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
-							: Result<MessageHeader, Error>{types::OkTag{}, std::move(header)};
+					return (header.type == expectType)
+							? Result<MessageHeader, Error>{types::okTag, std::move(header)}
+							: Result<MessageHeader, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};
                 })
                 .then([this](MessageHeader&& header) {
                     return proc.parseResponse(header, _reader);
@@ -273,9 +273,7 @@ protected:
                     return Ok<ResponseType>(std::get<ResponseType>(std::move(msg)));
                 })
                 .mapError([](Error&& e) {
-                    [&e]() {
-                        FAIL() << e.toString();
-                    } ();
+					[&e]() { FAIL() << e.toString(); } ();
 
                     return e;
                 });
@@ -284,8 +282,8 @@ protected:
 protected:
 
 	Parser			proc;
-    MemoryManager   _memManager {kMaxMesssageSize};
-    MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize)};
+	MemoryManager   _memManager{kMaxMesssageSize};
+	MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize).unwrap()};
     ByteWriter      _writer{_memBuf};
     ByteReader      _reader{_memBuf};
 };
@@ -890,7 +888,9 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
 
 
 TEST_F(P9Messages, createWalkRespose) {
-    auto qids = makeArray<Qid>(3);
+	auto maybeQids = makeArray<Qid>(3);
+	ASSERT_TRUE(maybeQids.isOk());
+	auto& qids = maybeQids.unwrap();
     qids[2].path = 21;
     qids[2].version = 117;
     qids[2].type = 81;

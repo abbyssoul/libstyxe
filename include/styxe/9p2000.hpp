@@ -592,10 +592,10 @@ public:
      */
     Parser(size_type maxMassageSize = kMaxMesssageSize,
            Solace::StringView version = PROTOCOL_VERSION) noexcept
-        : _maxMassageSize(maxMassageSize)
-        , _maxNegotiatedMessageSize(maxMassageSize)
-        , _initialVersion(version)
-        , _negotiatedVersion(makeString(version))
+		: _maxMassageSize{maxMassageSize}
+		, _maxNegotiatedMessageSize{maxMassageSize}
+		, _initialVersion{version}
+		, _negotiatedVersion{makeString(version).unwrap()}
     {
     }
 
