@@ -31,8 +31,8 @@ RequestWriter::DataWriter::data(MemoryView data) {
 
 RequestWriter::PathWriter::PathWriter(ByteWriter& writer,
 									   ByteWriter::size_type pos,
-									   MessageHeader head) noexcept
-	: TypedWriter{writer, pos, head}
+									   MessageHeader header) noexcept
+	: TypedWriter{writer, pos, header}
 	, _segmentsPos{writer.position()}
 {
 	Encoder{writer}
@@ -88,7 +88,7 @@ RequestWriter::PathDataWriter::path(StringView pathSegment) {
 
 
 TypedWriter
-RequestWriter::version(StringView version, size_type maxMessageSize) const {
+RequestWriter::version(StringView version, size_type maxMessageSize) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -107,7 +107,7 @@ RequestWriter::version(StringView version, size_type maxMessageSize) const {
 
 
 TypedWriter
-RequestWriter::auth(Fid afid, StringView userName, StringView attachName) const {
+RequestWriter::auth(Fid afid, StringView userName, StringView attachName) {
     Encoder encode(_buffer);
 
     // Compute message size first:
@@ -168,7 +168,7 @@ RequestWriter::clunk(Fid fid) {
 
 
 TypedWriter
-RequestWriter::flush(Tag oldTransation) const {
+RequestWriter::flush(Tag oldTransation) {
     Encoder encode(_buffer);
 
     // Compute message size first:

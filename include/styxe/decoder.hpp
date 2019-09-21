@@ -20,7 +20,7 @@
 
 #include <styxe/9p2000.hpp>
 
-#include <utility>  // std::forward<>
+#include <solace/utils.hpp>  // fwd<>
 
 
 namespace styxe {
@@ -30,6 +30,9 @@ namespace styxe {
  */
 struct Decoder {
 
+	/** Construct a Decoder that reads from the given stream.
+	 * @param src A byte stream to decode data from.
+	 */
 	constexpr Decoder(Solace::ByteReader& src) noexcept
 		: _src{src}
     {}
@@ -37,31 +40,81 @@ struct Decoder {
     Decoder(Decoder const&) = delete;
     Decoder& operator= (Decoder const&) = delete;
 
-	Solace::Result<void, Solace::Error> read(Solace::uint8* dest);
-    Solace::Result<void, Solace::Error> read(Solace::uint16* dest);
-    Solace::Result<void, Solace::Error> read(Solace::uint32* dest);
-    Solace::Result<void, Solace::Error> read(Solace::uint64* dest);
-    Solace::Result<void, Solace::Error> read(Solace::StringView* dest);
-    Solace::Result<void, Solace::Error> read(Solace::MemoryView* dest);
-    Solace::Result<void, Solace::Error> read(Solace::MutableMemoryView* dest);
-	Solace::Result<void, Solace::Error> read(WalkPath* path);
-    Solace::Result<void, Solace::Error> read(Qid* qid);
-	Solace::Result<void, Solace::Error> read(Stat* stat);
+	/** Decode uint8 value from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Solace::uint8* dest);
 
+	/** Decode uint16 value from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Solace::uint16* dest);
+
+	/** Decode uint32 value from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Solace::uint32* dest);
+
+	/** Decode uint64 value from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Solace::uint64* dest);
+
+	/** Decode a *String value from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Solace::StringView* dest);
+
+	/** Decode a raw byte view from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Solace::MemoryView* dest);
+
+	/** Decode a raw byte view from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Solace::MutableMemoryView* dest);
+
+	/** Decode a path view from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(WalkPath* dest);
+
+	/** Decode a file Qid from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Qid* dest);
+
+	/** Decode a Stat struct from the stream.
+	 * @param dest An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
+	Solace::Result<void, Error> read(Stat* dest);
+
+	/** Decode a sequence of values from the input stream.
+	 * @param t An address where to store decoded value.
+	 * @param args An address where to store decoded value.
+	 * @return void or Error if operation has failed.
+	 */
     template<typename T, typename... Args>
-    Solace::Result<void, Solace::Error> read(T* t, Args&&... args) {
-		auto r = read(t);
-		if (!r)
-			return r.moveError();
+	Solace::Result<void, Error> read(T* t, Args&&... args) {
+		Solace::Result<void, Error> r{Solace::types::okTag};
+		(r = read(t)) && ((r = read(Solace::fwd<Args>(args))) && ...);
 
-		((r = read(std::forward<Args>(args))) && ...);
-		if (!r)
-			return r.moveError();
-
-		return Solace::Ok();
+		return r;
     }
 
 private:
+	/// Data stream to read bytes from.
     Solace::ByteReader& _src;
 };
 
