@@ -16,9 +16,12 @@
 
 #include "styxe/9p2000.hpp"
 #include "styxe/encoder.hpp"
+#include "styxe/requestWriter.hpp"
+#include "styxe/responseWriter.hpp"
 #include "styxe/print.hpp"
 
 #include <solace/array.hpp>
+#include <solace/output_utils.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -27,10 +30,11 @@
 
 
 using namespace Solace;
+using namespace styxe;
 
 
-styxe::Stat genStats(StringView uid, StringView gid) {
-    styxe::Stat result;
+Stat genStats(StringView uid, StringView gid) {
+	Stat result;
 
     result.type = 1;
     result.dev = 3;
@@ -45,13 +49,13 @@ styxe::Stat genStats(StringView uid, StringView gid) {
     result.gid = gid;
     result.muid = uid;
 
-    result.size = styxe::DirListingWriter::sizeStat(result);
+	result.size = DirListingWriter::sizeStat(result);
 
     return result;
 }
 
 
-void dumpMessage(std::string const& corpusDir, styxe::MessageType type, ByteWriter const& buffer) {
+void dumpMessage(std::string const& corpusDir, MessageType type, ByteWriter const& buffer) {
 
 	std::stringstream sb;
 	sb << type;
@@ -63,12 +67,12 @@ void dumpMessage(std::string const& corpusDir, styxe::MessageType type, ByteWrit
 }
 
 
-void dumpMessage(std::string const& corpusDir, styxe::TypedWriter&& req) {
+void dumpMessage(std::string const& corpusDir, TypedWriter&& req) {
 	dumpMessage(corpusDir, req.type(), req.build());
 	req.buffer().clear();
 }
 
-void dumpMessage(std::string const& corpusDir, styxe::RequestBuilder::PathWriter&& req) {
+void dumpMessage(std::string const& corpusDir, RequestWriter::PathWriter&& req) {
 	dumpMessage(corpusDir, req.type(), req.build());
 	req.buffer().clear();
 }
@@ -89,70 +93,77 @@ int main(int argc, char const **argv) {
     }
 
     std::string corpusDir = argv[1];
-    byte data[25];
-    StringView userName(getenv("USER"));
-    styxe::Parser proc;
+	byte data[32];
+	auto userName = StringView{getenv("USER")};
 
-    MemoryManager memManager(proc.maxPossibleMessageSize());
-    ByteWriter buffer(memManager.allocate(proc.maxPossibleMessageSize()));
+	Parser proc;
+	MemoryManager memManager{proc.maxPossibleMessageSize()};
 
+	auto memoryResource = memManager.allocate(proc.maxPossibleMessageSize());
+	if (!memoryResource) {
+		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError();
+		return EXIT_FAILURE;
+	}
+
+
+	ByteWriter buffer{memoryResource.unwrap()};
 
     /// Dump request messages
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
-                .version(styxe::Parser::PROTOCOL_VERSION));
+	dumpMessage(corpusDir, RequestWriter{buffer}
+				.version(Parser::PROTOCOL_VERSION));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
             .auth(1, userName, "attachPoint"));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
             .flush(3));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
             .attach(3, 18, userName, "someFile"));
 
-	dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
 				.walk(18, 42)
 				.path("one")
 				.path("two")
 				.path("file")
 				.done());
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
-                .open(42, styxe::OpenMode::READ));
+	dumpMessage(corpusDir, RequestWriter{buffer}
+				.open(42, OpenMode::READ));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
-                .create(42, "newFile", 0666, styxe::OpenMode::WRITE));
+	dumpMessage(corpusDir, RequestWriter{buffer}
+				.create(42, "newFile", 0666, OpenMode::WRITE));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
                 .read(42, 12, 418));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
 				.write(24, 12)
 				.data(wrapMemory(data).fill(0xf1))
 				);
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
                 .clunk(24));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
                 .remove(42));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
                 .stat(17));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
                 .writeStat(17, genStats(userName, userName)));
 
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
                 .session(wrapMemory(data, 8)));
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
 				.shortRead(3)
 				.path("some")
 				.path("location")
 				.path("where")
 				.path("file")
 				.done());
-    dumpMessage(corpusDir, styxe::RequestBuilder{buffer}
+	dumpMessage(corpusDir, RequestWriter{buffer}
 				.shortWrite(7)
 				.path("some")
 				.path("location")
@@ -163,53 +174,53 @@ int main(int argc, char const **argv) {
 
 
     /// Dump response messages
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
-                .version(styxe::Parser::PROTOCOL_VERSION));
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
+				.version(Parser::PROTOCOL_VERSION));
 
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .auth({1, 543, 939938}));
 
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .error("This is a test error. Please move on."));
 
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .flush());
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .attach({21, 4884, 9047302}));
 
     {
-        auto steps = makeArrayOf<styxe::Qid>(
-                                  styxe::Qid{21, 4884, 9047302},
-                                  styxe::Qid{22, 3242, 8488484},
-                                  styxe::Qid{32, 9198, 8758379}
+		auto steps = makeArrayOf<Qid>(
+								  Qid{21, 4884, 9047302},
+								  Qid{22, 3242, 8488484},
+								  Qid{32, 9198, 8758379}
                               );
-        dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
-                    .walk(steps.view()));
+		dumpMessage(corpusDir, ResponseWriter{buffer, 1}
+					.walk(steps.unwrap().view()));
     }
 
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .open({21, 4884, 9047302}, 7277));
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .create({71, 4884, 32432}, 23421));
 
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .read(wrapMemory(data)));
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .write(616));
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .clunk());
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .remove());
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .stat(genStats(userName, userName)));
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 1}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
                 .wstat());
 
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 2}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 2}
                 .session());
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 2}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 2}
                 .shortRead(wrapMemory(data)));
-    dumpMessage(corpusDir, styxe::ResponseBuilder{buffer, 2}
+	dumpMessage(corpusDir, ResponseWriter{buffer, 2}
                 .shortWrite(32));
 
     return EXIT_SUCCESS;

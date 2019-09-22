@@ -27,18 +27,18 @@ using namespace Solace;
 using namespace styxe;
 
 
-void dispayRequest(styxe::RequestMessage&&) { /*no-op*/ }
-void dispayResponse(styxe::ResponseMessage&&) { /*no-op*/ }
+void dispayRequest(RequestMessage&&) { /*no-op*/ }
+void dispayResponse(ResponseMessage&&) { /*no-op*/ }
 
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     ByteReader reader{wrapMemory(data, size)};
 
     // Case1: parse message header
-    styxe::Parser proc;
+	Parser proc;
 
     proc.parseMessageHeader(reader)
-            .then([&](styxe::MessageHeader&& header) {
+			.then([&](MessageHeader&& header) {
                 bool const isRequest = (static_cast<Solace::byte>(header.type) % 2) == 0;
                 if (isRequest) {
                     proc.parseRequest(header, reader)
@@ -56,7 +56,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 inline
 void readDataAndTest(std::istream& in) {
     std::vector<uint8_t> buf;
-    buf.reserve(styxe::kMaxMesssageSize);
+	buf.reserve(kMaxMesssageSize);
 
     in.read(reinterpret_cast<char*>(buf.data()), buf.size());
     size_t const got = in.gcount();

@@ -23,20 +23,21 @@ using namespace styxe;
 
 TypedWriter
 RequestWriter::DataWriter::data(MemoryView data) {
-	Encoder{buffer()}.encode(data);
+	Encoder encoder{buffer()};
+	encoder << data;
 
 	return *this;
 }
 
 
 RequestWriter::PathWriter::PathWriter(ByteWriter& writer,
-									   ByteWriter::size_type pos,
-									   MessageHeader header) noexcept
+									  ByteWriter::size_type pos,
+									  MessageHeader header) noexcept
 	: TypedWriter{writer, pos, header}
 	, _segmentsPos{writer.position()}
 {
-	Encoder{writer}
-		.encode(_nSegments);
+	Encoder encoder{writer};
+	encoder << _nSegments;
 }
 
 RequestWriter::PathWriter&
@@ -48,22 +49,22 @@ RequestWriter::PathWriter::path(StringView pathSegment) {
 
 	auto const currentPos = writer.position();
 	writer.position(_segmentsPos);
-	encoder.encode(_nSegments);
+	encoder << _nSegments;
 	writer.position(currentPos);
 
-	encoder.encode(pathSegment);
+	encoder << pathSegment;
 
 	return *this;
 }
 
 RequestWriter::PathDataWriter::PathDataWriter(ByteWriter& writer,
-											   ByteWriter::size_type pos,
-											   MessageHeader head) noexcept
+											  ByteWriter::size_type pos,
+											  MessageHeader head) noexcept
 	: DataWriter{writer, pos, head}
 	, _segmentsPos{writer.position()}
 {
-	Encoder{writer}
-		.encode(_nSegments);
+	Encoder encoder{writer};
+	encoder << _nSegments;
 }
 
 
@@ -72,14 +73,14 @@ RequestWriter::PathDataWriter::path(StringView pathSegment) {
 	_nSegments += 1;
 
 	auto& writer = buffer();
-	Encoder encoder(writer);
+	Encoder encoder{writer};
 
 	auto const currentPos = writer.position();
 	writer.position(_segmentsPos);
-	encoder.encode(_nSegments);
+	encoder << _nSegments;
 	writer.position(currentPos);
 
-	encoder.encode(pathSegment);
+	encoder << pathSegment;
 
 	return *this;
 }
@@ -89,18 +90,18 @@ RequestWriter::PathDataWriter::path(StringView pathSegment) {
 
 TypedWriter
 RequestWriter::version(StringView version, size_type maxMessageSize) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(maxMessageSize) +                // Negotiated message size field
-            encode.protocolSize(version);   // Version string data
+			encoder.protocolSize(maxMessageSize) +                // Negotiated message size field
+			encoder.protocolSize(version);   // Version string data
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TVersion, Parser::NO_TAG, payloadSize);
-    encode.encode(header)
-            .encode(maxMessageSize)
-            .encode(version);
+	encoder << header
+			<< maxMessageSize
+			<< version;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -108,20 +109,20 @@ RequestWriter::version(StringView version, size_type maxMessageSize) {
 
 TypedWriter
 RequestWriter::auth(Fid afid, StringView userName, StringView attachName) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(afid) +                  // Proposed fid for authentication mechanism
-            encode.protocolSize(userName) +       // User name
-            encode.protocolSize(attachName);     // Root name where we want to attach to
+			encoder.protocolSize(afid) +                  // Proposed fid for authentication mechanism
+			encoder.protocolSize(userName) +       // User name
+			encoder.protocolSize(attachName);     // Root name where we want to attach to
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TAuth, _tag, payloadSize);
-    encode.encode(header)
-            .encode(afid)
-            .encode(userName)
-            .encode(attachName);
+	encoder << header
+			<< afid
+			<< userName
+			<< attachName;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -129,22 +130,22 @@ RequestWriter::auth(Fid afid, StringView userName, StringView attachName) {
 
 TypedWriter
 RequestWriter::attach(Fid fid, Fid afid, StringView userName, StringView attachName) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid) +                  // Proposed fid for the attached root
-            encode.protocolSize(afid) +                  // Fid of the passed authentication
-            encode.protocolSize(userName) +      // User name
-            encode.protocolSize(attachName);     // Root name where we want to attach to
+			encoder.protocolSize(fid) +                  // Proposed fid for the attached root
+			encoder.protocolSize(afid) +                  // Fid of the passed authentication
+			encoder.protocolSize(userName) +      // User name
+			encoder.protocolSize(attachName);     // Root name where we want to attach to
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TAttach, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid)
-            .encode(afid)
-            .encode(userName)
-            .encode(attachName);
+	encoder << header
+			<< fid
+			<< afid
+			<< userName
+			<< attachName;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -152,16 +153,16 @@ RequestWriter::attach(Fid fid, Fid afid, StringView userName, StringView attachN
 
 TypedWriter
 RequestWriter::clunk(Fid fid) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid);               // Fid to forget
+			encoder.protocolSize(fid);               // Fid to forget
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TClunk, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid);
+	encoder << header
+			<< fid;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -169,16 +170,16 @@ RequestWriter::clunk(Fid fid) {
 
 TypedWriter
 RequestWriter::flush(Tag oldTransation) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(oldTransation);               // Transaction to forget
+			encoder.protocolSize(oldTransation);               // Transaction to forget
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TFlush, _tag, payloadSize);
-    encode.encode(header)
-            .encode(oldTransation);
+	encoder << header
+			<< oldTransation;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -186,16 +187,16 @@ RequestWriter::flush(Tag oldTransation) {
 
 TypedWriter
 RequestWriter::remove(Fid fid) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid);               // Fid to remove
+			encoder.protocolSize(fid);               // Fid to remove
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TRemove, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid);
+	encoder << header
+			<< fid;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -203,18 +204,18 @@ RequestWriter::remove(Fid fid) {
 
 TypedWriter
 RequestWriter::open(Fid fid, OpenMode mode) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid) +                // Fid of the file to open
-            encode.protocolSize(mode.mode);                // Mode of the file to open
+			encoder.protocolSize(fid) +                // Fid of the file to open
+			encoder.protocolSize(mode.mode);                // Mode of the file to open
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TOpen, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid)
-            .encode(mode.mode);
+	encoder << header
+			<< fid
+			<< mode.mode;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -222,22 +223,22 @@ RequestWriter::open(Fid fid, OpenMode mode) {
 
 TypedWriter
 RequestWriter::create(Fid fid, StringView name, uint32 permissions, OpenMode mode) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid) +
-            encode.protocolSize(name) +
-            encode.protocolSize(permissions) +
-            encode.protocolSize(mode.mode);
+			encoder.protocolSize(fid) +
+			encoder.protocolSize(name) +
+			encoder.protocolSize(permissions) +
+			encoder.protocolSize(mode.mode);
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TCreate, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid)
-            .encode(name)
-            .encode(permissions)
-            .encode(mode.mode);
+	encoder << header
+			<< fid
+			<< name
+			<< permissions
+			<< mode.mode;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -245,20 +246,20 @@ RequestWriter::create(Fid fid, StringView name, uint32 permissions, OpenMode mod
 
 TypedWriter
 RequestWriter::read(Fid fid, uint64 offset, size_type count) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid) +
-            encode.protocolSize(offset) +
-            encode.protocolSize(count);
+			encoder.protocolSize(fid) +
+			encoder.protocolSize(offset) +
+			encoder.protocolSize(count);
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TRead, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid)
-            .encode(offset)
-            .encode(count);
+	encoder << header
+			<< fid
+			<< offset
+			<< count;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -266,20 +267,19 @@ RequestWriter::read(Fid fid, uint64 offset, size_type count) {
 
 RequestWriter::DataWriter
 RequestWriter::write(Fid fid, uint64 offset) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid) +
-            encode.protocolSize(offset) +
-			encode.protocolSize(MemoryView{});
+			encoder.protocolSize(fid) +
+			encoder.protocolSize(offset) +
+			encoder.protocolSize(MemoryView{});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TWrite, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid)
-			.encode(offset);
-//            .encode(data);
+	encoder << header
+			<< fid
+			<< offset;
 
 	return DataWriter{_buffer, pos, header};
 }
@@ -287,19 +287,19 @@ RequestWriter::write(Fid fid, uint64 offset) {
 
 RequestWriter::PathWriter
 RequestWriter::walk(Fid fid, Fid nfid) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid) +
-            encode.protocolSize(nfid) +
-			encode.protocolSize(WalkPath::size_type{0});
+			encoder.protocolSize(fid) +
+			encoder.protocolSize(nfid) +
+			encoder.protocolSize(WalkPath::size_type{0});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TWalk, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid)
-			.encode(nfid);
+	encoder << header
+			<< fid
+			<< nfid;
 
 	return PathWriter{_buffer, pos, header};
 }
@@ -307,16 +307,16 @@ RequestWriter::walk(Fid fid, Fid nfid) {
 
 TypedWriter
 RequestWriter::stat(Fid fid) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid);
+			encoder.protocolSize(fid);
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TStat, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid);
+	encoder << header
+			<< fid;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -324,18 +324,18 @@ RequestWriter::stat(Fid fid) {
 
 TypedWriter
 RequestWriter::writeStat(Fid fid, Stat const& stat) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(fid) +
-            encode.protocolSize(stat);
+			encoder.protocolSize(fid) +
+			encoder.protocolSize(stat);
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TWStat, _tag, payloadSize);
-    encode.encode(header)
-            .encode(fid)
-            .encode(stat);
+	encoder << header
+			<< fid
+			<< stat;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -352,10 +352,12 @@ RequestWriter::session(Solace::ArrayView<byte> key) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TSession, _tag, payloadSize);
-    Encoder(_buffer)
-            .encode(header);
-//            .encode(key);
+	Encoder encoder{_buffer};
+	encoder << header;
 
+//            << key);
+	// Note: the key bytes written directly into the buffer because using encoder to write raw buffer results in
+	// in size of the buffer written before the data. In case of Session message - we know key size to be 8 bytes.
 	_buffer.write(key.view());
 
     return TypedWriter{_buffer, pos, header};
@@ -363,37 +365,35 @@ RequestWriter::session(Solace::ArrayView<byte> key) {
 
 RequestWriter::PathWriter
 RequestWriter::shortRead(Fid rootFid) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(rootFid) +
-			encode.protocolSize(WalkPath::size_type{0});
+			encoder.protocolSize(rootFid) +
+			encoder.protocolSize(WalkPath::size_type{0});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TSRead, _tag, payloadSize);
-    encode.encode(header)
-			.encode(rootFid);
+	encoder << header
+			<< rootFid;
 
 	return PathWriter{_buffer, pos, header};
 }
 
 RequestWriter::PathDataWriter
 RequestWriter::shortWrite(Fid rootFid) {
-    Encoder encode(_buffer);
+	Encoder encoder{_buffer};
 
     // Compute message size first:
     auto const payloadSize =
-            encode.protocolSize(rootFid) +
-			encode.protocolSize(WalkPath::size_type{0}) +
-			encode.protocolSize(MemoryView{});
+			encoder.protocolSize(rootFid) +
+			encoder.protocolSize(WalkPath::size_type{0}) +
+			encoder.protocolSize(MemoryView{});
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::TSWrite, _tag, payloadSize);
-    encode.encode(header)
-			.encode(rootFid);
-//            .encode(path)
-//            .encode(data);
+	encoder << header
+			<< rootFid;
 
 	return PathDataWriter{_buffer, pos, header};
 }

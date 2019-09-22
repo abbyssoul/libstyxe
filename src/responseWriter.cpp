@@ -28,8 +28,8 @@ auto noPayloadMessage(ByteWriter& buffer,
     auto header = makeHeaderWithPayload(type, tag, 0);
     auto const pos = buffer.position();
 
-    Encoder(buffer)
-            .header(type, tag, 0);
+	Encoder encoder{buffer};
+	encoder << header;
 
     return TypedWriter{buffer, pos, header};
 }
@@ -46,9 +46,9 @@ ResponseWriter::version(StringView version, size_type maxMessageSize) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RVersion, Parser::NO_TAG, payloadSize);
-    encoder.encode(header)
-            .encode(maxMessageSize)
-            .encode(version);
+	encoder << header
+			<< maxMessageSize
+			<< version;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -63,8 +63,8 @@ ResponseWriter::auth(Qid qid) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RAuth, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(qid);
+	encoder << header
+			<< qid;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -79,8 +79,8 @@ ResponseWriter::error(StringView message) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RError, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(message);
+	encoder << header
+			<< message;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -101,8 +101,8 @@ ResponseWriter::attach(Qid qid) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RAttach, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(qid);
+	encoder << header
+			<< qid;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -117,8 +117,8 @@ ResponseWriter::walk(Solace::ArrayView<Qid> qids) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RWalk, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(qids);
+	encoder << header
+			<< qids;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -134,9 +134,9 @@ ResponseWriter::open(Qid qid, size_type iounit) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::ROpen, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(qid)
-            .encode(iounit);
+	encoder << header
+			<< qid
+			<< iounit;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -153,9 +153,9 @@ ResponseWriter::create(Qid qid, size_type iounit) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RCreate, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(qid)
-            .encode(iounit);
+	encoder << header
+			<< qid
+			<< iounit;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -171,8 +171,8 @@ ResponseWriter::read(MemoryView data) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RRead, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(data);
+	encoder << header
+			<< data;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -188,8 +188,8 @@ ResponseWriter::write(size_type count) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RWrite, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(count);
+	encoder << header
+			<< count;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -217,9 +217,9 @@ ResponseWriter::stat(Stat const& data) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RStat, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(statSize)
-            .encode(data);
+	encoder << header
+			<< statSize
+			<< data;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -248,8 +248,8 @@ ResponseWriter::shortRead(MemoryView data) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RSRead, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(data);
+	encoder << header
+			<< data;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -265,8 +265,8 @@ ResponseWriter::shortWrite(size_type count) {
 
     auto const pos = _buffer.position();
     auto header = makeHeaderWithPayload(MessageType::RSWrite, _tag, payloadSize);
-    encoder.encode(header)
-            .encode(count);
+	encoder << header
+			<< count;
 
     return TypedWriter{_buffer, pos, header};
 }
@@ -293,7 +293,8 @@ bool DirListingWriter::encode(Stat const& stat) {
     }
 
     // Only encode the data if we have some room left, as specified by 'count' arg.
-    Encoder{_dest}.encode(stat);
+	Encoder encoder{_dest};
+	encoder << stat;
 
     return true;
 }
@@ -308,11 +309,11 @@ TypedWriter::build() {
 
     _header.messageSize = narrow_cast<size_type>(messageSize);
     Encoder encoder{_buffer};
-    encoder.encode(_header);
+	encoder << _header;
 
 	if (_header.type == MessageType::RRead || _header.type == MessageType::RSRead) {
 		auto const dataSize = narrow_cast<size_type>(finalPos - _buffer.position() - sizeof(size_type));
-		encoder.encode(dataSize);
+		encoder << dataSize;
     }
 
     _buffer.position(finalPos);

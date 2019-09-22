@@ -150,8 +150,8 @@ TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
     auto keyData = wrapMemory(sessionKey);
 
     // Set declared message size to be more then negotiated message size
-    styxe::Encoder{_writer}
-            .header(MessageType::TSession, 1, keyData.size());
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(MessageType::TSession, 1, keyData.size());
     _writer.write(keyData);
 
     auto headerResult = proc.parseMessageHeader(_reader);
@@ -175,8 +175,8 @@ TEST_F(P9E_Messages, createSessionRespose) {
 
 TEST_F(P9E_Messages, parseSessionRespose) {
     // Set declared message size to be more then negotiated message size
-    styxe::Encoder{_writer}
-            .header(MessageType::RSession, 1, 0);
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(MessageType::RSession, 1, 0);
     _writer.flip();
 
     getResponseOrFail<Response_9P2000E::Session>(MessageType::RSession);
@@ -219,9 +219,9 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
     auto const messageData = StringLiteral{"This is a very important data d-_^b"};
     auto const dataView = messageData.view();
 
-    styxe::Encoder{_writer}
-            .header(MessageType::RSRead, 1, sizeof(size_type) + dataView.size())
-            .encode(dataView);
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(MessageType::RSRead, 1, sizeof(size_type) + dataView.size())
+			<< dataView;
     _writer.flip();
 
 
@@ -268,9 +268,9 @@ TEST_F(P9E_Messages, createShortWriteRespose) {
 
 
 TEST_F(P9E_Messages, parseShortWriteRespose) {
-    styxe::Encoder{_writer}
-            .header(MessageType::RSWrite, 1, sizeof(uint32))
-            .encode(static_cast<uint32>(81177));
+	styxe::Encoder encoder {_writer};
+	encoder << makeHeaderWithPayload(MessageType::RSWrite, 1, sizeof(uint32))
+			<< (static_cast<uint32>(81177));
     _writer.flip();
 
     getResponseOrFail<Response::Write>(MessageType::RSWrite)

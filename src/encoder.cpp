@@ -104,95 +104,46 @@ Encoder::protocolSize(MemoryView const& data) noexcept {
 }
 
 
+//Encoder&
+//Encoder::header(Solace::byte customMessageType, Tag tag, size_type payloadSize) {
+//    return encode(headerSize() + payloadSize)
+//            .encode(customMessageType)
+//            .encode(tag);
+//}
+
+
 Encoder&
-Encoder::header(Solace::byte customMessageType, Tag tag, size_type payloadSize) {
-    return encode(headerSize() + payloadSize)
-            .encode(customMessageType)
-            .encode(tag);
+styxe::operator<< (Encoder& encoder, uint8 value) {
+	encoder.buffer().writeLE(value);
+	return encoder;
+}
+
+Encoder& styxe::operator<< (Encoder& encoder, uint16 value) {
+	encoder.buffer().writeLE(value);
+	return encoder;
+}
+
+Encoder& styxe::operator<< (Encoder& encoder, uint32 value) {
+	encoder.buffer().writeLE(value);
+	return encoder;
+}
+
+Encoder& styxe::operator<< (Encoder& encoder, uint64 value) {
+	encoder.buffer().writeLE(value);
+	return encoder;
+}
+
+Encoder& styxe::operator<< (Encoder& encoder, StringView str) {
+	encoder << str.size();
+	encoder.buffer().write(str.view());
+
+	return encoder;
 }
 
 
-Encoder&
-Encoder::encode(MessageHeader header) {
-    return encode(header.messageSize)
-            .encode(header.type)
-            .encode(header.tag);
-}
+Encoder& styxe::operator<< (Encoder& encoder, MemoryView data) {
+	encoder << narrow_cast<size_type>(data.size());
+	encoder.buffer().write(data);
 
-
-Encoder&
-Encoder::encode(uint8 value) {
-    _dest.writeLE(value);
-    return (*this);
-}
-
-Encoder&
-Encoder::encode(uint16 value) {
-    _dest.writeLE(value);
-    return (*this);
-}
-
-Encoder&
-Encoder::encode(uint32 value) {
-    _dest.writeLE(value);
-    return (*this);
-}
-
-Encoder&
-Encoder::encode(uint64 value) {
-    _dest.writeLE(value);
-    return (*this);
-}
-
-Encoder&
-Encoder::encode(StringView str) {
-    encode(str.size());
-    _dest.write(str.view());
-
-    return (*this);
-}
-
-Encoder&
-Encoder::encode(Qid qid) {
-    return encode(qid.type)
-            .encode(qid.version)
-            .encode(qid.path);
-}
-
-Encoder&
-Encoder::encode(ArrayView<Qid> qids) {
-    // Encode variable datum size first:
-    encode(narrow_cast<var_datum_size_type>(qids.size()));
-
-    // Datum
-    for (auto const& qid : qids) {
-        encode(qid);
-    }
-
-    return (*this);
-}
-
-Encoder&
-Encoder::encode(Stat const& stat) {
-    return encode(stat.size)
-            .encode(stat.type)
-            .encode(stat.dev)
-            .encode(stat.qid)
-            .encode(stat.mode)
-            .encode(stat.atime)
-            .encode(stat.mtime)
-            .encode(stat.length)
-            .encode(stat.name)
-            .encode(stat.uid)
-            .encode(stat.gid)
-            .encode(stat.muid);
-}
-
-
-Encoder&
-Encoder::encode(MemoryView data) {
-    encode(narrow_cast<size_type>(data.size()));
-    _dest.write(data);
-
-    return (*this);
+	return encoder;
 }

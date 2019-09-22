@@ -353,9 +353,14 @@ int main(int argc, char* const* argv) {
 
     Parser proc{maxMessageSize, requiredVersion};
     MemoryManager memManager{proc.maxPossibleMessageSize()};
-    auto buffer = memManager.allocate(proc.maxPossibleMessageSize());
+	auto memoryResource = memManager.allocate(proc.maxPossibleMessageSize());
 
+	if (!memoryResource) {
+		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError();
+		return EXIT_FAILURE;
+	}
 
+	auto& buffer = memoryResource.unwrap();
     if (optind < argc) {
         for (int i = optind; i < argc; ++i) {
             std::ifstream input(argv[i]);

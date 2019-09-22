@@ -399,9 +399,10 @@ TEST_F(P9Messages, createErrorRespose) {
 TEST_F(P9Messages, parseErrorRespose) {
 	auto const expectedErrorMessage = StringLiteral{"All good!"};
 
-    styxe::Encoder{_writer}
-            .header(MessageType::RError, 1, styxe::Encoder::protocolSize(expectedErrorMessage))
-            .encode(expectedErrorMessage);
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(MessageType::RError, 1, styxe::Encoder::protocolSize(expectedErrorMessage));
+	encoder << expectedErrorMessage;
+
     _writer.flip();
 
     getResponseOrFail<Response::Error>(MessageType::RError)

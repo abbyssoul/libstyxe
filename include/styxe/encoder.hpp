@@ -100,98 +100,127 @@ public:
     Encoder(Encoder const&) = delete;
     Encoder& operator= (Encoder const&) = delete;
 
-	/** Write a header into the output stream.
-	 * @param customMessageType Byte encoding the type of the message.
-	 * @param tag A message tag.
-	 * @param payloadSize Size of the message payload in bytes. Does not includes message header size.
-	 * @return Ref to this for fluency.
-	 */
-    Encoder& header(Solace::byte customMessageType, Tag tag, size_type payloadSize);
-
-	/** Write a header into the output stream.
-	 * @param type Type of the message, @see MessageType
-	 * @param tag A message tag.
-	 * @param payloadSize Size of the message payload in bytes. Does not includes message header size.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& header(MessageType type, Tag tag, size_type payloadSize) {
-        return header(static_cast<Solace::byte>(type), tag, payloadSize);
-    }
-
-	/** Encode an uint8 value into the output straam.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-    Encoder& encode(Solace::uint8 value);
-
-	/** Encode an uint16 value into the output straam.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Solace::uint16 value);
-
-	/** Encode an uint32 value into the output straam.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Solace::uint32 value);
-
-	/** Encode an uint64 value into the output straam.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Solace::uint64 value);
-
-	/** Encode a string value into the output straam.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Solace::StringView value);
-	Encoder& encode(Solace::String const& value) = delete;
-
-	/** Encode a Raw byte buffer into the output straam.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Solace::MemoryView value);
-
-	/** Encode a message header into the output stream.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(MessageHeader value);
-
-	/** Encode a message type into the output stream.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(MessageType value) {
-		return encode(static_cast<Solace::byte>(value));
-	}
-
-	/** Encode a file Qid into the output stream.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Qid value);
-
-	/** Encode a list of qids into the output stream.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Solace::ArrayView<Qid> value);
-
-	/** Encode a file stats into the output stream.
-	 * @param value Value to encode.
-	 * @return Ref to this for fluency.
-	 */
-	Encoder& encode(Stat const& value);
+	Solace::ByteWriter& buffer() noexcept { return _dest; }
 
 private:
 
 	/// Output byte stream to write data to.
     Solace::ByteWriter& _dest;
 };
+
+
+/** Encode an uint8 value into the output straam.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+Encoder& operator<< (Encoder& encoder, Solace::uint8 value);
+
+/** Encode an uint16 value into the output straam.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+Encoder& operator<< (Encoder& encoder, Solace::uint16 value);
+
+/** Encode an uint32 value into the output straam.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+Encoder& operator<< (Encoder& encoder, Solace::uint32 value);
+
+/** Encode an uint64 value into the output straam.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+Encoder& operator<< (Encoder& encoder, Solace::uint64 value);
+
+/** Encode a string value into the output straam.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+Encoder& operator<< (Encoder& encoder, Solace::StringView value);
+
+/** Encode a Raw byte buffer into the output straam.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+Encoder& operator<< (Encoder& encoder, Solace::MemoryView value);
+
+/** Encode a file Qid into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline Encoder& operator<< (Encoder& encoder, Qid value) {
+	return encoder << value.type
+				   << value.version
+				   << value.path;
+
+}
+
+/** Encode a file stats into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline Encoder& operator<< (Encoder& encoder, Stat const& value) {
+	return encoder << value.size
+				   << value.type
+				   << value.dev
+				   << value.qid
+				   << value.mode
+				   << value.atime
+				   << value.mtime
+				   << value.length
+				   << value.name
+				   << value.uid
+				   << value.gid
+				   << value.muid;
+}
+
+
+/** Encode a message type into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline Encoder& operator<< (Encoder& encoder, MessageType value) {
+	return encoder << static_cast<Solace::byte>(value);
+}
+
+/** Encode a message header into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline Encoder& operator<< (Encoder& encoder, MessageHeader value) {
+	return encoder << value.messageSize
+				   << value.type
+				   << value.tag;
+
+}
+
+/** Encode a list of qids into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline Encoder& operator<< (Encoder& encoder, Solace::ArrayView<Qid> value) {
+	// Encode variable datum size first:
+	encoder << Solace::narrow_cast<var_datum_size_type>(value.size());
+
+	// Datum
+	for (auto const& qid : value) {
+		encoder << qid;
+	}
+
+	return encoder;
+}
 
 }  // namespace styxe
 #endif  // STYXE_ENCODER_HPP
