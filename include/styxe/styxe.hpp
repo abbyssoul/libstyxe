@@ -14,8 +14,8 @@
 *  limitations under the License.
 */
 #pragma once
-#ifndef STYXE_STYX_HPP
-#define STYXE_STYX_HPP
+#ifndef STYXE_STYXE_HPP
+#define STYXE_STYXE_HPP
 
 // Convenience include header
 
@@ -24,4 +24,4 @@
 #include "responseWriter.hpp"
 #include "requestWriter.hpp"
 
-#endif  // STYXE_STYX_HPP
+#endif  // STYXE_STYXE_HPP

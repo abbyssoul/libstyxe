@@ -77,7 +77,7 @@ namespace  {  // Internal imlpementation details
 
 struct OkRespose {
     Result<ResponseMessage, Error>
-	operator() () { return Result<ResponseMessage, Error>(types::okTag, in_place, std::move(fcall)); }
+	operator() (Decoder&) { return {types::okTag, std::move(fcall)}; }
 
     ResponseMessage fcall;
 
@@ -89,7 +89,7 @@ struct OkRespose {
 
 struct OkRequest {
     Result<RequestMessage, Error>
-	operator() () { return Result<RequestMessage, Error>(types::okTag, in_place, std::move(fcall)); }
+	operator() (Decoder&) { return {types::okTag, std::move(fcall)}; }
 
     RequestMessage fcall;
 
@@ -111,8 +111,10 @@ Result<ResponseMessage, Error>
 parseErrorResponse(ByteReader& data) {
     Response::Error fcall;
 
-    return Decoder{data}
-            .read(&fcall.ename)
+	Decoder decoder{data};
+	auto result = (decoder >> fcall.ename);
+
+	return result
 			.then(OkRespose{std::move(fcall)});
 }
 
@@ -121,8 +123,12 @@ Result<ResponseMessage, Error>
 parseVersionResponse(ByteReader& data) {
     Response::Version fcall;
 
-    return Decoder{data}
-            .read(&fcall.msize, &fcall.version)
+	Decoder decoder{data};
+
+	Solace::Result<Decoder&, Error> result = (decoder >> fcall.msize);
+	result = std::move(result) >> fcall.version;
+
+	return result
 			.then(OkRespose{std::move(fcall)});
 }
 
@@ -131,8 +137,9 @@ Result<ResponseMessage, Error>
 parseAuthResponse(ByteReader& data) {
     Response::Auth fcall;
 
-    return Decoder{data}
-            .read(&fcall.qid)
+	Decoder decoder{data};
+	auto result = decoder >> fcall.qid;
+	return result
 			.then(OkRespose{std::move(fcall)});
 }
 
@@ -141,8 +148,10 @@ Result<ResponseMessage, Error>
 parseAttachResponse(ByteReader& data) {
     Response::Attach fcall;
 
-    return Decoder{data}
-            .read(&fcall.qid)
+	Decoder decoder{data};
+	auto result = decoder >> fcall.qid;
+
+	return result
 			.then(OkRespose{std::move(fcall)});
 }
 
@@ -151,8 +160,10 @@ Result<ResponseMessage, Error>
 parseOpenResponse(ByteReader& data) {
     Response::Open fcall;
 
-    return Decoder{data}
-            .read(&fcall.qid, &fcall.iounit)
+	Decoder decoder{data};
+	Solace::Result<Decoder&, Error> result = (decoder >> fcall.qid >> fcall.iounit);
+
+	return result
 			.then(OkRespose{std::move(fcall)});
 }
 
@@ -161,9 +172,10 @@ Result<ResponseMessage, Error>
 parseCreateResponse(ByteReader& data) {
     Response::Create fcall;
 
-    return Decoder{data}
-            .read(&fcall.qid, &fcall.iounit)
-			.then(OkRespose{std::move(fcall)});
+	Decoder decoder{data};
+	auto result = decoder >> fcall.qid
+						  >> fcall.iounit;
+	return result.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -171,9 +183,9 @@ Result<ResponseMessage, Error>
 parseReadResponse(ByteReader& data) {
     Response::Read fcall;
 
-    return Decoder{data}
-            .read(&fcall.data)
-			.then(OkRespose{std::move(fcall)});
+	Decoder decoder{data};
+	auto result = decoder >> fcall.data;
+	return result.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -181,9 +193,9 @@ Result<ResponseMessage, Error>
 parseWriteResponse(ByteReader& data) {
     Response::Write fcall;
 
-    return Decoder{data}
-            .read(&fcall.count)
-			.then(OkRespose{std::move(fcall)});
+	Decoder decoder{data};
+	auto result = decoder >> fcall.count;
+	return result.then(OkRespose{std::move(fcall)});
 }
 
 
@@ -191,8 +203,10 @@ Result<ResponseMessage, Error>
 parseStatResponse(ByteReader& data) {
     Response::Stat fcall;
 
-    return Decoder{data}
-            .read(&fcall.dummySize, &fcall.data)
+	Decoder decoder{data};
+	auto result = decoder >> fcall.dummySize
+						  >> fcall.data;
+	return result
 			.then(OkRespose{std::move(fcall)});
 }
 
@@ -204,17 +218,12 @@ parseWalkResponse(ByteReader& data) {
     Decoder decoder{data};
 
     // FIXME: Non-sense!
-	return decoder.read(&fcall.nqids)
-			.then([&]() -> Result<void, Error> {
-				for (decltype(fcall.nqids) i = 0; i < fcall.nqids; ++i) {
-					auto r = decoder.read(&(fcall.qids[i]));
-                    if (!r) {
-						return r.moveError();
-                    }
-                }
+	auto result = decoder >> fcall.nqids;
+	for (decltype(fcall.nqids) i = 0; i < fcall.nqids && result; ++i) {
+		result = decoder >> fcall.qids[i];
+	}
 
-                return Ok();
-            })
+	return result
 			.then(OkRespose{std::move(fcall)});
 }
 
@@ -226,35 +235,47 @@ parseWalkResponse(ByteReader& data) {
 Result<RequestMessage, Error>
 parseVersionRequest(ByteReader& data) {
     auto msg = Request::Version{};
-    return Decoder{data}
-            .read(&msg.msize, &msg.version)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.msize
+						  >> msg.version;
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseAuthRequest(ByteReader& data) {
     auto msg = Request::Auth{};
-    return Decoder{data}
-            .read(&msg.afid, &msg.uname, &msg.aname)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.afid
+						  >> msg.uname
+						  >> msg.aname;
+
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseFlushRequest(ByteReader& data) {
     auto msg = Request::Flush{};
-    return Decoder{data}
-            .read(&msg.oldtag)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.oldtag;
+
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseAttachRequest(ByteReader& data) {
     auto msg = Request::Attach{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.afid, &msg.uname, &msg.aname)
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.afid
+						  >> msg.uname
+						  >> msg.aname;
+	return result
             .then(OkRequest(std::move(msg)));
 }
 
@@ -262,32 +283,37 @@ parseAttachRequest(ByteReader& data) {
 Result<RequestMessage, Error>
 parseWalkRequest(ByteReader& data) {
     auto msg = Request::Walk{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.newfid, &msg.path)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.newfid
+						  >> msg.path;
+
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseOpenRequest(ByteReader& data) {
-    byte openMode;
-
     auto msg = Request::Open{};
-    return Decoder{data}
-            .read(&msg.fid, &openMode)
-            .then([&msg, &openMode]() { msg.mode = openMode; })
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.mode.mode;
+	return result
             .then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseCreateRequest(ByteReader& data) {
-    byte openMode;
-
     auto msg = Request::Create{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.name, &msg.perm, &openMode)
-            .then([&msg, &openMode]() { msg.mode = openMode; })
+	Decoder decoder{data};
+
+	auto result = decoder >> msg.fid
+						  >> msg.name
+						  >> msg.perm
+						  >> msg.mode.mode;
+	return result
             .then(OkRequest(std::move(msg)));
 }
 
@@ -295,54 +321,66 @@ parseCreateRequest(ByteReader& data) {
 Result<RequestMessage, Error>
 parseReadRequest(ByteReader& data) {
     auto msg = Request::Read{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.offset, &msg.count)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.offset
+						  >> msg.count;
+
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseWriteRequest(ByteReader& data) {
     auto msg = Request::Write{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.offset, &msg.data)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.offset
+						  >> msg.data;
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseClunkRequest(ByteReader& data) {
     auto msg = Request::Clunk{};
-    return Decoder{data}
-            .read(&msg.fid)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid;
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseRemoveRequest(ByteReader& data) {
     auto msg = Request::Remove{};
-    return Decoder{data}
-            .read(&msg.fid)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid;
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseStatRequest(ByteReader& data) {
     auto msg = Request::StatRequest{};
-    return Decoder{data}
-            .read(&msg.fid)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid;
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
 Result<RequestMessage, Error>
 parseWStatRequest(ByteReader& data) {
     auto msg = Request::WStat{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.stat)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.stat;
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 
@@ -350,25 +388,37 @@ parseWStatRequest(ByteReader& data) {
 Result<RequestMessage, Error>
 parseSessionRequest(ByteReader& data) {
     auto msg = Request_9P2000E::Session{};
-    return Decoder{data}
-            .read(&(msg.key[0]), &(msg.key[1]), &(msg.key[2]), &(msg.key[3]),
-                  &(msg.key[4]), &(msg.key[5]), &(msg.key[6]), &(msg.key[7]))
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.key[0]
+			>> msg.key[1]
+			>> msg.key[2]
+			>> msg.key[3]
+			>> msg.key[4]
+			>> msg.key[5]
+			>> msg.key[6]
+			>> msg.key[7];
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 Result<RequestMessage, Error>
 parseShortReadRequest(ByteReader& data) {
     auto msg = Request_9P2000E::SRead{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.path)
-            .then(OkRequest(std::move(msg)));
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.path;
+	return result
+			.then(OkRequest(std::move(msg)));
 }
 
 Result<RequestMessage, Error>
 parseShortWriteRequest(ByteReader& data) {
     auto msg = Request_9P2000E::SWrite{};
-    return Decoder{data}
-            .read(&msg.fid, &msg.path, &msg.data)
+	Decoder decoder{data};
+	auto result = decoder >> msg.fid
+						  >> msg.path
+						  >> msg.data;
+	return result
             .then(OkRequest(std::move(msg)));
 }
 
@@ -389,7 +439,7 @@ Parser::parseMessageHeader(ByteReader& src) const {
     Decoder decoder{src};
     MessageHeader header;
 
-    decoder.read(&header.messageSize);
+	decoder >> header.messageSize;
 
     // Sanity checks:
     if (header.messageSize < mandatoryHeaderSize) {
@@ -403,7 +453,7 @@ Parser::parseMessageHeader(ByteReader& src) const {
 
     // Read message type:
     byte messageBytecode{0};
-    decoder.read(&messageBytecode);
+	decoder >> messageBytecode;
     // don't want any funny messages.
     header.type = static_cast<MessageType>(messageBytecode);
     if (header.type < MessageType::_beginSupportedMessageCode ||
@@ -413,7 +463,7 @@ Parser::parseMessageHeader(ByteReader& src) const {
 
     // Read message tag. Tags are provided by the client and can not be checked by the message parser.
     // Unless we are provided with the expected tag...
-    decoder.read(&header.tag);
+	decoder >> header.tag;
 
 	return Ok(header);
 }
@@ -430,12 +480,13 @@ Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
     }
 
     // Make sure we have been given enough data to read a message as requested in the message size.
-    if (expectedData > data.remaining()) {
+	auto const bytesRemaining = data.remaining();
+	if (expectedData > bytesRemaining) {
 		return getCannedError(CannedError::NotEnoughData);
     }
 
     // Make sure there is no extra data in the buffer.
-    if (expectedData < data.remaining()) {
+	if (expectedData < bytesRemaining) {
 		return getCannedError(CannedError::MoreThenExpectedData);
     }
 
@@ -460,7 +511,6 @@ Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
     case MessageType::RWStat:   return parseNoDataResponse<Response::WStat>();
     case MessageType::RSession: return parseNoDataResponse<Response_9P2000E::Session>();
 
-
     default:
 		return getCannedError(CannedError::UnsupportedMessageType);
     }
@@ -468,7 +518,7 @@ Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
 
 Result<RequestMessage, Error>
 Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
-    const auto expectedData = header.payloadSize();
+	auto const expectedData = header.payloadSize();
 
     // Message data sanity check
     // Just paranoid about huge messages exciding frame size getting through.
@@ -477,12 +527,13 @@ Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
     }
 
     // Make sure we have been given enough data to read a message as requested in the message size.
-    if (expectedData > data.remaining()) {
+	auto const bytesRemaining = data.remaining();
+	if (expectedData > bytesRemaining) {
 		return getCannedError(CannedError::NotEnoughData);
     }
 
     // Make sure there is no extra unexpected data in the buffer.
-    if (expectedData < data.remaining()) {
+	if (expectedData < bytesRemaining) {
 		return getCannedError(CannedError::MoreThenExpectedData);
     }
 

@@ -18,102 +18,119 @@
 
 
 using namespace Solace;
-using namespace styxe;
+
+using styxe::Decoder;
+using styxe::Qid;
+using styxe::WalkPath;
+using styxe::Stat;
 
 
-Result<void, Error>
-Decoder::read(uint8* dest) {
-	return _src.readLE(*dest);
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, uint8& dest) {
+	decoder.buffer().readLE(dest);
+	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
 
-Result<void, Error>
-Decoder::read(uint16* dest) {
-    return _src.readLE(*dest);
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, uint16& dest) {
+	decoder.buffer().readLE(dest);
+	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
-Result<void, Error>
-Decoder::read(uint32* dest) {
-    return _src.readLE(*dest);
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, uint32& dest) {
+	decoder.buffer().readLE(dest);
+	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
-Result<void, Error>
-Decoder::read(uint64* dest) {
-    return _src.readLE(*dest);
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, uint64& dest) {
+	decoder.buffer().readLE(dest);
+	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
-Result<void, Error>
-Decoder::read(StringView* dest) {
-    uint16 dataSize = 0;
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, StringView& dest) {
+	auto& buffer = decoder.buffer();
 
-    return _src.readLE(dataSize)
-            .then([&]() {
-				StringView view(_src.viewRemaining().dataAs<char const>(), dataSize);
-                return _src.advance(dataSize)
-                        .then([dest, &view]() {
-                            *dest = view;
+	uint16 dataSize = 0;
+	buffer.readLE(dataSize)
+			.then([&]() {
+				StringView view{buffer.viewRemaining().dataAs<char const>(), dataSize};
+				return buffer.advance(dataSize)
+						.then([&dest, &view]() {
+							dest = view;
                         });
             });
+
+	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
-Result<void, Error>
-Decoder::read(Qid* qid) {
-    return read(&qid->type, &qid->version, &qid->path);
-}
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, MemoryView& data) {
+	auto& buffer = decoder.buffer();
+	styxe::size_type dataSize = 0;
 
-
-Result<void, Error>
-Decoder::read(Stat* stat) {
-    return read(&stat->size,
-                &stat->type,
-                &stat->dev,
-                &(stat->qid),
-                &stat->mode,
-                &stat->atime,
-                &stat->mtime,
-                &stat->length,
-                &(stat->name),
-                &(stat->uid),
-                &(stat->gid),
-                &(stat->muid));
-}
-
-
-Result<void, Error>
-Decoder::read(MemoryView* data) {
-    size_type dataSize = 0;
     // Read size of the following data.
-    return read(&dataSize)
-            .then([&]() {
-                if (dataSize <= _src.remaining()) {
-                    // Read the data. Note we only take a view into the actual message buffer.
-                    *data = _src.viewRemaining().slice(0, dataSize);
-                }
-
-                return _src.advance(dataSize);
+	buffer.readLE(dataSize)
+			.then([&]() {
+				data = buffer.viewRemaining().slice(0, dataSize);
+				return buffer.advance(dataSize);
             });
+
+	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
 
-Result<void, Error>
-Decoder::read(MutableMemoryView* data) {
-    return read(static_cast<MemoryView*>(data));
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, MutableMemoryView& data) {
+	return operator>> (decoder, static_cast<MemoryView&>(data));
 }
 
 
-Result<void, Error>
-Decoder::read(WalkPath* path) {
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, WalkPath& path) {
+	auto& buffer = decoder.buffer();
 	WalkPath::size_type componentsCount = 0;
 
-	return read(&componentsCount)
+	buffer.readLE(componentsCount)
 			.then([&]() {
-				*path = WalkPath{componentsCount, _src.viewRemaining()};
+				path = WalkPath{componentsCount, buffer.viewRemaining()};
 				// Advance the byteReader:
 				ByteReader::size_type skip = 0;
-				for (auto segment : *path) {
-					skip += sizeof(var_datum_size_type) + segment.size();
+				for (auto segment : path) {
+					skip += sizeof(styxe::var_datum_size_type) + segment.size();
 				}
 
-				return _src.advance(skip);
+				return buffer.advance(skip);
 			});
+
+	return Result<Decoder&, Error>{types::okTag, decoder};
 }
+
+
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, Qid& qid) {
+	return decoder >> qid.type
+				   >> qid.version
+				   >> qid.path;
+}
+
+
+Result<Decoder&, Error>
+styxe::operator>> (Decoder& decoder, Stat& stat) {
+	return decoder >> stat.size
+				   >> stat.type
+				   >> stat.dev
+				   >> stat.qid
+				   >> stat.mode
+				   >> stat.atime
+				   >> stat.mtime
+				   >> stat.length
+				   >> stat.name
+				   >> stat.uid
+				   >> stat.gid
+				   >> stat.muid;
+}
+

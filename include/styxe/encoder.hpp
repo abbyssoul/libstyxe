@@ -100,6 +100,10 @@ public:
     Encoder(Encoder const&) = delete;
     Encoder& operator= (Encoder const&) = delete;
 
+	/**
+	 * Get underlaying output stream.
+	 * @return Byte stream where data is being written.
+	 */
 	Solace::ByteWriter& buffer() noexcept { return _dest; }
 
 private:

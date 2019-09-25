@@ -24,8 +24,7 @@ namespace styxe {
 /**
  * Helper class to build response messages.
  */
-class ResponseWriter {
-public:
+struct ResponseWriter {
 
 	/**
 	 * @brief Construct a new ResponseWriter.

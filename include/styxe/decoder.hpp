@@ -40,83 +40,162 @@ struct Decoder {
     Decoder(Decoder const&) = delete;
     Decoder& operator= (Decoder const&) = delete;
 
-	/** Decode uint8 value from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
+	/**
+	 * Get underlaying byte stream.
+	 * @return Byte stream where data is read from.
 	 */
-	Solace::Result<void, Error> read(Solace::uint8* dest);
-
-	/** Decode uint16 value from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Solace::uint16* dest);
-
-	/** Decode uint32 value from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Solace::uint32* dest);
-
-	/** Decode uint64 value from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Solace::uint64* dest);
-
-	/** Decode a *String value from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Solace::StringView* dest);
-
-	/** Decode a raw byte view from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Solace::MemoryView* dest);
-
-	/** Decode a raw byte view from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Solace::MutableMemoryView* dest);
-
-	/** Decode a path view from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(WalkPath* dest);
-
-	/** Decode a file Qid from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Qid* dest);
-
-	/** Decode a Stat struct from the stream.
-	 * @param dest An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-	Solace::Result<void, Error> read(Stat* dest);
-
-	/** Decode a sequence of values from the input stream.
-	 * @param t An address where to store decoded value.
-	 * @param args An address where to store decoded value.
-	 * @return void or Error if operation has failed.
-	 */
-    template<typename T, typename... Args>
-	Solace::Result<void, Error> read(T* t, Args&&... args) {
-		Solace::Result<void, Error> r{Solace::types::okTag};
-		(r = read(t)) && ((r = read(Solace::fwd<Args>(args))) && ...);
-
-		return r;
-    }
+	Solace::ByteReader& buffer() noexcept { return _src; }
 
 private:
 	/// Data stream to read bytes from.
     Solace::ByteReader& _src;
 };
+
+
+
+/** Decode uint8 value from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Solace::uint8& dest);
+
+/** Decode uint16 value from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Solace::uint16& dest);
+
+/** Decode uint32 value from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Solace::uint32& dest);
+
+/** Decode uint64 value from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Solace::uint64& dest);
+
+/** Decode a *String value from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Solace::StringView& dest);
+
+/** Decode a raw byte view from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Solace::MemoryView& dest);
+
+/** Decode a raw byte view from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Solace::MutableMemoryView& dest);
+
+/** Decode a path view from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, WalkPath& dest);
+
+/** Decode a file Qid from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Qid& dest);
+
+/** Decode a Stat struct from the stream.
+ * @param dest An address where to store decoded value.
+ * @return void or Error if operation has failed.
+ */
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Stat& dest);
+
+
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Solace::uint8& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Solace::uint16& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Solace::uint32& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Solace::uint64& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Solace::StringView& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Solace::MemoryView& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Solace::MutableMemoryView& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, WalkPath& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Qid& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
+inline
+Solace::Result<Decoder&, Error>
+operator>> (Solace::Result<Decoder&, Error>&& decoder, Stat& dest) {
+	return (decoder)
+		? (decoder.unwrap() >> dest)
+		: Solace::mv(decoder);
+}
+
 
 }  // namespace styxe
 #endif  // STYXE_DECODER_HPP

@@ -103,15 +103,6 @@ Encoder::protocolSize(MemoryView const& data) noexcept {
             narrow_cast<size_type>(data.size());
 }
 
-
-//Encoder&
-//Encoder::header(Solace::byte customMessageType, Tag tag, size_type payloadSize) {
-//    return encode(headerSize() + payloadSize)
-//            .encode(customMessageType)
-//            .encode(tag);
-//}
-
-
 Encoder&
 styxe::operator<< (Encoder& encoder, uint8 value) {
 	encoder.buffer().writeLE(value);

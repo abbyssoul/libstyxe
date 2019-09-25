@@ -610,18 +610,19 @@ using ResponseMessage = std::variant<
 
 /**
  * An implementation of 9P2000 protocol.
+ *
  * The protocol is state-full as version, supported extentions and messages size are negotiated.
  * Thus this info must be preserved during communication. Instance of this class serves this purpose as well as
  * helps with message parsing.
  *
  * @note The implementation of the protocol does not allocate memory for any operation.
- * Message parser acts on an instanc of the user provided Solace::ReadBuffer and any message data such as
+ * Message parser acts on an instance of the user provided Solace::ByteReader and any message data such as
  * name string or data read from a file is actually a pointer to the underlying ReadBuffer storage.
  * Thus it is user's responsibility to manage lifetime of that buffer.
  * (That is not technically correct as current implementation does allocate memory when dealing with Solace::Path
  * objects as there is no currently availiable PathView version)
  *
- * In order to create 9P2000 messages please @see RequestBuilder.
+ * In order to create 9P2000 messages please @see RequestWriter.
  */
 struct Parser {
 	/** String representing version of protocol. */
