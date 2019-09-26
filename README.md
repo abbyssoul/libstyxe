@@ -31,25 +31,25 @@ It also includes 9P2000.e extension. To learn more about the extension please se
 # Using this library
 
 ### To create 9P message:
-The library is using `Solace::WriteBuffer` / `Solace::ReadBuffer` to read/write byte streams.
+The library is using `Solace::ByteWriter` / `Solace::ByteReader` to read/write byte streams.
 Note that this adaptors do not allocate memory. So the user is responsible for creating a
 buffer of appropriate size to write the resulting message to.
 Note that the size of the target buffer should be no more then negotiated message size for the current session.
 
 
 ```C++
-#include <styxe/9p2000.hpp>
+#include <styxe/styxe.hpp>
 
 ...
-Solace::WriteBuffer buffer(...);
+Solace::ByteWriter buffer{...};
 
 // Write TVersion request into the beffer
-styxe::Protocol::RequestBuilder(destBuffer)
+styxe::RequestBuilder{destBuffer}
             .version();
 ...
 // Write TOpen request into the given destination buffer
-styxe::Protocol::RequestBuilder(destBuffer)
-            .open(42, styxe::Protocol::OpenMode::READ));
+styxe::RequestBuilder{destBuffer}
+            .open(42, styxe::OpenMode::READ));
 
 ```
 
@@ -59,11 +59,12 @@ Parsing of 9P protocol messages differ slightly depending on if you are implemen
 ### Parsing requests (server side):
 ```C++
 
-styxe::Protocol proc{...};
+styxe::Parser parser{...};
 ...
-proc.parseMessageHeader(buffer)
-    .then([&](Protocol::MessageHeader&& header) {
-        return proc.parseRequest(header, buffer)
+Solace::ByteReader buffer{...};
+parser.parseMessageHeader{buffer}
+    .then([&](styxe::MessageHeader&& header) {
+        return parser.parseRequest(header, buffer)
             .then(handleRequest);
     })
     .orElse([](Error&& err) {
@@ -73,11 +74,11 @@ proc.parseMessageHeader(buffer)
 
 ### Parsing response (client side):
 ```C++
-styxe::Protocol proc{...};
+styxe::Parser parser{...};
 ...
-proc.parseMessageHeader(buffer)
-    .then([&](Protocol::MessageHeader&& header) {
-        return proc.parseResponse(header, buffer)
+parser.parseMessageHeader(buffer)
+    .then([&](styxe::MessageHeader&& header) {
+        return parser.parseResponse(header, buffer)
             .then(handleRequest);
     })
     .orElse([](Error&& err) {
