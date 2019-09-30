@@ -400,8 +400,8 @@ TEST_F(P9Messages, parseErrorRespose) {
 	auto const expectedErrorMessage = StringLiteral{"All good!"};
 
 	styxe::Encoder encoder{_writer};
-	encoder << makeHeaderWithPayload(MessageType::RError, 1, styxe::Encoder::protocolSize(expectedErrorMessage));
-	encoder << expectedErrorMessage;
+	encoder << makeHeaderWithPayload(MessageType::RError, 1, styxe::Encoder::protocolSize(expectedErrorMessage))
+			<< static_cast<StringView>(expectedErrorMessage);
 
     _writer.flip();
 

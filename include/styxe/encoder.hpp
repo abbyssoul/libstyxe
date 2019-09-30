@@ -160,7 +160,8 @@ Encoder& operator<< (Encoder& encoder, Solace::MemoryView value);
  * @param value Value to encode.
  * @return Ref to the encoder for fluency.
  */
-inline Encoder& operator<< (Encoder& encoder, Qid value) {
+inline
+Encoder& operator<< (Encoder& encoder, Qid value) {
 	return encoder << value.type
 				   << value.version
 				   << value.path;
@@ -172,7 +173,8 @@ inline Encoder& operator<< (Encoder& encoder, Qid value) {
  * @param value Value to encode.
  * @return Ref to the encoder for fluency.
  */
-inline Encoder& operator<< (Encoder& encoder, Stat const& value) {
+inline
+Encoder& operator<< (Encoder& encoder, Stat const& value) {
 	return encoder << value.size
 				   << value.type
 				   << value.dev
@@ -193,7 +195,8 @@ inline Encoder& operator<< (Encoder& encoder, Stat const& value) {
  * @param value Value to encode.
  * @return Ref to the encoder for fluency.
  */
-inline Encoder& operator<< (Encoder& encoder, MessageType value) {
+inline
+Encoder& operator<< (Encoder& encoder, MessageType value) {
 	return encoder << static_cast<Solace::byte>(value);
 }
 
@@ -202,7 +205,8 @@ inline Encoder& operator<< (Encoder& encoder, MessageType value) {
  * @param value Value to encode.
  * @return Ref to the encoder for fluency.
  */
-inline Encoder& operator<< (Encoder& encoder, MessageHeader value) {
+inline
+Encoder& operator<< (Encoder& encoder, MessageHeader value) {
 	return encoder << value.messageSize
 				   << value.type
 				   << value.tag;
@@ -214,7 +218,8 @@ inline Encoder& operator<< (Encoder& encoder, MessageHeader value) {
  * @param value Value to encode.
  * @return Ref to the encoder for fluency.
  */
-inline Encoder& operator<< (Encoder& encoder, Solace::ArrayView<Qid> value) {
+inline
+Encoder& operator<< (Encoder& encoder, Solace::ArrayView<Qid> value) {
 	// Encode variable datum size first:
 	encoder << Solace::narrow_cast<var_datum_size_type>(value.size());
 
@@ -225,6 +230,13 @@ inline Encoder& operator<< (Encoder& encoder, Solace::ArrayView<Qid> value) {
 
 	return encoder;
 }
+
+template<typename T>
+Solace::Result<Encoder&, Error>
+operator<< (Solace::Result<Encoder&, Error>&& encoder, T value) {
+	return (encoder) ? (encoder.unwrap() << value) : Solace::mv(encoder);
+}
+
 
 }  // namespace styxe
 #endif  // STYXE_ENCODER_HPP

@@ -482,7 +482,7 @@ struct Response {
 	/// Read resopose
 	struct Read {
 		/// View in to the response buffer where raw read data is.
-		Solace::MutableMemoryView data;
+		Solace::MemoryView data;
 	};
 
 	/// Write response

@@ -67,6 +67,7 @@ styxe::operator>> (Decoder& decoder, StringView& dest) {
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
+
 Result<Decoder&, Error>
 styxe::operator>> (Decoder& decoder, MemoryView& data) {
 	auto& buffer = decoder.buffer();
@@ -80,12 +81,6 @@ styxe::operator>> (Decoder& decoder, MemoryView& data) {
             });
 
 	return Result<Decoder&, Error>{types::okTag, decoder};
-}
-
-
-Result<Decoder&, Error>
-styxe::operator>> (Decoder& decoder, MutableMemoryView& data) {
-	return operator>> (decoder, static_cast<MemoryView&>(data));
 }
 
 
