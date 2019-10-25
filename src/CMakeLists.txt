@@ -1,12 +1,17 @@
 
 set(SOURCE_FILES
-        9p2000.cpp
-        debug.cpp
-        decoder.cpp
-        encoder.cpp
-        requestWriter.cpp
-        responseWriter.cpp
-        )
+    encoder.cpp
+    decoder.cpp
+    debug.cpp
+    errorDomain.cpp
+
+    9p2000.cpp
+    9p2000_writer.cpp
+    9p2000e.cpp
+#    9p2000l.cpp
+    messageWriter.cpp
+    messageParser.cpp
+    )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${CONAN_LIBS})

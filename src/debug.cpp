@@ -14,10 +14,10 @@
 *  limitations under the License.
 */
 
-#include "styxe/9p2000.hpp"
 #include "styxe/print.hpp"
 
-#include <ostream>
+#include "styxe/9p2000.hpp"
+#include "styxe/9p2000e.hpp"
 
 
 namespace styxe {
@@ -53,17 +53,24 @@ namespace styxe {
         case MessageType::RStat:    ostr << "RStat"; break;
         case MessageType::TWStat:   ostr << "TWStat"; break;
         case MessageType::RWStat:   ostr << "RWStat"; break;
-
-        case MessageType::TSession: ostr << "TSession"; break;
-        case MessageType::RSession: ostr << "RSession"; break;
-        case MessageType::TSRead:   ostr << "TSRead"; break;
-        case MessageType::RSRead:   ostr << "RSRead"; break;
-        case MessageType::TSWrite:  ostr << "TSWrite"; break;
-        case MessageType::RSWrite:  ostr << "RSWrite"; break;
-        default:
-            ostr << "[Unknown value '" << static_cast<Solace::byte>(t) << "']";
+//        default:
+//            ostr << "[Unknown value '" << static_cast<Solace::byte>(t) << "']";
         }
 
         return ostr;
     }
+
+	std::ostream& operator<< (std::ostream& ostr, _9P2000E::MessageType t) {
+		switch (t) {
+		case _9P2000E::MessageType::TSession: ostr << "TSession"; break;
+		case _9P2000E::MessageType::RSession: ostr << "RSession"; break;
+		case _9P2000E::MessageType::TShortRead:   ostr << "TSRead"; break;
+		case _9P2000E::MessageType::RShortRead:   ostr << "RSRead"; break;
+		case _9P2000E::MessageType::TShortWrite:  ostr << "TSWrite"; break;
+		case _9P2000E::MessageType::RShortWrite:  ostr << "RSWrite"; break;
+		}
+
+		return ostr;
+	}
+
 }  // end of namespace styxe

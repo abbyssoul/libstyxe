@@ -17,64 +17,31 @@
 #ifndef STYXE_9P2000_HPP
 #define STYXE_9P2000_HPP
 
-#include <solace/stringView.hpp>
-#include <solace/string.hpp>
-#include <solace/byteReader.hpp>
-#include <solace/byteWriter.hpp>
-#include <solace/variableSpan.hpp>
+#include "decoder.hpp"
 
+#include "errorDomain.hpp"
+#include "9p.hpp"
+#include "messageWriter.hpp"
+
+
+#include <solace/arrayView.hpp>
+#include <solace/string.hpp>   // Error.toString() is partial without it
 #include <solace/result.hpp>
-#include <solace/error.hpp>
-
 
 #include <variant>
 
 
 namespace styxe {
 
-/** Error type used to represent runtime error by the library */
-using Error = Solace::Error;
 
-/** Network protocol uses fixed width int32 to represent size of data in bytes */
-using size_type = Solace::uint32;
-
-/** Network protocol uses fixed width int16 to represent variable datum size */
-using var_datum_size_type = Solace::uint16;
-
-/** Type of message Tag */
-using Tag = Solace::uint16;
-
-/** Type of file identifiers client uses to identify a ``current file`` on the server*/
-using Fid = Solace::uint32;
-
-/** A contigues sequence of string used by the protocol to encode a path */
-using WalkPath = Solace::VariableSpan<Solace::StringView, var_datum_size_type, Solace::EncoderType::LittleEndian>;
-
-
-/** Error category for protocol specific errors */
-extern Solace::AtomValue const kProtocolErrorCatergory;
-
+/// Protocol version literal
+extern const Solace::StringLiteral kProtocolVersion;
 
 /**
- * Enum class for protocol error codes.
+ * Minimum frame size that can used by the protocol.
+ * @note: server/client should negotiate actual frame size that is larger then that.
  */
-enum class CannedError : int {
-		IllFormedHeader = 0,
-		IllFormedHeader_FrameTooShort,
-		IllFormedHeader_TooBig,
-		UnsupportedMessageType,
-		NotEnoughData,
-		MoreThenExpectedData,
-};
-
-/**
- * Get canned error from the protocol error code.
- * @param errorId Error code of the canned error.
- * @return Error object for the error category
- */
-Error getCannedError(CannedError errorId) noexcept;
-
-
+extern const size_type kMinMesssageSize;
 
 /**
  * Maximum frame size that can transmitted by the protocol.
@@ -121,22 +88,15 @@ struct OpenMode {
 };
 
 
+inline
+bool operator== (OpenMode lhs, OpenMode rhs) noexcept { return (lhs.mode == rhs.mode); }
+inline
+bool operator!= (OpenMode lhs, OpenMode rhs) noexcept { return (lhs.mode != rhs.mode); }
+inline
+bool operator== (OpenMode lhs, Solace::byte rhs) noexcept { return (lhs.mode == rhs); }
+inline
+bool operator== (Solace::byte lhs, OpenMode rhs) noexcept { return (lhs == rhs.mode); }
 
-/**
- * Qid's type as encoded into bit vector corresponding to the high 8 bits of the file's mode word.
- * Represents the type of a file (directory, etc.).
- * @see Qid.type
- */
-enum class QidType : Solace::byte {
-	DIR    = 0x80,  //!< directories
-	APPEND = 0x40,  //!< append only files
-	EXCL   = 0x20,  //!< exclusive use files
-	MOUNT  = 0x10,  //!< mounted channel
-	AUTH   = 0x08,  //!< authentication file (afid)
-	TMP    = 0x04,  //!< non-backed-up file
-	LINK   = 0x02,  //!< bit for symbolic link (Unix, 9P2000.u)
-	FILE   = 0x00,  //!< bits for plain file
-};
 
 
 /* bits in Stat.mode */
@@ -163,17 +123,47 @@ enum class DirMode : Solace::uint32 {
 
 
 /**
+ * Qid's type as encoded into bit vector corresponding to the high 8 bits of the file's mode word.
+ * Represents the type of a file (directory, etc.).
+ * @see Qid.type
+ */
+enum class QidType : Solace::byte {
+	DIR    = 0x80,  //!< directories
+	APPEND = 0x40,  //!< append only files
+	EXCL   = 0x20,  //!< exclusive use files
+	MOUNT  = 0x10,  //!< mounted channel
+	AUTH   = 0x08,  //!< authentication file (afid)
+	TMP    = 0x04,  //!< non-backed-up file
+	LINK   = 0x02,  //!< bit for symbolic link (Unix, 9P2000.u)
+	FILE   = 0x00,  //!< bits for plain file
+};
+
+
+/**
  * The qid represents the server's unique identification for the file being accessed:
  * two files on the same server hierarchy are the same if and only if their qids are the same.
  */
 struct Qid {
-	Solace::byte	type;		  //!< Type of the file this qid referse to. @see DirMode for details.
-	Solace::uint32	version;	  //!< Version of the file if FS supports file versioning.
 	Solace::uint64  path;		  //!< Unique identifier of a file used by the server.
+	Solace::uint32	version;	  //!< Version of the file if FS supports file versioning.
+	Solace::byte	type;		  //!< Type of the file this qid referse to. @see DirMode for details.
 };
 
+
+inline
+bool operator== (Qid const& lhs, Qid const& rhs) noexcept {
+	return (lhs.path == rhs.path &&
+			lhs.version == rhs.version &&
+			lhs.type == rhs.type);
+}
+
+inline
+bool operator!= (Qid const& lhs, Qid const& rhs) noexcept {
+		return !(lhs == rhs);
+}
+
 /**
- * Stat about a file on the server.
+ * Metadata record about about a file on the server.
  */
 struct Stat {
 	Solace::uint16      size;       //!< Total byte count of the following data
@@ -189,6 +179,28 @@ struct Stat {
 	Solace::StringView  gid;        //!< group name
 	Solace::StringView  muid;       //!< name of the user who last modified the file
 };
+
+
+inline
+bool operator== (Stat const& lhs, Stat const& rhs) noexcept {
+	return (lhs.atime == rhs.atime &&
+			lhs.dev == rhs.dev &&
+			lhs.gid == rhs.gid &&
+			lhs.length == rhs.length &&
+			lhs.mode == rhs.mode &&
+			lhs.mtime == rhs.mtime &&
+			lhs.name == rhs.name &&
+			lhs.qid == rhs.qid &&
+			lhs.size == rhs.size &&
+			lhs.type == rhs.type &&
+			lhs.uid == rhs.uid);
+}
+
+inline
+bool operator!= (Stat const& lhs, Stat const& rhs) noexcept {
+	return !(lhs == rhs);
+}
+
 
 
 /**
@@ -225,59 +237,8 @@ enum class MessageType : Solace::byte {
 	TWStat = 126,
 	RWStat,
 
-	/**
-	 * 9P2000.e extension
-	 */
-	TSession = 150,
-	RSession,
-	TSRead = 152,
-	RSRead,
-	TSWrite = 154,
-	RSWrite,
-
-	_endSupportedMessageCode
+	_endSupportedMessageCode = RWStat
 };
-
-
-/**
- * Fixed size common message header that all messages start with
- */
-struct MessageHeader {
-	size_type       messageSize;    //!< Size of the message including size of the header and size field itself
-	MessageType     type;           //!< Type of the message. @see MessageType.
-	Tag             tag;            //!< Message tag for concurrent messages.
-
-	/**
-	 * @brief Get the estimated payload size in bytes.
-	 * @return Payload size in bytes.
-	 */
-	constexpr size_type payloadSize() const noexcept;
-};
-
-
-/**
- * Get size in bytes of the mandatory protocol message header.
- * @see MessageHeader
- * @return Size in bytes of the mandatory protocol message header.
- */
-inline constexpr size_type headerSize() noexcept {
-	// Note: don't use sizeof(MessageHeader) due to possible padding
-	return  sizeof(MessageHeader::messageSize) +
-					sizeof(MessageHeader::type) +
-					sizeof(MessageHeader::tag);
-}
-
-constexpr size_type MessageHeader::payloadSize() const noexcept {
-	// Do we care about negative sizes?
-	return messageSize - headerSize();
-}
-
-
-inline
-MessageHeader makeHeaderWithPayload(MessageType type, Tag tag, size_type payloadSize) noexcept {
-	return { headerSize() + payloadSize, type, tag };
-}
-
 
 
 /**
@@ -357,9 +318,9 @@ struct Request {
 	 * The file must be opened for reading.
 	 */
 	struct Read {
-		Fid             fid;        //!< The file to read from, which must be opened for reading.
-		Solace::uint64  offset;     //!< Starting offset bytes after the beginning of the file to read from.
-		Solace::uint32  count;      //!< Number of bytes to read.
+		Fid					fid;        //!< The file to read from, which must be opened for reading.
+		Solace::uint64		offset;     //!< Starting offset bytes after the beginning of the file to read from.
+		Solace::uint32		count;      //!< Number of bytes to read.
 	};
 
 	/**
@@ -367,9 +328,9 @@ struct Request {
 	 * The file must be opened for writing.
 	 */
 	struct Write {
-		Fid                         fid;        //!< The file to write into.
-		Solace::uint64              offset;     //!< Starting offset bytes after the beginning of the file.
-		Solace::MemoryView data;       //!< A data to be written into the file.
+		Fid					fid;        //!< The file to write into.
+		Solace::uint64		offset;     //!< Starting offset bytes after the beginning of the file.
+		Solace::MemoryView	data;       //!< A data to be written into the file.
 	};
 
 	/**
@@ -390,7 +351,7 @@ struct Request {
 	/**
 	 * The stat transaction inquires about the file identified by fid.
 	 */
-	struct StatRequest {
+	struct Stat {
 		Fid        fid;     //!< File to enquire about.
 	};
 
@@ -398,32 +359,10 @@ struct Request {
 	 * A request to update file stat fields.
 	 */
 	struct WStat {
-		Fid         fid;    //!< Fid of the file to update stats on.
-		Stat        stat;   //!< New stats to update file info to.
-	};
-};
-
-
-/// 9P2000 protocol Erlang extension new messages
-struct Request_9P2000E {
-
-	/// A request to re-establish a session.
-	struct Session {
-		Solace::byte key[8];    //!< A key of the previously established session.
+		Fid					fid;    //!< Fid of the file to update stats on.
+		::styxe::Stat		stat;   //!< New stats to update file info to.
 	};
 
-	/// A request to read entire file contents.
-	struct SRead {
-		Fid             fid;    //!< Fid of the root directory to walk the path from.
-		WalkPath		path;   //!< A path to the file to be read.
-	};
-
-	/// A request to overwrite file contents.
-	struct SWrite {
-		Fid			        fid;    //!< Fid of the root directory to walk the path from.
-		WalkPath			path;   //!< A path to the file to be read.
-		Solace::MemoryView	data;   //!< A data to be written into the file.
-	};
 };
 
 
@@ -504,71 +443,11 @@ struct Response {
 
 	/// Write stats resopose
 	struct WStat {};
+
 };
 
 
-/// 9P2000 protocol Erlang extension new messages
-struct Response_9P2000E {
-	/// Session re-establishment response
-	struct Session {};
-};
-
-
-/**
-* Helper type used to represent a message being built.
-*/
-struct TypedWriter {
-
-	/** Constructs a new TypedWriter
-	 * @param buffer A byte stream to write the resulting message to.
-	 * @param pos A position in the stream where the message header has been written.
-	 * @param header Message header.
-	 */
-	constexpr TypedWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader header) noexcept
-		: _buffer{buffer}
-		, _pos{pos}
-		, _header{header}
-	{}
-
-	/**
-	 * Get underlying bytes writer used to write all data.
-	 * @return ByteWriter stream
-	 */
-	constexpr Solace::ByteWriter& buffer() noexcept { return _buffer; }
-
-	/** Finalize the message build.
-	* @return ByteWriter stream
-	*/
-	Solace::ByteWriter& build();
-
-	/** Get message tag.
-	 * @return Get message tag.
-	 */
-	constexpr Tag tag() const noexcept { return _header.tag; }
-
-	/** Get the message type.
-	 * @return Get the message type.
-	 */
-	constexpr MessageType type() const noexcept { return _header.type; }
-
-	/** Get current estimated payload size in bytes.
-	 * @return Get current estimated payload size in bytes.
-	 */
-	constexpr size_type payloadSize() const noexcept { return _header.payloadSize(); }
-
-private:
-	/// Byte writer where all data goes
-	Solace::ByteWriter&				_buffer;
-
-	/// Current position in the write stream where the message header starts
-	Solace::ByteWriter::size_type	_pos;
-
-	/// Message header
-	MessageHeader					_header;
-};
-
-
-/// Type representing request message
+/*
 using RequestMessage = std::variant<
 							Request::Version,
 							Request::Auth,
@@ -581,11 +460,8 @@ using RequestMessage = std::variant<
 							Request::Write,
 							Request::Clunk,
 							Request::Remove,
-							Request::StatRequest,
-							Request::WStat,
-							Request_9P2000E::Session,
-							Request_9P2000E::SRead,
-							Request_9P2000E::SWrite
+							Request::Stat,
+							Request::WStat
 							>;
 
 /// Type representing response message
@@ -603,170 +479,9 @@ using ResponseMessage = std::variant<
 							Response::Clunk,
 							Response::Remove,
 							Response::Stat,
-							Response::WStat,
-							Response_9P2000E::Session
+							Response::WStat
 							>;
-
-
-/**
- * An implementation of 9P2000 protocol.
- *
- * The protocol is state-full as version, supported extentions and messages size are negotiated.
- * Thus this info must be preserved during communication. Instance of this class serves this purpose as well as
- * helps with message parsing.
- *
- * @note The implementation of the protocol does not allocate memory for any operation.
- * Message parser acts on an instance of the user provided Solace::ByteReader and any message data such as
- * name string or data read from a file is actually a pointer to the underlying ReadBuffer storage.
- * Thus it is user's responsibility to manage lifetime of that buffer.
- * (That is not technically correct as current implementation does allocate memory when dealing with Solace::Path
- * objects as there is no currently availiable PathView version)
- *
- * In order to create 9P2000 messages please @see RequestWriter.
- */
-struct Parser {
-	/** String representing version of protocol. */
-	static const Solace::StringLiteral PROTOCOL_VERSION;
-
-	/** String const for unknow version. */
-	static const Solace::StringLiteral UNKNOWN_PROTOCOL_VERSION;
-
-	/** Special value of a message tag representing 'no tag'. */
-	static const Tag NO_TAG;
-
-	/** Special value of a message FID representing 'no Fid'. */
-	static const Fid NOFID;
-
-	/// Default destructor
-	~Parser() noexcept = default;
-
-	Parser(Parser const& ) = delete;
-	Parser& operator= (Parser const& ) = delete;
-
-	/**
-	 * Construct a new instance of the protocol.
-	 * Usually one would create an instance per connection as protocol stores state per estanblished session.
-	 * @param maxMassageSize Maximum message size in bytes. This will be used by during version and size negotiation.
-	 * @param version Supported protocol version. This is advertized by the protocol during version/size negotiation.
-	 */
-	Parser(size_type maxMassageSize = kMaxMesssageSize,
-		   Solace::StringView version = PROTOCOL_VERSION) noexcept
-		: _maxMassageSize{maxMassageSize}
-		, _maxNegotiatedMessageSize{maxMassageSize}
-		, _initialVersion{version}
-		, _negotiatedVersion{makeString(version).unwrap()}
-	{
-	}
-
-	/**
-	 * Get maximum message size supported by the protocol instance.
-	 * @return Maximum message size in bytes.
-	 */
-	constexpr size_type maxPossibleMessageSize() const noexcept {
-		return _maxMassageSize;
-	}
-
-	/**
-	 * Get negotiated message size to be used in an established session.
-	 * @return Negotiated message size in bytes.
-	 */
-	constexpr size_type maxNegotiatedMessageSize() const noexcept {
-		return _maxNegotiatedMessageSize;
-	}
-
-	/**
-	 * Set negotiated message size.
-	 * @param newMessageSize Size of the message in bytes. This is maximum size of the message that will be communicated
-	 * @return Actually set message size which may be less then requested if requested message size was more then max.
-	 */
-	size_type maxNegotiatedMessageSize(size_type newMessageSize);
-
-	/**
-	 * Get negotiated protocol version effective for the estanblished session.
-	 * @return Negotiated version string.
-	 */
-	constexpr Solace::String const& getNegotiatedVersion() const noexcept {
-		return _negotiatedVersion;
-	}
-
-	/**
-	 * Set negotiated protocol version.
-	 * @param version A new negotited protocol version.
-	 */
-	void setNegotiatedVersion(Solace::String&& version) noexcept {
-		_negotiatedVersion = Solace::mv(version);
-	}
-
-	/**
-	 * Parse 9P message header from a byte byffer.
-	 * @param buffer Byte buffer to read message header from.
-	 * @return Resulting message header if parsed successfully or an error otherwise.
-	 */
-	Solace::Result<MessageHeader, Error>
-	parseMessageHeader(Solace::ByteReader& buffer) const;
-
-	/**
-	 * Parse 9P Response type message from a byte byffer.
-	 * This is the primiry method used by a client to parse response from the server.
-	 *
-	 * @param header Message header.
-	 * @param data Byte buffer to read message content from.
-	 * @return Resulting message if parsed successfully or an error otherwise.
-	 */
-	Solace::Result<ResponseMessage, Error>
-	parseResponse(MessageHeader const& header, Solace::ByteReader& data) const;
-
-	/**
-	 * Parse 9P Request type message from a byte byffer.
-	 * This is the primiry method used by a server implementation to parse requests from a client.
-
-	 * @param header Message header.
-	 * @param data Byte buffer to read message content from.
-	 * @return Resulting message if parsed successfully or an error otherwise.
-	 */
-	Solace::Result<RequestMessage, Error>
-	parseRequest(MessageHeader const& header, Solace::ByteReader& data) const;
-
-private:
-
-	size_type const         _maxMassageSize;                /// Initial value of the maximum message size in bytes.
-	size_type               _maxNegotiatedMessageSize;      /// Negotiated value of the maximum message size in bytes.
-
-	Solace::StringView const    _initialVersion;            /// Initial value of the used protocol version.
-	Solace::String              _negotiatedVersion;         /// Negotiated value of the protocol version.
-};
-
-
-inline
-bool operator== (OpenMode lhs, Solace::byte rhs) noexcept { return (lhs.mode == rhs); }
-inline
-bool operator== (Solace::byte lhs, OpenMode rhs) noexcept { return (lhs == rhs.mode); }
-inline
-bool operator== (OpenMode lhs, OpenMode rhs) noexcept { return (lhs.mode == rhs.mode); }
-
-
-inline
-bool operator == (Qid const& lhs, Qid const& rhs) noexcept {
-		return (lhs.path == rhs.path &&
-						lhs.version == rhs.version &&
-						lhs.type == rhs.type);
-}
-
-
-inline
-bool operator == (Stat const& lhs, Stat const& rhs) noexcept {
-		return (lhs.atime == rhs.atime &&
-						lhs.dev == rhs.dev &&
-						lhs.gid == rhs.gid &&
-						lhs.length == rhs.length &&
-						lhs.mode == rhs.mode &&
-						lhs.mtime == rhs.mtime &&
-						lhs.name == rhs.name &&
-						lhs.qid == rhs.qid &&
-						lhs.size == rhs.size &&
-						lhs.type == rhs.type &&
-						lhs.uid == rhs.uid);
-}
+*/
 
 
 /**
@@ -806,10 +521,10 @@ struct DirListingWriter {
 	 * @param inOffset Number of bytes to skip.
 	 * @param dest Output buffer where resuling data is written.
 	 */
-	constexpr DirListingWriter(Solace::ByteWriter& dest, Solace::uint32 inCount, Solace::uint64 inOffset) noexcept
-			: offset{inOffset}
-			, count{inCount}
-			, _dest{dest}
+	constexpr DirListingWriter(Solace::ByteWriter& dest, Solace::uint32 maxBytes, Solace::uint64 offset = 0) noexcept
+			: _offset{offset}
+			, _maxBytes{maxBytes}
+			, _encoder{dest}
 	{}
 
 	/**
@@ -833,14 +548,416 @@ private:
 	/// Number of bytes traversed so far.
 	Solace::uint64			_bytesTraversed{0};
 	/// Number of bytes to skip before starting to write data.
-	Solace::uint64 const	offset;
+	Solace::uint64 const	_offset;
 	/// Max number of bytes to write.
-	Solace::uint32 const	count;
+	Solace::uint32 const	_maxBytes;
 	/// Number of bytes written.
 	Solace::uint32			_bytesEncoded{0};
 	/// Byte stream to write data to.
-	Solace::ByteWriter& _dest;
+	Encoder					_encoder;
 };
+
+
+size_type protocolSize(Qid const& value) noexcept;
+size_type protocolSize(Stat const& value) noexcept;
+
+
+/** Encode a file Qid into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline
+Encoder& operator<< (Encoder& encoder, Qid value) {
+	return encoder << value.type
+				   << value.version
+				   << value.path;
+
+}
+
+/** Encode a file stats into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline
+Encoder& operator<< (Encoder& encoder, Stat const& value) {
+	return encoder << value.size
+				   << value.type
+				   << value.dev
+				   << value.qid
+				   << value.mode
+				   << value.atime
+				   << value.mtime
+				   << value.length
+				   << value.name
+				   << value.uid
+				   << value.gid
+				   << value.muid;
+}
+
+
+/** Encode a list of qids into the output stream.
+ * @param encoder Encoder used to encode the value.
+ * @param value Value to encode.
+ * @return Ref to the encoder for fluency.
+ */
+inline
+Encoder& operator<< (Encoder& encoder, Solace::ArrayView<Qid> value) {
+	// Encode variable datum size first:
+	encoder << Solace::narrow_cast<var_datum_size_type>(value.size());
+
+	// Datum
+	for (auto const& qid : value) {
+		encoder << qid;
+	}
+
+	return encoder;
+}
+
+inline
+Encoder& operator<< (Encoder& encoder, WalkPath const& path) {
+	// Encode variable datum size first:
+	encoder << path.size();
+	// Datum
+	for (auto segment : path) {
+		encoder << segment;
+	}
+
+	return encoder;
+}
+
+
+/** Decode a file Qid from the stream.
+ * @param decoder A data stream to read a value from.
+ * @param dest An address where to store decoded value.
+ * @return Ref to the decoder or Error if operation has failed.
+ */
+inline
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Qid& dest) {
+	return decoder >> dest.type
+				   >> dest.version
+				   >> dest.path;
+}
+
+
+/** Decode a Stat struct from the stream.
+ * @param decoder A data stream to read a value from.
+ * @param dest An address where to store decoded value.
+ * @return Ref to the decoder or Error if operation has failed.
+ */
+inline
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Stat& dest) {
+	return decoder >> dest.size
+				   >> dest.type
+				   >> dest.dev
+				   >> dest.qid
+				   >> dest.mode
+				   >> dest.atime
+				   >> dest.mtime
+				   >> dest.length
+				   >> dest.name
+				   >> dest.uid
+				   >> dest.gid
+				   >> dest.muid;
+}
+
+
+/**
+ * @brief Create Version response
+ * @param version Protocol version that server can support.
+ * @param maxMessageSize Maximum message size in bytes that a server can support.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Version const& response);
+
+/**
+ * @brief Create Auth response
+ * @param qid Qid of the file to be used for authentication.
+ * @return Typed Message builder for fluent interface.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Auth const& response);
+
+/**
+ * @brief Create error respose.
+ * @param message Error message to communicate back to the client.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Error const& response);
+
+
+/**
+ * @brief Create Flush response.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Flush const& response);
+
+/**
+ * @brief Create attach response.
+ * @param qid Qid of the filesystem a client attached to.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Attach const& response);
+
+/**
+ * @brief Create walk response.
+ * @param qids An array of qids that a server walked through.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Walk const& response);
+
+/**
+ * @brief Create open response.
+ * @param qid Qid of the opened file.
+ * @param iounit Hint for the optimal read/write size.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Open const& response);
+
+/**
+ * @brief Create Create response.
+ * @param qid Qid of the created file.
+ * @param iounit Hint for the optimal read/write size.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Create const& response);
+
+/**
+ * @brief Create Read file respose.
+ * @param data Data read from the file to be sent back to the client.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Read const& response);
+
+/**
+ * @brief Create Write file response.
+ * @param iounit Number of bytes written.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Write const& response);
+
+/**
+ * @brief Create Clunk response.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Clunk const& response);
+
+/**
+ * @brief Create Remove response.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Remove const& response);
+
+/**
+ * @brief Create stat response.
+ * @param value Stat data read about the file.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::Stat const& response);
+
+/**
+ * @brief Create Write Stats.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Response::WStat const& response);
+
+
+/**
+ * Create a version request.
+ * @param version Suggested protocol version.
+ * @param maxMessageSize Suggest maximum size of the protocol message, including mandatory message header.
+ * @return Ref to this for fluent interface.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Version const& response);
+
+/**
+ * @brief Create Auth request.
+ * @param afid User provided fid to be used for auth operations.
+ * @param userName User name to authenticate as.
+ * @param attachName Name of the filesystem to attach / authenticate to.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Auth const& response);
+
+/**
+ * @brief Create a Flush request.
+ * @param oldTransation ID of the transaction to flush.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Flush const& response);
+
+/**
+ * @brief Create Attach request
+ * @param fid User provided fid to be assosiated with attached filesystem.
+ * @param afid Authentication fid used during auth phase.
+ * @param userName User name the use used to authenticate with.
+ * @param attachName Name of the attachment / fs a user has authenticated to.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Attach const& response);
+
+/**
+ * @brief Create Open file request.
+ * @param fid User provided fid to be assosiated with the opened file.
+ * @param mode File open mode. @see OpenMode for details.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Open const& response);
+
+/** Create file Create request.
+ * @param fid User provided fid assosiated with the directory where file to be created.
+ * @param name Name of the file to create.
+ * @param permissions Permissions of the newly created file.
+ * @param mode File open mode. @see OpenMode for details.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Create const& response);
+
+/**
+ * @brief Create Read request
+ * @param fid User provided fid assosiated with a file to read from.
+ * @param offset Offset from the start of the file to read from.
+ * @param count Number of bytes to read from the file.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Read const& response);
+
+/**
+ * @brief Create Write request.
+ * @param fid User provided fid assosiated with a file to write to.
+ * @param offset Offset from the start of the file to read from.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Write const& response);
+
+
+/**
+ * @brief Create Clunk request.
+ * @param fid User provided fid to be forgotten by the server.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Clunk const& response);
+
+/**
+ * @brief Create Remove file request.
+ * @param fid User provided fid assosiated with a file to be removed.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Remove const& response);
+
+/**
+ * @brief Create stat request.
+ * @param fid User provided fid assosiated with a file to query stats for.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Stat const& response);
+
+/**
+ * @brief Cretea WriteStat request.
+ * @param fid User provided fid assosiated with a file to write stats for.
+ * @param stat File stats to be written.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::WStat const& response);
+
+/**
+ * @brief Create Walk request.
+ * @param fid User provided fid assosiated with a file to start the walk from.
+ * @param nfid User provided fid to be assosiated with the file resulting from the walk.
+ * @return Message builder.
+ */
+MessageWriter& operator<< (MessageWriter& writer, Request::Walk const& response);
+
+
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Version& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Auth& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Flush& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Attach& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Walk& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Open& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Create& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Read& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Write& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Clunk& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Remove& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::Stat& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Request::WStat& dest);
+
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Version& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Auth& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Attach& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Error& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Flush& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Walk& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Open& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Create& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Read& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Write& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Clunk& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Remove& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::Stat& dest);
+Solace::Result<Solace::ByteReader&, Error>
+operator>> (Solace::ByteReader& data, Response::WStat& dest);
+
+
+inline constexpr Solace::byte asByte(MessageType type) noexcept {
+	return static_cast<Solace::byte>(type);
+}
+
+inline auto messageCode(Request::Version const& ) noexcept { return asByte(MessageType::TVersion); }
+inline auto messageCode(Request::Auth const& ) noexcept { return asByte(MessageType::TAuth); }
+inline auto messageCode(Request::Flush const& ) noexcept { return asByte(MessageType::TFlush); }
+inline auto messageCode(Request::Attach const& ) noexcept { return asByte(MessageType::TAttach); }
+inline auto messageCode(Request::Walk const& ) noexcept { return asByte(MessageType::TWalk); }
+inline auto messageCode(Request::Open const& ) noexcept { return asByte(MessageType::TOpen); }
+inline auto messageCode(Request::Create const& ) noexcept { return asByte(MessageType::TCreate); }
+inline auto messageCode(Request::Read const& ) noexcept { return asByte(MessageType::TRead); }
+inline auto messageCode(Request::Write const& ) noexcept { return asByte(MessageType::TWrite); }
+inline auto messageCode(Request::Clunk const& ) noexcept { return asByte(MessageType::TClunk); }
+inline auto messageCode(Request::Remove const& ) noexcept { return asByte(MessageType::TRemove); }
+inline auto messageCode(Request::Stat const& ) noexcept { return asByte(MessageType::TStat); }
+inline auto messageCode(Request::WStat const& ) noexcept { return asByte(MessageType::TWStat); }
+
+inline auto messageCode(Response::Version const& ) noexcept { return asByte(MessageType::RVersion); }
+inline auto messageCode(Response::Auth const& ) noexcept { return asByte(MessageType::RAuth); }
+inline auto messageCode(Response::Attach const& ) noexcept { return asByte(MessageType::RAttach); }
+inline auto messageCode(Response::Error const& ) noexcept { return asByte(MessageType::RError); }
+inline auto messageCode(Response::Flush const& ) noexcept { return asByte(MessageType::RFlush); }
+inline auto messageCode(Response::Walk const& ) noexcept { return asByte(MessageType::RWalk); }
+inline auto messageCode(Response::Open const& ) noexcept { return asByte(MessageType::ROpen); }
+inline auto messageCode(Response::Create const& ) noexcept { return asByte(MessageType::RCreate); }
+inline auto messageCode(Response::Read const& ) noexcept { return asByte(MessageType::RRead); }
+inline auto messageCode(Response::Write const& ) noexcept { return asByte(MessageType::RWrite); }
+inline auto messageCode(Response::Clunk const& ) noexcept { return asByte(MessageType::RClunk); }
+inline auto messageCode(Response::Remove const& ) noexcept { return asByte(MessageType::RRemove); }
+inline auto messageCode(Response::Stat const& ) noexcept { return asByte(MessageType::RStat); }
+inline auto messageCode(Response::WStat const& ) noexcept { return asByte(MessageType::RWStat); }
 
 
 }  // end of namespace styxe

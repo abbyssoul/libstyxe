@@ -18,10 +18,11 @@
  * @file: test/test_9PMessageBuilder.cpp
  *
  *******************************************************************************/
-#include "styxe/responseWriter.hpp"  // Class being tested
+#include "styxe/messageWriter.hpp"  // Class being tested
+#include "styxe/messageParser.hpp"
+#include "styxe/9p2000.hpp"
 
-#include <solace/exception.hpp>
-
+#include <solace/memoryManager.hpp>
 #include <gtest/gtest.h>
 
 
@@ -50,10 +51,8 @@ protected:
 
 
 TEST_F(P9MessageBuilder, dirListingMessage) {
-	auto responseWriter = ResponseWriter{_buffer, 1}
-            .read(MemoryView{});  // Prime read request 0 size data!
-
-    DirListingWriter writer{_buffer, 4096, 0};
+	auto responseWriter = MessageWriter{_buffer, 1};
+	responseWriter << Response::Read{};  // Prime read request 0 size data!
 
     Stat testStats[] = {
         {
@@ -76,19 +75,24 @@ TEST_F(P9MessageBuilder, dirListingMessage) {
         stat.size = DirListingWriter::sizeStat(stat);
     }
 
-    for (auto const& stat : testStats) {
+	DirListingWriter writer{responseWriter.encoder().buffer(), 4096};
+	for (auto const& stat : testStats) {
         if (!writer.encode(stat))
             break;
     }
+	ASSERT_EQ(writer.bytesEncoded(), protocolSize(testStats[0]));
 
     auto& buf = responseWriter.build();
     ByteReader reader{buf.viewRemaining()};
 
-    Parser parser;
-    auto maybeHeader = parser.parseMessageHeader(reader);
+	auto maybeParser = createParser(128, kProtocolVersion);
+	ASSERT_TRUE(maybeParser.isOk());
+
+	auto& parser = *maybeParser;
+	auto maybeHeader = parser.parseMessageHeader(reader);
     ASSERT_TRUE(maybeHeader.isOk());
 
-    auto maybeMessage = parser.parseResponse(maybeHeader.unwrap(), reader);
+	auto maybeMessage = parser.parseResponse(*maybeHeader, reader);
     ASSERT_TRUE(maybeMessage.isOk());
 
     auto& message = maybeMessage.unwrap();

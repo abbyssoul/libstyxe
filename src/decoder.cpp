@@ -14,39 +14,43 @@
 *  limitations under the License.
 */
 
-#include <styxe/decoder.hpp>
+#include "styxe/decoder.hpp"
 
 
 using namespace Solace;
-
-using styxe::Decoder;
-using styxe::Qid;
-using styxe::WalkPath;
-using styxe::Stat;
+using namespace styxe;
 
 
 Result<Decoder&, Error>
 styxe::operator>> (Decoder& decoder, uint8& dest) {
-	decoder.buffer().readLE(dest);
+	auto result = decoder.buffer().readLE(dest);
+	if (!result) return result.moveError();
+
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
 
 Result<Decoder&, Error>
 styxe::operator>> (Decoder& decoder, uint16& dest) {
-	decoder.buffer().readLE(dest);
+	auto result = decoder.buffer().readLE(dest);
+	if (!result) return result.moveError();
+
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
 Result<Decoder&, Error>
 styxe::operator>> (Decoder& decoder, uint32& dest) {
-	decoder.buffer().readLE(dest);
+	auto result = decoder.buffer().readLE(dest);
+	if (!result) return result.moveError();
+
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
 Result<Decoder&, Error>
 styxe::operator>> (Decoder& decoder, uint64& dest) {
-	decoder.buffer().readLE(dest);
+	auto result = decoder.buffer().readLE(dest);
+	if (!result) return result.moveError();
+
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
@@ -55,7 +59,7 @@ styxe::operator>> (Decoder& decoder, StringView& dest) {
 	auto& buffer = decoder.buffer();
 
 	uint16 dataSize = 0;
-	buffer.readLE(dataSize)
+	auto result = buffer.readLE(dataSize)
 			.then([&]() {
 				StringView view{buffer.viewRemaining().dataAs<char const>(), dataSize};
 				return buffer.advance(dataSize)
@@ -63,6 +67,8 @@ styxe::operator>> (Decoder& decoder, StringView& dest) {
 							dest = view;
                         });
             });
+
+	if (!result) return result.moveError();
 
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
@@ -74,11 +80,12 @@ styxe::operator>> (Decoder& decoder, MemoryView& data) {
 	styxe::size_type dataSize = 0;
 
     // Read size of the following data.
-	buffer.readLE(dataSize)
+	auto result = buffer.readLE(dataSize)
 			.then([&]() {
 				data = buffer.viewRemaining().slice(0, dataSize);
 				return buffer.advance(dataSize);
             });
+	if (!result) return result.moveError();
 
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
@@ -89,7 +96,7 @@ styxe::operator>> (Decoder& decoder, WalkPath& path) {
 	auto& buffer = decoder.buffer();
 	WalkPath::size_type componentsCount = 0;
 
-	buffer.readLE(componentsCount)
+	auto result = buffer.readLE(componentsCount)
 			.then([&]() {
 				path = WalkPath{componentsCount, buffer.viewRemaining()};
 				// Advance the byteReader:
@@ -101,31 +108,9 @@ styxe::operator>> (Decoder& decoder, WalkPath& path) {
 				return buffer.advance(skip);
 			});
 
+	if (!result) return result.moveError();
+
 	return Result<Decoder&, Error>{types::okTag, decoder};
 }
 
-
-Result<Decoder&, Error>
-styxe::operator>> (Decoder& decoder, Qid& qid) {
-	return decoder >> qid.type
-				   >> qid.version
-				   >> qid.path;
-}
-
-
-Result<Decoder&, Error>
-styxe::operator>> (Decoder& decoder, Stat& stat) {
-	return decoder >> stat.size
-				   >> stat.type
-				   >> stat.dev
-				   >> stat.qid
-				   >> stat.mode
-				   >> stat.atime
-				   >> stat.mtime
-				   >> stat.length
-				   >> stat.name
-				   >> stat.uid
-				   >> stat.gid
-				   >> stat.muid;
-}
 

@@ -18,77 +18,23 @@
 #define STYXE_ENCODER_HPP
 
 
-#include <styxe/9p2000.hpp>
+#include <solace/stringView.hpp>
+#include <solace/byteWriter.hpp>
+
+#include <solace/utils.hpp>  // mv<>
+#include <solace/result.hpp>
+#include <solace/error.hpp>
 
 
 namespace styxe {
+
+/** Network protocol uses fixed width int32 to represent size of data in bytes */
+using size_type = Solace::uint32;
 
 /**
  * Helper class to encode data into the protocol message format.
  */
 struct Encoder {
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Solace::uint8 const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Solace::uint16 const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Solace::uint32 const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Solace::uint64 const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Solace::StringView const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-    static size_type protocolSize(Solace::String const& value) = delete;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Qid const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Stat const& value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Solace::ArrayView<Qid> value) noexcept;
-    /**
-     * Compute the number of bytes in the buffer required to store a given value.
-     * @param value Value to store in the message.
-     * @return Number of bytes required to represent the value given.
-     */
-	static size_type protocolSize(Solace::MemoryView const& value) noexcept;
-
-public:
 
 	/** Construct an Encoder that writes data to the given stream.
 	 * @param dest A byte stream to write data to.
@@ -111,6 +57,16 @@ private:
 	/// Output byte stream to write data to.
     Solace::ByteWriter& _dest;
 };
+
+
+
+size_type protocolSize(Solace::uint8 const& value) noexcept;
+size_type protocolSize(Solace::uint16 const& value) noexcept;
+size_type protocolSize(Solace::uint32 const& value) noexcept;
+size_type protocolSize(Solace::uint64 const& value) noexcept;
+size_type protocolSize(Solace::StringView const& value) noexcept;
+size_type protocolSize(Solace::MemoryView const& value) noexcept;
+
 
 
 /** Encode an uint8 value into the output straam.
@@ -154,89 +110,6 @@ Encoder& operator<< (Encoder& encoder, Solace::StringView value);
  * @return Ref to the encoder for fluency.
  */
 Encoder& operator<< (Encoder& encoder, Solace::MemoryView value);
-
-/** Encode a file Qid into the output stream.
- * @param encoder Encoder used to encode the value.
- * @param value Value to encode.
- * @return Ref to the encoder for fluency.
- */
-inline
-Encoder& operator<< (Encoder& encoder, Qid value) {
-	return encoder << value.type
-				   << value.version
-				   << value.path;
-
-}
-
-/** Encode a file stats into the output stream.
- * @param encoder Encoder used to encode the value.
- * @param value Value to encode.
- * @return Ref to the encoder for fluency.
- */
-inline
-Encoder& operator<< (Encoder& encoder, Stat const& value) {
-	return encoder << value.size
-				   << value.type
-				   << value.dev
-				   << value.qid
-				   << value.mode
-				   << value.atime
-				   << value.mtime
-				   << value.length
-				   << value.name
-				   << value.uid
-				   << value.gid
-				   << value.muid;
-}
-
-
-/** Encode a message type into the output stream.
- * @param encoder Encoder used to encode the value.
- * @param value Value to encode.
- * @return Ref to the encoder for fluency.
- */
-inline
-Encoder& operator<< (Encoder& encoder, MessageType value) {
-	return encoder << static_cast<Solace::byte>(value);
-}
-
-/** Encode a message header into the output stream.
- * @param encoder Encoder used to encode the value.
- * @param value Value to encode.
- * @return Ref to the encoder for fluency.
- */
-inline
-Encoder& operator<< (Encoder& encoder, MessageHeader value) {
-	return encoder << value.messageSize
-				   << value.type
-				   << value.tag;
-
-}
-
-/** Encode a list of qids into the output stream.
- * @param encoder Encoder used to encode the value.
- * @param value Value to encode.
- * @return Ref to the encoder for fluency.
- */
-inline
-Encoder& operator<< (Encoder& encoder, Solace::ArrayView<Qid> value) {
-	// Encode variable datum size first:
-	encoder << Solace::narrow_cast<var_datum_size_type>(value.size());
-
-	// Datum
-	for (auto const& qid : value) {
-		encoder << qid;
-	}
-
-	return encoder;
-}
-
-template<typename T>
-Solace::Result<Encoder&, Error>
-operator<< (Solace::Result<Encoder&, Error>&& encoder, T value) {
-	return (encoder) ? (encoder.unwrap() << value) : Solace::mv(encoder);
-}
-
 
 }  // namespace styxe
 #endif  // STYXE_ENCODER_HPP

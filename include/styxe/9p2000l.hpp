@@ -14,18 +14,28 @@
 *  limitations under the License.
 */
 #pragma once
-#ifndef STYXE_STYXE_HPP
-#define STYXE_STYXE_HPP
+#ifndef STYXE_9P2000L_HPP
+#define STYXE_9P2000L_HPP
 
-// Convenience include header
 
-#include "version.hpp"
+#include "styxe/9p2000.hpp"
 
-#include "9p2000.hpp"
-#include "9p2000e.hpp"
-#include "9p2000l.hpp"
 
-#include "messageWriter.hpp"
-#include "messageParser.hpp"
+namespace styxe {
+namespace _9P2000L {
 
-#endif  // STYXE_STYXE_HPP
+/// Protocol version literal
+extern const Solace::StringLiteral kProtocolVersion;
+
+
+enum class MessageType : Solace::byte {
+	/**
+	 * 9P2000.L extension
+	 */
+};
+
+}  // end of namespace _9P2000L
+
+
+}  // end of namespace styxe
+#endif  // STYXE_9P2000L_HPP

@@ -14,10 +14,7 @@
 *  limitations under the License.
 */
 
-#include "styxe/9p2000.hpp"
-#include "styxe/encoder.hpp"
-#include "styxe/requestWriter.hpp"
-#include "styxe/responseWriter.hpp"
+#include "styxe/styxe.hpp"
 #include "styxe/print.hpp"
 
 #include <solace/array.hpp>

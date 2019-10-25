@@ -14,7 +14,7 @@
 *  limitations under the License.
 */
 
-#include "styxe/9p2000.hpp"
+#include "styxe/styxe.hpp"
 #include "styxe/print.hpp"
 
 #include <vector>

@@ -18,12 +18,16 @@
 #define STYXE_PRINT_HPP
 
 #include "9p2000.hpp"
+#include "9p2000e.hpp"
+#include "9p2000l.hpp"
 
 #include <ostream>
 
 namespace styxe {
 
-    std::ostream& operator<< (std::ostream& ostr, MessageType t);
+std::ostream& operator<< (std::ostream& ostr, MessageType t);
+std::ostream& operator<< (std::ostream& ostr, _9P2000E::MessageType t);
+std::ostream& operator<< (std::ostream& ostr, _9P2000L::MessageType t);
 
 }  // end of namespace styxe
 #endif  // STYXE_PRINT_HPP
