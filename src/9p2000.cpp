@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Copyright 2018 Ivan Ryabov
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,6 @@
 */
 
 #include "styxe/9p2000.hpp"
-#include "styxe/decoder.hpp"
 #include "styxe/messageParser.hpp"
 
 
@@ -57,7 +56,7 @@ decode(ByteReader& data, Args&& ...args) {
 
 Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, Response::Walk& dest) {
-    Decoder decoder{data};
+	Decoder decoder{data};
 
 	// FIXME: Response::Walk can't hold more then 16 qids!
 	auto result = decoder >> dest.nqids;
@@ -197,4 +196,3 @@ Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, Request::WStat& dest) {
 	return decode(data, dest.fid, dest.stat);
 }
-
