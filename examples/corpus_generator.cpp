@@ -146,89 +146,92 @@ int main(int argc, char const **argv) {
 	auto dummyStat = genStats(userName, userName);
 	ByteWriter buffer{memoryResource.unwrap()};
 
-	ResponseWriter responseWriter{buffer};
-	RequestWriter requestWriter{buffer};
 
 	MessageDump dump{*maybeParser, corpusDir};
 
-	dump(requestWriter << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
+	{  /// Dump request messages
+		RequestWriter requestWriter{buffer, 1};
 
-    /// Dump request messages
-	dump(requestWriter << Request::Auth{1, userName, "attachPoint"});
-	dump(requestWriter << Request::Flush{3});
-	dump(requestWriter << Request::Attach{3, 18, userName, "someFile"});
+		dump(requestWriter << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
+		dump(requestWriter << Request::Auth{1, userName, "attachPoint"});
+		dump(requestWriter << Request::Flush{3});
+		dump(requestWriter << Request::Attach{3, 18, userName, "someFile"});
 
+		{
+			byte pathBuffer[3 + 3 + 4 + 2*3];
+			ByteWriter pathWriter{wrapMemory(pathBuffer)};
+			styxe::Encoder encoder{pathWriter};
+			encoder << StringView{"one"}
+					<< StringView{"two"}
+					<< StringView{"file"};
 
-	{
-		byte pathBuffer[3 + 3 + 4 + 2*3];
-		ByteWriter pathWriter{wrapMemory(pathBuffer)};
-		styxe::Encoder encoder{pathWriter};
-		encoder << StringView{"one"}
-				<< StringView{"two"}
-				<< StringView{"file"};
+			dump(requestWriter << Request::Walk{18, 42, WalkPath{3, wrapMemory(pathBuffer)}});
+		}
 
-		dump(requestWriter << Request::Walk{18, 42, WalkPath{3, wrapMemory(pathBuffer)}});
-	}
+		dump(requestWriter << Request::Open{42, OpenMode::READ});
+		dump(requestWriter << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
+		dump(requestWriter << Request::Read{42, 12, 418});
+		dump(requestWriter << Request::Write{24, 12, wrapMemory(data).fill(0xf1)});
+		dump(requestWriter << Request::Clunk{24});
+		dump(requestWriter << Request::Remove{42});
+		dump(requestWriter << Request::Stat{17});
+		dump(requestWriter << Request::WStat{17, dummyStat});
 
-	dump(requestWriter << Request::Open{42, OpenMode::READ});
-	dump(requestWriter << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
-	dump(requestWriter << Request::Read{42, 12, 418});
-	dump(requestWriter << Request::Write{24, 12, wrapMemory(data).fill(0xf1)});
-	dump(requestWriter << Request::Clunk{24});
-	dump(requestWriter << Request::Remove{42});
-	dump(requestWriter << Request::Stat{17});
-	dump(requestWriter << Request::WStat{17, dummyStat});
+		dump(requestWriter << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
+		{
+			byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
+			ByteWriter pathWriter{wrapMemory(pathBuffer)};
+			styxe::Encoder encoder{pathWriter};
+			encoder << StringView{"some"}
+					<< StringView{"location"}
+					<< StringView{"where"}
+					<< StringView{"file"};
 
-	dump(requestWriter << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
-	{
-		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
-		ByteWriter pathWriter{wrapMemory(pathBuffer)};
-		styxe::Encoder encoder{pathWriter};
-		encoder << StringView{"some"}
-				<< StringView{"location"}
-				<< StringView{"where"}
-				<< StringView{"file"};
+			dump(requestWriter << _9P2000E::Request::ShortRead{3, WalkPath{4, wrapMemory(pathBuffer)}});
+		}
+		{
+			byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
+			ByteWriter pathWriter{wrapMemory(pathBuffer)};
+			styxe::Encoder encoder{pathWriter};
+			encoder << StringView{"some"}
+					<< StringView{"location"}
+					<< StringView{"where"}
+					<< StringView{"file"};
 
-		dump(requestWriter << _9P2000E::Request::ShortRead{3, WalkPath{4, wrapMemory(pathBuffer)}});
-	}
-	{
-		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
-		ByteWriter pathWriter{wrapMemory(pathBuffer)};
-		styxe::Encoder encoder{pathWriter};
-		encoder << StringView{"some"}
-				<< StringView{"location"}
-				<< StringView{"where"}
-				<< StringView{"file"};
-
-		dump(requestWriter << _9P2000E::Request::ShortWrite{
-				 3,
-				 WalkPath{4, wrapMemory(pathBuffer)},
-				 wrapMemory(data)});
+			dump(requestWriter << _9P2000E::Request::ShortWrite{
+					 3,
+					 WalkPath{4, wrapMemory(pathBuffer)},
+					 wrapMemory(data)});
+		}
 	}
 
     /// Dump response messages
-	dump(responseWriter << Response::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
-	dump(responseWriter << Response::Auth{randomQid(QidType::AUTH)});
-	dump(responseWriter << Response::Error{"This is a test error. Please move on."});
-	dump(responseWriter << Response::Flush{});
-	dump(responseWriter << Response::Attach{randomQid(QidType::MOUNT)});
-	dump(responseWriter << Response::Walk{3, {
-														randomQid(QidType::FILE),
-														randomQid(QidType::FILE),
-														randomQid(QidType::FILE)}});
+	{
+		ResponseWriter responseWriter{buffer, 1};
 
-	dump(responseWriter << Response::Open{randomQid(QidType::FILE), 4096});
-	dump(responseWriter << Response::Create{randomQid(QidType::FILE), 4096});
-	dump(responseWriter << Response::Read{wrapMemory(data)});
-	dump(responseWriter << Response::Write{616});
-	dump(responseWriter << Response::Clunk{});
-	dump(responseWriter << Response::Remove{});
-	dump(responseWriter << Response::Stat{narrow_cast<var_datum_size_type>(protocolSize(dummyStat)), dummyStat});
-	dump(responseWriter << Response::WStat{});
+		dump(responseWriter << Response::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
+		dump(responseWriter << Response::Auth{randomQid(QidType::AUTH)});
+		dump(responseWriter << Response::Error{"This is a test error. Please move on."});
+		dump(responseWriter << Response::Flush{});
+		dump(responseWriter << Response::Attach{randomQid(QidType::MOUNT)});
+		dump(responseWriter << Response::Walk{3, {
+															randomQid(QidType::FILE),
+															randomQid(QidType::FILE),
+															randomQid(QidType::FILE)}});
 
-	dump(responseWriter << _9P2000E::Response::Session{});
-	dump(responseWriter << _9P2000E::Response::ShortRead{wrapMemory(data)});
-	dump(responseWriter << _9P2000E::Response::ShortWrite{32});
+		dump(responseWriter << Response::Open{randomQid(QidType::FILE), 4096});
+		dump(responseWriter << Response::Create{randomQid(QidType::FILE), 4096});
+		dump(responseWriter << Response::Read{wrapMemory(data)});
+		dump(responseWriter << Response::Write{616});
+		dump(responseWriter << Response::Clunk{});
+		dump(responseWriter << Response::Remove{});
+		dump(responseWriter << Response::Stat{narrow_cast<var_datum_size_type>(protocolSize(dummyStat)), dummyStat});
+		dump(responseWriter << Response::WStat{});
+
+		dump(responseWriter << _9P2000E::Response::Session{});
+		dump(responseWriter << _9P2000E::Response::ShortRead{wrapMemory(data)});
+		dump(responseWriter << _9P2000E::Response::ShortWrite{32});
+	}
 
     return EXIT_SUCCESS;
 }

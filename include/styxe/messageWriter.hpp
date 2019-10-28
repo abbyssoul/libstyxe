@@ -61,18 +61,14 @@ struct MessageWriterBase {
 
    constexpr MessageHeader header() const noexcept { return _header; }
 
-
    Encoder& messageType(Solace::byte type) {
-	   _header.type = type;
-	   return _encoder << _header;
+	   return messageType(type, _header.tag);
    }
-
 
    Encoder& messageType(Solace::byte type, Tag tag) {
 	   _header.type = type;
-	   _header.tag = tag;
 
-	   return _encoder << _header;
+	   return _encoder << MessageHeader{_header.messageSize, _header.type, tag};
    }
 
 private:
