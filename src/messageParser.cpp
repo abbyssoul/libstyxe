@@ -21,7 +21,7 @@ using namespace Solace;
 using namespace styxe;
 
 
-const size_type         styxe::kMaxMesssageSize = 8*1024;      // 8k should be enough for everyone, am I right?
+const size_type         styxe::kMaxMessageSize = 8*1024;      // 8k should be enough for everyone, am I right?
 
 
 
@@ -60,42 +60,6 @@ parseResponse(ByteReader& data) {
 	return Result<ResponseMessage, Error>{types::okTag, std::move(msg)};
 }
 
-/*
-#define DEFINE_PARSER(type, message) \
-	Result<type##Message, Error> \
-	parse##message##type(ByteReader& data)	{ return parse##type<type::message>(data); }
-
-
-DEFINE_PARSER(Request, Version)
-DEFINE_PARSER(Request, Auth)
-DEFINE_PARSER(Request, Attach)
-DEFINE_PARSER(Request, Flush)
-DEFINE_PARSER(Request, Walk)
-DEFINE_PARSER(Request, Open)
-DEFINE_PARSER(Request, Create)
-DEFINE_PARSER(Request, Read)
-DEFINE_PARSER(Request, Write)
-DEFINE_PARSER(Request, Clunk)
-DEFINE_PARSER(Request, Remove)
-DEFINE_PARSER(Request, Stat)
-DEFINE_PARSER(Request, WStat)
-
-
-DEFINE_PARSER(Response, Version)
-DEFINE_PARSER(Response, Error)
-DEFINE_PARSER(Response, Auth)
-DEFINE_PARSER(Response, Attach)
-DEFINE_PARSER(Response, Flush)
-DEFINE_PARSER(Response, Walk)
-DEFINE_PARSER(Response, Open)
-DEFINE_PARSER(Response, Create)
-DEFINE_PARSER(Response, Read)
-DEFINE_PARSER(Response, Write)
-DEFINE_PARSER(Response, Clunk)
-DEFINE_PARSER(Response, Remove)
-DEFINE_PARSER(Response, Stat)
-DEFINE_PARSER(Response, WStat)
-*/
 
 ResponseParseTable getBlankResponseParserTable() {
 	ResponseParseTable table;
@@ -169,19 +133,49 @@ ResponseParseTable getResponseParserTable() {
 	return table;
 }
 
+StringView messageTypeToString(byte type) {
+	if (type < static_cast<byte>(styxe::MessageType::_beginSupportedMessageCode) ||
+		type > static_cast<byte>(styxe::MessageType::_endSupportedMessageCode) ) {
+		return "Unsupported";
+	}
+
+	auto mType = static_cast<styxe::MessageType>(type);
+	switch (mType) {
+	case MessageType::TVersion: return "TVersion";
+	case MessageType::RVersion: return "RVersion";
+	case MessageType::TAuth:    return "TAuth";
+	case MessageType::RAuth:    return "RAuth";
+	case MessageType::TAttach:  return "TAttach";
+	case MessageType::RAttach:  return "RAttach";
+	case MessageType::TError:   return "TError";
+	case MessageType::RError:   return "RError";
+	case MessageType::TFlush:   return "TFlush";
+	case MessageType::RFlush:   return "RFlush";
+	case MessageType::TWalk:    return "TWalk";
+	case MessageType::RWalk:    return "RWalk";
+	case MessageType::TOpen:    return "TOpen";
+	case MessageType::ROpen:    return "ROpen";
+	case MessageType::TCreate:  return "TCreate";
+	case MessageType::RCreate:  return "RCreate";
+	case MessageType::TRead:    return "TRead";
+	case MessageType::RRead:    return "RRead";
+	case MessageType::TWrite:   return "TWrite";
+	case MessageType::RWrite:   return "RWrite";
+	case MessageType::TClunk:   return "TClunk";
+	case MessageType::RClunk:   return "RClunk";
+	case MessageType::TRemove:  return "TRemove";
+	case MessageType::RRemove:  return "RRemove";
+	case MessageType::TStat:    return "TStat";
+	case MessageType::RStat:    return "RStat";
+	case MessageType::TWStat:   return "TWStat";
+	case MessageType::RWStat:   return "RWStat";
+	}
+}
+
 }  // namespace _9P2000
 
 
 namespace styxe::_9P2000E {
-/*
-DEFINE_PARSER(Request, Session)
-DEFINE_PARSER(Request, ShortRead)
-DEFINE_PARSER(Request, ShortWrite)
-
-DEFINE_PARSER(Response, Session)
-DEFINE_PARSER(Response, ShortRead)
-DEFINE_PARSER(Response, ShortWrite)
-*/
 
 RequestParseTable getRequestParserTable() {
 	auto table = ::_9P2000::getRequestParserTable();
@@ -314,4 +308,10 @@ Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
 
 	auto& decoder = _versionedRequestParser[header.type];
 	return decoder(data);
+}
+
+
+StringView
+Parser::messageName(byte messageType) const {
+	return _9P2000::messageTypeToString(messageType);
 }

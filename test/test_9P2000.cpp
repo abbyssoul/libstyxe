@@ -213,7 +213,7 @@ protected:
         _reader.limit(_writer.limit());
 
 
-		auto maybeParser = createParser(kMaxMesssageSize, kProtocolVersion);
+		auto maybeParser = createParser(kMaxMessageSize, kProtocolVersion);
 		if (!maybeParser) {
 			[&maybeParser]() { FAIL() << "Failed to create a parser: " << maybeParser.getError(); } ();
 			return maybeParser.moveError();
@@ -256,7 +256,7 @@ protected:
 	getResponseOrFail() {
         _reader.limit(_writer.limit());
 
-		auto maybeParser = createParser(kMaxMesssageSize, kProtocolVersion);
+		auto maybeParser = createParser(kMaxMessageSize, kProtocolVersion);
 		if (!maybeParser) {
 			[&maybeParser]() { FAIL() << "Failed to create a parser: " << maybeParser.getError(); } ();
 			return maybeParser.moveError();
@@ -293,8 +293,8 @@ protected:
 
 protected:
 
-	MemoryManager   _memManager{kMaxMesssageSize};
-	MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize).unwrap()};
+	MemoryManager   _memManager{kMaxMessageSize};
+	MemoryResource  _memBuf{_memManager.allocate(kMaxMessageSize).unwrap()};
     ByteWriter      _writer{_memBuf};
     ByteReader      _reader{_memBuf};
 };
@@ -306,12 +306,12 @@ TEST_F(P9Messages, createVersionRequest) {
 	auto const testVersion = kProtocolVersion;
 
 	auto writer = MessageWriter{_writer, kNoTag};
-	writer << Request::Version{kMaxMesssageSize, testVersion};
+	writer << Request::Version{kMaxMessageSize, testVersion};
 	writer.build();
 
 	getRequestOrFail<Request::Version>()
 			.then([testVersion](Request::Version const& request) {
-				EXPECT_EQ(kMaxMesssageSize, request.msize);
+				EXPECT_EQ(kMaxMessageSize, request.msize);
                 EXPECT_EQ(testVersion, request.version);
             });
 }

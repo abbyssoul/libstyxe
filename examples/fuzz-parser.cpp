@@ -17,6 +17,8 @@
 #include "styxe/styxe.hpp"
 #include "styxe/print.hpp"
 
+#include <solace/output_utils.hpp>
+
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -35,19 +37,24 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     ByteReader reader{wrapMemory(data, size)};
 
     // Case1: parse message header
-	Parser proc;
+	auto maybeParser = createParser(kMaxMessageSize, _9P2000E::kProtocolVersion);
+	if (!maybeParser) {
+		std::cerr << "Failed to create parser: " << maybeParser.getError() << std::endl;
+		return EXIT_FAILURE;
+	}
 
-    proc.parseMessageHeader(reader)
+	auto& parser = *maybeParser;
+	parser.parseMessageHeader(reader)
 			.then([&](MessageHeader&& header) {
-                bool const isRequest = (static_cast<Solace::byte>(header.type) % 2) == 0;
-                if (isRequest) {
-                    proc.parseRequest(header, reader)
-                            .then(dispayRequest);
-                } else {
-                    proc.parseResponse(header, reader)
-                            .then(dispayResponse);
-                }
-            });
+				bool const isRequest = ((header.type % 2) == 0);
+				if (isRequest) {
+					parser.parseRequest(header, reader)
+							.then(dispayRequest);
+				} else {
+					parser.parseResponse(header, reader)
+							.then(dispayResponse);
+				}
+	});
 
     return 0;  // Non-zero return values are reserved for future use.
 }
@@ -56,7 +63,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 inline
 void readDataAndTest(std::istream& in) {
     std::vector<uint8_t> buf;
-	buf.reserve(kMaxMesssageSize);
+	buf.reserve(kMaxMessageSize);
 
     in.read(reinterpret_cast<char*>(buf.data()), buf.size());
     size_t const got = in.gcount();

@@ -34,14 +34,14 @@ class P9MessageBuilder : public ::testing::Test {
 public:
 
 	P9MessageBuilder()
-		: _memManager{kMaxMesssageSize}
+		: _memManager{kMaxMessageSize}
     {}
 
 
 protected:
 
     void SetUp() override {
-		_buffer = _memManager.allocate(kMaxMesssageSize).unwrap();
+		_buffer = _memManager.allocate(kMaxMessageSize).unwrap();
         _buffer.viewRemaining().fill(0xFE);
     }
 

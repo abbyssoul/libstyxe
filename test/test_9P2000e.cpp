@@ -48,7 +48,7 @@ protected:
 	getRequestOrFail() {
         _reader.limit(_writer.limit());
 
-		auto _maybeParser = createParser(kMaxMesssageSize, _9P2000E::kProtocolVersion);
+		auto _maybeParser = createParser(kMaxMessageSize, _9P2000E::kProtocolVersion);
 		if (!_maybeParser) {
 			return _maybeParser.moveError();
 		}
@@ -89,7 +89,7 @@ protected:
 	getResponseOrFail() {
         _reader.limit(_writer.limit());
 
-		auto _maybeParser = createParser(kMaxMesssageSize, _9P2000E::kProtocolVersion);
+		auto _maybeParser = createParser(kMaxMessageSize, _9P2000E::kProtocolVersion);
 		if (!_maybeParser) {
 			return _maybeParser.moveError();
 		}
@@ -126,8 +126,8 @@ protected:
 
 protected:
 
-    MemoryManager   _memManager {kMaxMesssageSize};
-	MemoryResource  _memBuf{_memManager.allocate(kMaxMesssageSize).unwrap()};
+	MemoryManager   _memManager {kMaxMessageSize};
+	MemoryResource  _memBuf{_memManager.allocate(kMaxMessageSize).unwrap()};
     ByteWriter      _writer{_memBuf};
     ByteReader      _reader{_memBuf};
 
@@ -157,7 +157,7 @@ TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
 	encoder << makeHeaderWithPayload(messageCode(_9P2000E::Response::Session{}), 1, keyData.size());
     _writer.write(keyData);
 
-	UnversionedParser parser{kMaxMesssageSize};
+	UnversionedParser parser{kMaxMessageSize};
 	auto headerResult = parser.parseMessageHeader(_reader);
     ASSERT_TRUE(headerResult.isOk());
 

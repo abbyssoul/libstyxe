@@ -24,7 +24,7 @@
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
-
+#include <random>
 
 using namespace Solace;
 using namespace styxe;
@@ -51,29 +51,51 @@ Stat genStats(StringView uid, StringView gid) {
     return result;
 }
 
+Qid randomQid(QidType type) {
+	std::random_device rd;
+	std::default_random_engine randomGen{rd()};
+	std::linear_congruential_engine<uint32, 48271, 0, 2147483647> randomGen2{rd()};
 
-void dumpMessage(std::string const& corpusDir, MessageType type, ByteWriter const& buffer) {
-
-	std::stringstream sb;
-	sb << type;
-
-	std::ofstream output(corpusDir + "/" + sb.str());
-
-    auto writenData = buffer.viewRemaining();
-    output.write(writenData.dataAs<char>(), writenData.size());
+	return {
+		randomGen(),
+		randomGen2(),
+		static_cast<byte>(type)
+	};
 }
 
 
-void dumpMessage(std::string const& corpusDir, TypedWriter&& req) {
-	dumpMessage(corpusDir, req.type(), req.build());
-	req.buffer().clear();
-}
+/// Message write helper
+struct MessageDump {
 
-void dumpMessage(std::string const& corpusDir, RequestWriter::PathWriter&& req) {
-	dumpMessage(corpusDir, req.type(), req.build());
-	req.buffer().clear();
-}
+	MessageDump& operator() (MessageWriter& req) {
+		auto header = req.header();
+		auto& buffer = req.build();
 
+		auto messageName = parser.messageName(header.type);
+		dumpMessage(messageName, buffer);
+		buffer.clear();
+
+		return *this;
+	}
+
+	void dumpMessage(StringView messageType, ByteWriter const& buffer) {
+		std::stringstream sb;
+		sb << messageType;
+
+		std::ofstream output{corpusDirectory + "/" + sb.str()};
+		if (!output) {
+			std::cerr << "Failed to open output file: '"
+					  << corpusDirectory << "/" << sb.str() << "'\n";
+			return;
+		}
+
+		auto writenData = buffer.viewRemaining();
+		output.write(writenData.dataAs<char>(), writenData.size());
+	}
+
+	Parser& parser;
+	std::string corpusDirectory;
+};
 
 
 int main(int argc, char const **argv) {
@@ -93,132 +115,107 @@ int main(int argc, char const **argv) {
 	byte data[32];
 	auto userName = StringView{getenv("USER")};
 
-	Parser proc;
-	MemoryManager memManager{proc.maxPossibleMessageSize()};
+	auto maybeParser = createParser(kMaxMessageSize, _9P2000E::kProtocolVersion);
+	if (!maybeParser) {
+		std::cerr << "Failed to create parser: " << maybeParser.getError() << std::endl;
+		return EXIT_FAILURE;
+	}
 
-	auto memoryResource = memManager.allocate(proc.maxPossibleMessageSize());
+	auto& parser = *maybeParser;
+
+	MemoryManager memManager{parser.maxMessageSize()};
+	auto memoryResource = memManager.allocate(parser.maxMessageSize());
 	if (!memoryResource) {
-		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError();
+		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError() << std::endl;
 		return EXIT_FAILURE;
 	}
 
 
+	auto dummyStat = genStats(userName, userName);
 	ByteWriter buffer{memoryResource.unwrap()};
 
+	MessageWriter writer{buffer};
+
+	MessageDump dump{*maybeParser, corpusDir};
+
+	dump(writer << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
+
     /// Dump request messages
-	dumpMessage(corpusDir, RequestWriter{buffer}
-				.version(Parser::PROTOCOL_VERSION));
+	dump(writer << Request::Auth{1, userName, "attachPoint"});
+	dump(writer << Request::Flush{3});
+	dump(writer << Request::Attach{3, 18, userName, "someFile"});
 
-	dumpMessage(corpusDir, RequestWriter{buffer}
-            .auth(1, userName, "attachPoint"));
 
-	dumpMessage(corpusDir, RequestWriter{buffer}
-            .flush(3));
+	{
+		byte pathBuffer[3 + 3 + 4 + 2*3];
+		ByteWriter pathWriter{wrapMemory(pathBuffer)};
+		styxe::Encoder encoder{pathWriter};
+		encoder << StringView{"one"}
+				<< StringView{"two"}
+				<< StringView{"file"};
 
-	dumpMessage(corpusDir, RequestWriter{buffer}
-            .attach(3, 18, userName, "someFile"));
+		dump(writer << Request::Walk{18, 42, WalkPath{3, wrapMemory(pathBuffer)}});
+	}
 
-	dumpMessage(corpusDir, RequestWriter{buffer}
-				.walk(18, 42)
-				.path("one")
-				.path("two")
-				.path("file")
-				.done());
+	dump(writer << Request::Open{42, OpenMode::READ});
+	dump(writer << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
+	dump(writer << Request::Read{42, 12, 418});
+	dump(writer << Request::Write{24, 12, wrapMemory(data).fill(0xf1)});
+	dump(writer << Request::Clunk{24});
+	dump(writer << Request::Remove{42});
+	dump(writer << Request::Stat{17});
+	dump(writer << Request::WStat{17, dummyStat});
 
-	dumpMessage(corpusDir, RequestWriter{buffer}
-				.open(42, OpenMode::READ));
+	dump(writer << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
+	{
+		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
+		ByteWriter pathWriter{wrapMemory(pathBuffer)};
+		styxe::Encoder encoder{pathWriter};
+		encoder << StringView{"some"}
+				<< StringView{"location"}
+				<< StringView{"where"}
+				<< StringView{"file"};
 
-	dumpMessage(corpusDir, RequestWriter{buffer}
-				.create(42, "newFile", 0666, OpenMode::WRITE));
+		dump(writer << _9P2000E::Request::ShortRead{3, WalkPath{4, wrapMemory(pathBuffer)}});
+	}
+	{
+		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
+		ByteWriter pathWriter{wrapMemory(pathBuffer)};
+		styxe::Encoder encoder{pathWriter};
+		encoder << StringView{"some"}
+				<< StringView{"location"}
+				<< StringView{"where"}
+				<< StringView{"file"};
 
-	dumpMessage(corpusDir, RequestWriter{buffer}
-                .read(42, 12, 418));
-
-	dumpMessage(corpusDir, RequestWriter{buffer}
-				.write(24, 12)
-				.data(wrapMemory(data).fill(0xf1))
-				);
-
-	dumpMessage(corpusDir, RequestWriter{buffer}
-                .clunk(24));
-
-	dumpMessage(corpusDir, RequestWriter{buffer}
-                .remove(42));
-
-	dumpMessage(corpusDir, RequestWriter{buffer}
-                .stat(17));
-
-	dumpMessage(corpusDir, RequestWriter{buffer}
-                .writeStat(17, genStats(userName, userName)));
-
-	dumpMessage(corpusDir, RequestWriter{buffer}
-                .session(wrapMemory(data, 8)));
-	dumpMessage(corpusDir, RequestWriter{buffer}
-				.shortRead(3)
-				.path("some")
-				.path("location")
-				.path("where")
-				.path("file")
-				.done());
-	dumpMessage(corpusDir, RequestWriter{buffer}
-				.shortWrite(7)
-				.path("some")
-				.path("location")
-				.path("where")
-				.path("file")
-				.data(wrapMemory(data))
-				);
-
+		dump(writer << _9P2000E::Request::ShortWrite{
+						3,
+						WalkPath{4, wrapMemory(pathBuffer)},
+						wrapMemory(data)});
+	}
 
     /// Dump response messages
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-				.version(Parser::PROTOCOL_VERSION));
+	dump(writer << Response::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
+	dump(writer << Response::Auth{randomQid(QidType::AUTH)});
+	dump(writer << Response::Error{"This is a test error. Please move on."});
+	dump(writer << Response::Flush{});
+	dump(writer << Response::Attach{randomQid(QidType::MOUNT)});
+	dump(writer << Response::Walk{3, {
+														randomQid(QidType::FILE),
+														randomQid(QidType::FILE),
+														randomQid(QidType::FILE)}});
 
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .auth({1, 543, 939938}));
+	dump(writer << Response::Open{randomQid(QidType::FILE), 4096});
+	dump(writer << Response::Create{randomQid(QidType::FILE), 4096});
+	dump(writer << Response::Read{wrapMemory(data)});
+	dump(writer << Response::Write{616});
+	dump(writer << Response::Clunk{});
+	dump(writer << Response::Remove{});
+	dump(writer << Response::Stat{narrow_cast<var_datum_size_type>(protocolSize(dummyStat)), dummyStat});
+	dump(writer << Response::WStat{});
 
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .error("This is a test error. Please move on."));
-
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .flush());
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .attach({21, 4884, 9047302}));
-
-    {
-		auto steps = makeArrayOf<Qid>(
-								  Qid{21, 4884, 9047302},
-								  Qid{22, 3242, 8488484},
-								  Qid{32, 9198, 8758379}
-                              );
-		dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-					.walk(steps.unwrap().view()));
-    }
-
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .open({21, 4884, 9047302}, 7277));
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .create({71, 4884, 32432}, 23421));
-
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .read(wrapMemory(data)));
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .write(616));
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .clunk());
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .remove());
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .stat(genStats(userName, userName)));
-	dumpMessage(corpusDir, ResponseWriter{buffer, 1}
-                .wstat());
-
-	dumpMessage(corpusDir, ResponseWriter{buffer, 2}
-                .session());
-	dumpMessage(corpusDir, ResponseWriter{buffer, 2}
-                .shortRead(wrapMemory(data)));
-	dumpMessage(corpusDir, ResponseWriter{buffer, 2}
-                .shortWrite(32));
+	dump(writer << _9P2000E::Response::Session{});
+	dump(writer << _9P2000E::Response::ShortRead{wrapMemory(data)});
+	dump(writer << _9P2000E::Response::ShortWrite{32});
 
     return EXIT_SUCCESS;
 }

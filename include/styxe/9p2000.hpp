@@ -41,13 +41,13 @@ extern const Solace::StringLiteral kProtocolVersion;
  * Minimum frame size that can used by the protocol.
  * @note: server/client should negotiate actual frame size that is larger then that.
  */
-extern const size_type kMinMesssageSize;
+extern const size_type kMinMessageSize;
 
 /**
  * Maximum frame size that can transmitted by the protocol.
  * @note: server/client can negotiate actual frame size to be less then that.
  */
-extern const size_type kMaxMesssageSize;
+extern const size_type kMaxMessageSize;
 
 
 /**

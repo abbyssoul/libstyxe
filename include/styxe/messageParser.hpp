@@ -151,6 +151,8 @@ struct Parser :
 	Solace::Result<RequestMessage, Error>
 	parseRequest(MessageHeader const& header, Solace::ByteReader& data) const;
 
+	Solace::StringView messageName(Solace::byte messageType) const;
+
 private:
 	RequestParseTable	_versionedRequestParser;  /// Parser V-table.
 	ResponseParseTable	_versionedResponseParser;  /// Parser V-table.

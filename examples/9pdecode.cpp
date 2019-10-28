@@ -111,13 +111,13 @@ std::ostream& operator<< (std::ostream& ostr, Stat const& stat) {
 }
 
 std::ostream& operator<< (std::ostream& ostr, MessageHeader const& header) {
-    bool const isRequest = (static_cast<byte>(header.type) % 2) == 0;
+	bool const isRequest = ((header.type % 2) == 0);
     ostr  << (isRequest ? "→" : "←");
 
     return ostr << " ["
                 << std::setw(5) << header.messageSize
                 << "] <" << header.tag << "> "
-                << header.type;
+				<< static_cast<int>(header.type);
 }
 
 
@@ -169,7 +169,7 @@ struct VisitRequest {
         std::cout << ": " << req.fid << std::endl;
     }
 
-    void operator()(Request::StatRequest const& req) {
+	void operator()(Request::Stat const& req) {
         std::cout << ": " << req.fid << std::endl;
     }
 
@@ -187,17 +187,17 @@ struct VisitRequest {
         std::cout << ']' << std::endl;
     }
 
-    void operator()(Request_9P2000E::Session const& req) {
+	void operator()(_9P2000E::Request::Session const& req) {
         std::cout << ": " << wrapMemory(req.key) << std::endl;
     }
 
-    void operator()(Request_9P2000E::SRead const& req) {
+	void operator()(_9P2000E::Request::ShortRead const& req) {
         std::cout << ": " << req.fid << ' '
 				  << '\'' << req.path << '\''
 				  << std::endl;
     }
 
-    void operator()(Request_9P2000E::SWrite const& req) {
+	void operator()(_9P2000E::Request::ShortWrite const& req) {
         std::cout << ": " << req.fid << ' '
 				  << '\'' << req.path << '\''
                   << " DATA[" << req.data << "]"
@@ -268,7 +268,18 @@ struct VisitResponse {
     }
 
     void operator()(Response::WStat& /*res*/) { std::cout << std::endl; }
-    void operator()(Response_9P2000E::Session& /*res*/) { std::cout << std::endl; }
+	void operator()(_9P2000E::Response::Session& /*res*/) { std::cout << std::endl; }
+
+	void operator()(_9P2000E::Response::ShortRead& resp) {
+		std::cout << ": " << resp.data.size()
+				  << " DATA[" << resp.data << ']'
+				  << std::endl;
+	}
+
+	void operator()(_9P2000E::Response::ShortWrite& resp) {
+		std::cout << ": " << resp.count
+				  << std::endl;
+	}
 };
 
 
@@ -304,7 +315,7 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, Parser& proc)
 
 
 /// Print app usage
-int usage(const char* progname) {
+int usage(const char* progname, size_type defaultMessageSize, StringView defaultVersion) {
     std::cout << "Usage: " << progname
               << "[-m <size>] "
               << "[-p <version>] "
@@ -314,8 +325,8 @@ int usage(const char* progname) {
 
     std::cout << "Read 9P2000 message and display it\n\n"
               << "Options: \n"
-              << " -m <size> - Use maximum buffer size for messages [Default: " << kMaxMesssageSize << "]\n"
-              << " -p <version> - Use specific protocol version [Default: " << Parser::PROTOCOL_VERSION << "]\n"
+			  << " -m <size> - Use maximum buffer size for messages [Default: " << defaultMessageSize << "]\n"
+			  << " -p <version> - Use specific protocol version [Default: " << defaultVersion<< "]\n"
               << " -h - Display help and exit\n"
               << std::endl;
 
@@ -326,35 +337,43 @@ int usage(const char* progname) {
  * A simple example of decoding a 9P message from a file / stdin and printing it in a human readable format.
  */
 int main(int argc, char* const* argv) {
-    size_type maxMessageSize = kMaxMesssageSize;
-    StringView requiredVersion = Parser::PROTOCOL_VERSION;
+	size_type maxMessageSize = kMaxMessageSize;
+	StringView requiredVersion = _9P2000E::kProtocolVersion;
 
     int c;
-    while ((c = getopt(argc, argv, "m:p:h")) != -1)
-        switch (c) {
-        case 'm': {
-            int requestedSize = atoi(optarg);
-            if (requestedSize <= 0) {
-                fprintf(stderr, "Option -%c requires positive interger value.\n", optopt);
-                return EXIT_FAILURE;
-            }
-            maxMessageSize = requestedSize;
-        } break;
-        case 'p':
-            requiredVersion = StringView{optarg};
-            break;
-        case 'h':
-            return usage(argv[0]);
-        default:
-            return EXIT_FAILURE;
-    }
+	while ((c = getopt(argc, argv, "m:p:h")) != -1) {
+		switch (c) {
+		case 'm': {
+			int requestedSize = atoi(optarg);
+			if (requestedSize <= 0) {
+				fprintf(stderr, "Option -%c requires positive interger value.\n", optopt);
+				return EXIT_FAILURE;
+			}
+			// Note: safe to cast due to the check performed above
+			maxMessageSize = static_cast<size_type>(requestedSize);
+		} break;
+		case 'p':
+			requiredVersion = StringView{optarg};
+			break;
+		case 'h':
+			return usage(argv[0], maxMessageSize, requiredVersion);
+		default:
+			return EXIT_FAILURE;
+		}
+	}
 
-    Parser proc{maxMessageSize, requiredVersion};
-    MemoryManager memManager{proc.maxPossibleMessageSize()};
-	auto memoryResource = memManager.allocate(proc.maxPossibleMessageSize());
+	auto maybeParser = createParser(maxMessageSize, requiredVersion);
+	if (!maybeParser) {
+		std::cerr << "Failed to create parser: " << maybeParser.getError() << std::endl;
+		return EXIT_FAILURE;
+	}
 
+	auto& parser = *maybeParser;
+	MemoryManager memManager{parser.maxMessageSize()};
+
+	auto memoryResource = memManager.allocate(parser.maxMessageSize());
 	if (!memoryResource) {
-		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError();
+		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError() << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -367,10 +386,10 @@ int main(int argc, char* const* argv) {
                 return EXIT_FAILURE;
             }
 
-            readAndPrintMessage(input, buffer, proc);
+			readAndPrintMessage(input, buffer, parser);
         }
     } else {
-        readAndPrintMessage(std::cin, buffer, proc);
+		readAndPrintMessage(std::cin, buffer, parser);
     }
 
     return EXIT_SUCCESS;
