@@ -36,32 +36,17 @@ Encoder& operator<< (Encoder& encoder, MessageHeader value) {
 
 }
 
-
-/**
-* Helper type used to represent a message being built.
-*/
-struct MessageWriter {
+struct MessageWriterBase {
 
 	/**
 	 * @brief Construct a new ResponseWriter.
 	 * @param dest A byte writer stream where data to be written.
 	 * @param tag Tag of the message being created.
 	 */
-	constexpr MessageWriter(Solace::ByteWriter& dest, Tag tag = kNoTag) noexcept
+	constexpr MessageWriterBase(Solace::ByteWriter& dest, Tag messageTag) noexcept
 		: _encoder{dest}
 		, _pos{dest.position()}
-		, _header{headerSize(), 0, tag}
-	{}
-
-	/** Constructs a new TypedWriter
-	 * @param buffer A byte stream to write the resulting message to.
-	 * @param pos A position in the stream where the message header has been written.
-	 * @param header Message header.
-	 */
-	constexpr MessageWriter(Solace::ByteWriter& buffer, Solace::ByteWriter::size_type pos, MessageHeader header) noexcept
-		: _encoder{buffer}
-		, _pos{pos}
-		, _header{header}
+		, _header{headerSize(), 0, messageTag}
 	{}
 
 	/** Finalize the message build.
@@ -100,6 +85,30 @@ private:
 	/// Message header
 	MessageHeader					_header;
 };
+
+/**
+* Helper type used to represent a message being built.
+*/
+template<typename MessageTag>
+struct MessageWriter: public MessageWriterBase {
+
+	/**
+	 * @brief Construct a new MessageWriter.
+	 * @param dest A byte writer stream where data to be written.
+	 * @param tag Tag of the message being created.
+	 */
+	constexpr MessageWriter(Solace::ByteWriter& dest, Tag messageTag = kNoTag) noexcept
+		: MessageWriterBase{dest, messageTag}
+	{}
+
+};
+
+
+struct ResponseTag {};
+struct RequestTag {};
+
+using RequestWriter = MessageWriter<RequestTag>;
+using ResponseWriter = MessageWriter<ResponseTag>;
 
 }  // end of namespace styxe
 #endif  // STYXE_MESSAGEWRITER_HPP

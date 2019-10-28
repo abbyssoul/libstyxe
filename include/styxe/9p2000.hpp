@@ -669,42 +669,42 @@ Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, Stat& dest) {
  * @param maxMessageSize Maximum message size in bytes that a server can support.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Version const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Version const& response);
 
 /**
  * @brief Create Auth response
  * @param qid Qid of the file to be used for authentication.
  * @return Typed Message builder for fluent interface.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Auth const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Auth const& response);
 
 /**
- * @brief Create error respose.
+ * @brief Create error response.
  * @param message Error message to communicate back to the client.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Error const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Error const& response);
 
 
 /**
  * @brief Create Flush response.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Flush const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Flush const& response);
 
 /**
  * @brief Create attach response.
  * @param qid Qid of the filesystem a client attached to.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Attach const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Attach const& response);
 
 /**
  * @brief Create walk response.
  * @param qids An array of qids that a server walked through.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Walk const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Walk const& response);
 
 /**
  * @brief Create open response.
@@ -712,7 +712,7 @@ MessageWriter& operator<< (MessageWriter& writer, Response::Walk const& response
  * @param iounit Hint for the optimal read/write size.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Open const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Open const& response);
 
 /**
  * @brief Create Create response.
@@ -720,46 +720,46 @@ MessageWriter& operator<< (MessageWriter& writer, Response::Open const& response
  * @param iounit Hint for the optimal read/write size.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Create const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Create const& response);
 
 /**
- * @brief Create Read file respose.
+ * @brief Create Read file response.
  * @param data Data read from the file to be sent back to the client.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Read const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Read const& response);
 
 /**
  * @brief Create Write file response.
  * @param iounit Number of bytes written.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Write const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Write const& response);
 
 /**
  * @brief Create Clunk response.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Clunk const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Clunk const& response);
 
 /**
  * @brief Create Remove response.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Remove const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Remove const& response);
 
 /**
  * @brief Create stat response.
  * @param value Stat data read about the file.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::Stat const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::Stat const& response);
 
 /**
  * @brief Create Write Stats.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Response::WStat const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, Response::WStat const& response);
 
 
 /**
@@ -768,7 +768,7 @@ MessageWriter& operator<< (MessageWriter& writer, Response::WStat const& respons
  * @param maxMessageSize Suggest maximum size of the protocol message, including mandatory message header.
  * @return Ref to this for fluent interface.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Version const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Version const& response);
 
 /**
  * @brief Create Auth request.
@@ -777,14 +777,14 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Version const& respon
  * @param attachName Name of the filesystem to attach / authenticate to.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Auth const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Auth const& response);
 
 /**
  * @brief Create a Flush request.
  * @param oldTransation ID of the transaction to flush.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Flush const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Flush const& response);
 
 /**
  * @brief Create Attach request
@@ -794,7 +794,7 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Flush const& response
  * @param attachName Name of the attachment / fs a user has authenticated to.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Attach const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Attach const& response);
 
 /**
  * @brief Create Open file request.
@@ -802,7 +802,7 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Attach const& respons
  * @param mode File open mode. @see OpenMode for details.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Open const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Open const& response);
 
 /** Create file Create request.
  * @param fid User provided fid assosiated with the directory where file to be created.
@@ -811,7 +811,7 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Open const& response)
  * @param mode File open mode. @see OpenMode for details.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Create const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Create const& response);
 
 /**
  * @brief Create Read request
@@ -820,7 +820,7 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Create const& respons
  * @param count Number of bytes to read from the file.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Read const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Read const& response);
 
 /**
  * @brief Create Write request.
@@ -828,7 +828,7 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Read const& response)
  * @param offset Offset from the start of the file to read from.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Write const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Write const& response);
 
 
 /**
@@ -836,21 +836,21 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Write const& response
  * @param fid User provided fid to be forgotten by the server.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Clunk const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Clunk const& response);
 
 /**
  * @brief Create Remove file request.
  * @param fid User provided fid assosiated with a file to be removed.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Remove const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Remove const& response);
 
 /**
  * @brief Create stat request.
  * @param fid User provided fid assosiated with a file to query stats for.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Stat const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Stat const& response);
 
 /**
  * @brief Cretea WriteStat request.
@@ -858,7 +858,7 @@ MessageWriter& operator<< (MessageWriter& writer, Request::Stat const& response)
  * @param stat File stats to be written.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::WStat const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::WStat const& response);
 
 /**
  * @brief Create Walk request.
@@ -866,7 +866,7 @@ MessageWriter& operator<< (MessageWriter& writer, Request::WStat const& response
  * @param nfid User provided fid to be assosiated with the file resulting from the walk.
  * @return Message builder.
  */
-MessageWriter& operator<< (MessageWriter& writer, Request::Walk const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Walk const& response);
 
 
 Solace::Result<Solace::ByteReader&, Error>

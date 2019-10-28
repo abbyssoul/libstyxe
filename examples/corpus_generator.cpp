@@ -67,7 +67,7 @@ Qid randomQid(QidType type) {
 /// Message write helper
 struct MessageDump {
 
-	MessageDump& operator() (MessageWriter& req) {
+	MessageDump& operator() (ResponseWriter& req) {
 		auto header = req.header();
 		auto& buffer = req.build();
 
@@ -77,6 +77,18 @@ struct MessageDump {
 
 		return *this;
 	}
+
+	MessageDump& operator() (RequestWriter& req) {
+		auto header = req.header();
+		auto& buffer = req.build();
+
+		auto messageName = parser.messageName(header.type);
+		dumpMessage(messageName, buffer);
+		buffer.clear();
+
+		return *this;
+	}
+
 
 	void dumpMessage(StringView messageType, ByteWriter const& buffer) {
 		std::stringstream sb;
@@ -134,16 +146,17 @@ int main(int argc, char const **argv) {
 	auto dummyStat = genStats(userName, userName);
 	ByteWriter buffer{memoryResource.unwrap()};
 
-	MessageWriter writer{buffer};
+	ResponseWriter responseWriter{buffer};
+	RequestWriter requestWriter{buffer};
 
 	MessageDump dump{*maybeParser, corpusDir};
 
-	dump(writer << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
+	dump(requestWriter << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
 
     /// Dump request messages
-	dump(writer << Request::Auth{1, userName, "attachPoint"});
-	dump(writer << Request::Flush{3});
-	dump(writer << Request::Attach{3, 18, userName, "someFile"});
+	dump(requestWriter << Request::Auth{1, userName, "attachPoint"});
+	dump(requestWriter << Request::Flush{3});
+	dump(requestWriter << Request::Attach{3, 18, userName, "someFile"});
 
 
 	{
@@ -154,19 +167,19 @@ int main(int argc, char const **argv) {
 				<< StringView{"two"}
 				<< StringView{"file"};
 
-		dump(writer << Request::Walk{18, 42, WalkPath{3, wrapMemory(pathBuffer)}});
+		dump(requestWriter << Request::Walk{18, 42, WalkPath{3, wrapMemory(pathBuffer)}});
 	}
 
-	dump(writer << Request::Open{42, OpenMode::READ});
-	dump(writer << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
-	dump(writer << Request::Read{42, 12, 418});
-	dump(writer << Request::Write{24, 12, wrapMemory(data).fill(0xf1)});
-	dump(writer << Request::Clunk{24});
-	dump(writer << Request::Remove{42});
-	dump(writer << Request::Stat{17});
-	dump(writer << Request::WStat{17, dummyStat});
+	dump(requestWriter << Request::Open{42, OpenMode::READ});
+	dump(requestWriter << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
+	dump(requestWriter << Request::Read{42, 12, 418});
+	dump(requestWriter << Request::Write{24, 12, wrapMemory(data).fill(0xf1)});
+	dump(requestWriter << Request::Clunk{24});
+	dump(requestWriter << Request::Remove{42});
+	dump(requestWriter << Request::Stat{17});
+	dump(requestWriter << Request::WStat{17, dummyStat});
 
-	dump(writer << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
+	dump(requestWriter << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
 	{
 		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
 		ByteWriter pathWriter{wrapMemory(pathBuffer)};
@@ -176,7 +189,7 @@ int main(int argc, char const **argv) {
 				<< StringView{"where"}
 				<< StringView{"file"};
 
-		dump(writer << _9P2000E::Request::ShortRead{3, WalkPath{4, wrapMemory(pathBuffer)}});
+		dump(requestWriter << _9P2000E::Request::ShortRead{3, WalkPath{4, wrapMemory(pathBuffer)}});
 	}
 	{
 		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
@@ -187,35 +200,35 @@ int main(int argc, char const **argv) {
 				<< StringView{"where"}
 				<< StringView{"file"};
 
-		dump(writer << _9P2000E::Request::ShortWrite{
-						3,
-						WalkPath{4, wrapMemory(pathBuffer)},
-						wrapMemory(data)});
+		dump(requestWriter << _9P2000E::Request::ShortWrite{
+				 3,
+				 WalkPath{4, wrapMemory(pathBuffer)},
+				 wrapMemory(data)});
 	}
 
     /// Dump response messages
-	dump(writer << Response::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
-	dump(writer << Response::Auth{randomQid(QidType::AUTH)});
-	dump(writer << Response::Error{"This is a test error. Please move on."});
-	dump(writer << Response::Flush{});
-	dump(writer << Response::Attach{randomQid(QidType::MOUNT)});
-	dump(writer << Response::Walk{3, {
+	dump(responseWriter << Response::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion});
+	dump(responseWriter << Response::Auth{randomQid(QidType::AUTH)});
+	dump(responseWriter << Response::Error{"This is a test error. Please move on."});
+	dump(responseWriter << Response::Flush{});
+	dump(responseWriter << Response::Attach{randomQid(QidType::MOUNT)});
+	dump(responseWriter << Response::Walk{3, {
 														randomQid(QidType::FILE),
 														randomQid(QidType::FILE),
 														randomQid(QidType::FILE)}});
 
-	dump(writer << Response::Open{randomQid(QidType::FILE), 4096});
-	dump(writer << Response::Create{randomQid(QidType::FILE), 4096});
-	dump(writer << Response::Read{wrapMemory(data)});
-	dump(writer << Response::Write{616});
-	dump(writer << Response::Clunk{});
-	dump(writer << Response::Remove{});
-	dump(writer << Response::Stat{narrow_cast<var_datum_size_type>(protocolSize(dummyStat)), dummyStat});
-	dump(writer << Response::WStat{});
+	dump(responseWriter << Response::Open{randomQid(QidType::FILE), 4096});
+	dump(responseWriter << Response::Create{randomQid(QidType::FILE), 4096});
+	dump(responseWriter << Response::Read{wrapMemory(data)});
+	dump(responseWriter << Response::Write{616});
+	dump(responseWriter << Response::Clunk{});
+	dump(responseWriter << Response::Remove{});
+	dump(responseWriter << Response::Stat{narrow_cast<var_datum_size_type>(protocolSize(dummyStat)), dummyStat});
+	dump(responseWriter << Response::WStat{});
 
-	dump(writer << _9P2000E::Response::Session{});
-	dump(writer << _9P2000E::Response::ShortRead{wrapMemory(data)});
-	dump(writer << _9P2000E::Response::ShortWrite{32});
+	dump(responseWriter << _9P2000E::Response::Session{});
+	dump(responseWriter << _9P2000E::Response::ShortRead{wrapMemory(data)});
+	dump(responseWriter << _9P2000E::Response::ShortWrite{32});
 
     return EXIT_SUCCESS;
 }

@@ -22,8 +22,8 @@ using namespace Solace;
 using namespace styxe;
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Version const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Version const& response) {
 	writer.messageType(messageCode(response), kNoTag)
 			<< response.msize
 			<< response.version;
@@ -31,8 +31,8 @@ styxe::operator<< (MessageWriter& writer, Response::Version const& response) {
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Auth const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Auth const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid;
 
@@ -40,30 +40,30 @@ styxe::operator<< (MessageWriter& writer, Response::Auth const& response) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Error const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Error const& response) {
 	writer.messageType(messageCode(response))
 			<< response.ename;
 
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Flush const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Flush const& response) {
 	writer.messageType(messageCode(response));
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Attach const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Attach const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid;
 
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Walk const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Walk const& response) {
 	auto& e = writer.messageType(messageCode(response));
 	e << response.nqids;
 
@@ -74,8 +74,8 @@ styxe::operator<< (MessageWriter& writer, Response::Walk const& response) {
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Open const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Open const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid
 			<< response.iounit;
@@ -84,8 +84,8 @@ styxe::operator<< (MessageWriter& writer, Response::Open const& response) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Create const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Create const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid
 			<< response.iounit;
@@ -94,8 +94,8 @@ styxe::operator<< (MessageWriter& writer, Response::Create const& response) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Read const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Read const& response) {
 	writer.messageType(messageCode(response))
 			<< response.data;
 
@@ -103,8 +103,8 @@ styxe::operator<< (MessageWriter& writer, Response::Read const& response) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Write const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Write const& response) {
 	writer.messageType(messageCode(response))
 			<< response.count;
 
@@ -112,22 +112,22 @@ styxe::operator<< (MessageWriter& writer, Response::Write const& response) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Clunk const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Clunk const& response) {
 	writer.messageType(messageCode(response));
 	return writer;
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Remove const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Remove const& response) {
 	writer.messageType(messageCode(response));
 	return writer;
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::Stat const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::Stat const& response) {
 	writer.messageType(messageCode(response))
 			<< response.dummySize
 			<< response.data;
@@ -136,16 +136,16 @@ styxe::operator<< (MessageWriter& writer, Response::Stat const& response) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Response::WStat const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, Response::WStat const& response) {
 	writer.messageType(messageCode(response));
 	return writer;
 }
 
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Version const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Version const& request) {
 	writer.messageType(messageCode(request))
 			<< request.msize
 			<< request.version;
@@ -153,8 +153,8 @@ styxe::operator<< (MessageWriter& writer, Request::Version const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Auth const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Auth const& request) {
 	writer.messageType(messageCode(request))
 			<< request.afid
 			<< request.uname
@@ -163,8 +163,8 @@ styxe::operator<< (MessageWriter& writer, Request::Auth const& request) {
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Flush const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Flush const& request) {
 	writer.messageType(messageCode(request))
 			<< request.oldtag;
 
@@ -172,8 +172,8 @@ styxe::operator<< (MessageWriter& writer, Request::Flush const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Attach const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Attach const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.afid
@@ -184,8 +184,8 @@ styxe::operator<< (MessageWriter& writer, Request::Attach const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Walk const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Walk const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.newfid
@@ -195,8 +195,8 @@ styxe::operator<< (MessageWriter& writer, Request::Walk const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Open const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Open const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.mode.mode;
@@ -205,8 +205,8 @@ styxe::operator<< (MessageWriter& writer, Request::Open const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Create const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Create const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.name
@@ -217,8 +217,8 @@ styxe::operator<< (MessageWriter& writer, Request::Create const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Read const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Read const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.offset
@@ -228,8 +228,8 @@ styxe::operator<< (MessageWriter& writer, Request::Read const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Write const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Write const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.offset
@@ -239,8 +239,8 @@ styxe::operator<< (MessageWriter& writer, Request::Write const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Clunk const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Clunk const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid;
 
@@ -248,8 +248,8 @@ styxe::operator<< (MessageWriter& writer, Request::Clunk const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Remove const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Remove const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid;
 
@@ -257,8 +257,8 @@ styxe::operator<< (MessageWriter& writer, Request::Remove const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::Stat const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::Stat const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid;
 
@@ -266,8 +266,8 @@ styxe::operator<< (MessageWriter& writer, Request::Stat const& request) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, Request::WStat const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, Request::WStat const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.stat;

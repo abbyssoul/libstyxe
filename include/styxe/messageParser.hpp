@@ -178,8 +178,8 @@ struct Parser :
 private:
 
 	VersionedNameMapper	_nameMapper;
-	RequestParseTable	_versionedRequestParser;	/// Parser V-table.
-	ResponseParseTable	_versionedResponseParser;	/// Parser V-table.
+	RequestParseTable	_versionedRequestParser;   /// Parser V-table.
+	ResponseParseTable	_versionedResponseParser;  /// Parser V-table.
 };
 
 

@@ -51,7 +51,7 @@ protected:
 
 
 TEST_F(P9MessageBuilder, dirListingMessage) {
-	auto responseWriter = MessageWriter{_buffer, 1};
+	auto responseWriter = ResponseWriter{_buffer, 1};
 	responseWriter << Response::Read{};  // Prime read request 0 size data!
 
     Stat testStats[] = {

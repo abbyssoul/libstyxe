@@ -25,7 +25,7 @@ using namespace styxe;
 
 
 ByteWriter&
-MessageWriter::build() {
+MessageWriterBase::build() {
 	auto const finalPos = _encoder.buffer().position();
 	auto const messageSize = finalPos - _pos;  // Re-compute actual message size
 	auto& buffer = _encoder.buffer();

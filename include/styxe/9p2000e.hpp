@@ -127,22 +127,22 @@ operator>> (Solace::ByteReader& data, _9P2000E::Response::ShortWrite& dest);
 
 
 /** Create Session request. */
-MessageWriter& operator<< (MessageWriter& writer, _9P2000E::Request::Session const& request);
+RequestWriter& operator<< (RequestWriter& writer, _9P2000E::Request::Session const& request);
 
 /** Create ShortRead request. */
-MessageWriter& operator<< (MessageWriter& writer, _9P2000E::Request::ShortRead const& request);
+RequestWriter& operator<< (RequestWriter& writer, _9P2000E::Request::ShortRead const& request);
 
 /** Create short Write request. */
-MessageWriter& operator<< (MessageWriter& writer, _9P2000E::Request::ShortWrite const& request);
+RequestWriter& operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& request);
 
 /** Create Session restore response. */
-MessageWriter& operator<< (MessageWriter& writer, _9P2000E::Response::Session const& response);
+ResponseWriter& operator<< (ResponseWriter& writer, _9P2000E::Response::Session const& response);
 
-/** Create ShortRead respose. */
-MessageWriter& operator<< (MessageWriter& writer, _9P2000E::Response::ShortRead const& response);
+/** Create ShortRead response. */
+ResponseWriter& operator<< (ResponseWriter& writer, _9P2000E::Response::ShortRead const& response);
 
-/** Create ShortWriterespose. */
-MessageWriter& operator<< (MessageWriter& writer, _9P2000E::Response::ShortWrite const& response);
+/** Create ShortWriteresponse. */
+ResponseWriter& operator<< (ResponseWriter& writer, _9P2000E::Response::ShortWrite const& response);
 
 
 }  // end of namespace styxe

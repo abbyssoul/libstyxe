@@ -30,59 +30,17 @@
 using namespace Solace;
 using namespace styxe;
 
-class P9E_Messages
+class P9E_Responses
         : public ::testing::Test {
 protected:
 
     // cppcheck-suppress unusedFunction
-    void SetUp() override {
-        _memBuf.view().fill(0xFE);
+	void SetUp() override {
+		_memBuf.view().fill(0xFE);
 
-        _writer.rewind();
-        _reader.rewind();
+		_writer.rewind();
+		_reader.rewind();
 	}
-
-
-    template<typename RequestType>
-    Result<RequestType, Error>
-	getRequestOrFail() {
-        _reader.limit(_writer.limit());
-
-		auto _maybeParser = createParser(kMaxMessageSize, _9P2000E::kProtocolVersion);
-		if (!_maybeParser) {
-			return _maybeParser.moveError();
-		}
-		auto& parser = _maybeParser.unwrap();
-
-		auto const expectType = messageCode(RequestType{});
-		return parser.parseMessageHeader(_reader)
-                .then([expectType](MessageHeader&& header) {
-                    return (header.type != expectType)
-					? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
-					: Result<MessageHeader, Error>{types::okTag, std::move(header)};
-                })
-				.then([&parser, this](MessageHeader&& header) {
-					return parser.parseRequest(header, _reader);
-                })
-				.then([](RequestMessage&& msg) -> Result<RequestType, Error> {
-					bool const isType = std::holds_alternative<RequestType>(msg);
-
-                    if (!isType) {
-                        []() { FAIL() << "Parsed request is on unexpected type"; } ();
-						return getCannedError(CannedError::UnsupportedMessageType);
-                    }
-
-                    return Ok<RequestType>(std::get<RequestType>(std::move(msg)));
-                })
-                .mapError([](Error&& e) -> Error {
-                    [&e]() {
-						FAIL() << e;
-                    } ();
-
-                    return e;
-                });
-    }
-
 
     template<typename ResponseType>
     Result<ResponseType, Error>
@@ -131,13 +89,78 @@ protected:
     ByteWriter      _writer{_memBuf};
     ByteReader      _reader{_memBuf};
 
-	MessageWriter	_messageWriter{_writer};
+	ResponseWriter	_responseWriter{_writer};
 };
 
 
-TEST_F(P9E_Messages, createSessionRequest) {
-	_messageWriter << _9P2000E::Request::Session{{8, 7, 6, 5, 4, 3, 2, 1}};
-	_messageWriter.build();
+
+class P9E_Requests
+		: public ::testing::Test {
+protected:
+
+	// cppcheck-suppress unusedFunction
+	void SetUp() override {
+		_memBuf.view().fill(0xFE);
+
+		_writer.rewind();
+		_reader.rewind();
+	}
+
+
+	template<typename RequestType>
+	Result<RequestType, Error>
+	getRequestOrFail() {
+		_reader.limit(_writer.limit());
+
+		auto _maybeParser = createParser(kMaxMessageSize, _9P2000E::kProtocolVersion);
+		if (!_maybeParser) {
+			return _maybeParser.moveError();
+		}
+		auto& parser = _maybeParser.unwrap();
+
+		auto const expectType = messageCode(RequestType{});
+		return parser.parseMessageHeader(_reader)
+				.then([expectType](MessageHeader&& header) {
+					return (header.type != expectType)
+					? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
+					: Result<MessageHeader, Error>{types::okTag, std::move(header)};
+				})
+				.then([&parser, this](MessageHeader&& header) {
+					return parser.parseRequest(header, _reader);
+				})
+				.then([](RequestMessage&& msg) -> Result<RequestType, Error> {
+					bool const isType = std::holds_alternative<RequestType>(msg);
+
+					if (!isType) {
+						[]() { FAIL() << "Parsed request is on unexpected type"; } ();
+						return getCannedError(CannedError::UnsupportedMessageType);
+					}
+
+					return Ok<RequestType>(std::get<RequestType>(std::move(msg)));
+				})
+				.mapError([](Error&& e) -> Error {
+					[&e]() {
+						FAIL() << e;
+					} ();
+
+					return e;
+				});
+	}
+
+protected:
+
+	MemoryManager   _memManager {kMaxMessageSize};
+	MemoryResource  _memBuf{_memManager.allocate(kMaxMessageSize).unwrap()};
+	ByteWriter      _writer{_memBuf};
+	ByteReader      _reader{_memBuf};
+
+	RequestWriter	_requestWriter{_writer};
+};
+
+
+TEST_F(P9E_Requests, createSessionRequest) {
+	_requestWriter << _9P2000E::Request::Session{{8, 7, 6, 5, 4, 3, 2, 1}};
+	_requestWriter.build();
 
 	getRequestOrFail<_9P2000E::Request::Session>()
 			.then([](_9P2000E::Request::Session&& request) {
@@ -148,7 +171,7 @@ TEST_F(P9E_Messages, createSessionRequest) {
 }
 
 
-TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
+TEST_F(P9E_Requests, parseSessionRequest_NotEnoughData) {
 	byte const sessionKey[5] = {8, 7, 6, 5, 4};
     auto keyData = wrapMemory(sessionKey);
 
@@ -170,15 +193,15 @@ TEST_F(P9E_Messages, parseSessionRequest_NotEnoughData) {
 }
 
 
-TEST_F(P9E_Messages, createSessionRespose) {
-	_messageWriter << _9P2000E::Response::Session{};
-	_messageWriter.build();
+TEST_F(P9E_Responses, createSessionResponse) {
+	_responseWriter << _9P2000E::Response::Session{};
+	_responseWriter.build();
 
 	getResponseOrFail<_9P2000E::Response::Session>();
 }
 
 
-TEST_F(P9E_Messages, parseSessionRespose) {
+TEST_F(P9E_Responses, parseSessionResponse) {
     // Set declared message size to be more then negotiated message size
 	styxe::Encoder encoder{_writer};
 	encoder << makeHeaderWithPayload(messageCode(_9P2000E::Response::Session{}), 1, 0);
@@ -189,9 +212,7 @@ TEST_F(P9E_Messages, parseSessionRespose) {
 
 
 
-TEST_F(P9E_Messages, createShortReadRequest) {
-	MessageWriter writer{_writer};
-
+TEST_F(P9E_Requests, createShortReadRequest) {
 	byte buffer[15 + 2*3];
 	ByteWriter pathWriter{wrapMemory(buffer)};
 	styxe::Encoder encoder{pathWriter};
@@ -200,8 +221,8 @@ TEST_F(P9E_Messages, createShortReadRequest) {
 			<< StringView{"place"};
 
 	WalkPath path{3, wrapMemory(buffer)};
-	writer << _9P2000E::Request::ShortRead{32, path};
-	writer.build();
+	_requestWriter << _9P2000E::Request::ShortRead{32, path};
+	_requestWriter.build();
 
 	getRequestOrFail<_9P2000E::Request::ShortRead>()
 		.then([](_9P2000E::Request::ShortRead&& request) {
@@ -212,12 +233,11 @@ TEST_F(P9E_Messages, createShortReadRequest) {
 }
 
 
-TEST_F(P9E_Messages, createShortReadRespose) {
+TEST_F(P9E_Responses, createShortReadResponse) {
 	char const messageData[] = "This was somewhat important data d^_-b";
     auto data = wrapMemory(messageData);
-	MessageWriter writer{_writer, 1};
-	writer << _9P2000E::Response::ShortRead{data};
-	writer.build();
+	_responseWriter << _9P2000E::Response::ShortRead{data};
+	_responseWriter.build();
 
 	getResponseOrFail<_9P2000E::Response::ShortRead>()
 			.then([data](_9P2000E::Response::ShortRead&& response) {
@@ -226,7 +246,7 @@ TEST_F(P9E_Messages, createShortReadRespose) {
 }
 
 
-TEST_F(P9E_Messages, parseShortReadRespose) {
+TEST_F(P9E_Responses, parseShortReadResponse) {
     auto const messageData = StringLiteral{"This is a very important data d-_^b"};
     auto const dataView = messageData.view();
 
@@ -237,7 +257,6 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
 			<< dataView;
     _writer.flip();
 
-
 	getResponseOrFail<_9P2000E::Response::ShortRead>()
 			.then([messageData](_9P2000E::Response::ShortRead&& response) {
                 EXPECT_EQ(messageData.size(), response.data.size());
@@ -246,7 +265,7 @@ TEST_F(P9E_Messages, parseShortReadRespose) {
 }
 
 
-TEST_F(P9E_Messages, createShortWriteRequest) {
+TEST_F(P9E_Requests, createShortWriteRequest) {
 	char const messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
@@ -258,11 +277,8 @@ TEST_F(P9E_Messages, createShortWriteRequest) {
 			<< StringView{"wierd"}
 			<< StringView{"place"};
 
-	WalkPath path{3, wrapMemory(buffer)};
-
-	MessageWriter writer{_writer};
-	writer << _9P2000E::Request::ShortWrite{32, path, data};
-	writer.build();
+	_requestWriter << _9P2000E::Request::ShortWrite{32, WalkPath{3, wrapMemory(buffer)}, data};
+	_requestWriter.build();
 
 	getRequestOrFail<_9P2000E::Request::ShortWrite>()
 		.then([data](_9P2000E::Request::ShortWrite&& request) {
@@ -274,10 +290,9 @@ TEST_F(P9E_Messages, createShortWriteRequest) {
 }
 
 
-TEST_F(P9E_Messages, createShortWriteRespose) {
-	MessageWriter writer{_writer, 1};
-	writer << _9P2000E::Response::ShortWrite{100500};
-	writer.build();
+TEST_F(P9E_Responses, createShortWriteResponse) {
+	_responseWriter << _9P2000E::Response::ShortWrite{100500};
+	_responseWriter.build();
 
 	getResponseOrFail<_9P2000E::Response::ShortWrite>()
 			.then([](_9P2000E::Response::ShortWrite&& response) {
@@ -286,7 +301,7 @@ TEST_F(P9E_Messages, createShortWriteRespose) {
 }
 
 
-TEST_F(P9E_Messages, parseShortWriteRespose) {
+TEST_F(P9E_Responses, parseShortWriteResponse) {
 	styxe::Encoder encoder {_writer};
 	encoder << makeHeaderWithPayload(messageCode(_9P2000E::Response::ShortWrite{}), 1, sizeof(uint32))
 			<< (static_cast<uint32>(81177));

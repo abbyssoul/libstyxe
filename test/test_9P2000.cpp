@@ -305,7 +305,7 @@ protected:
 TEST_F(P9Messages, createVersionRequest) {
 	auto const testVersion = kProtocolVersion;
 
-	auto writer = MessageWriter{_writer, kNoTag};
+	auto writer = RequestWriter{_writer, kNoTag};
 	writer << Request::Version{kMaxMessageSize, testVersion};
 	writer.build();
 
@@ -316,8 +316,8 @@ TEST_F(P9Messages, createVersionRequest) {
             });
 }
 
-TEST_F(P9Messages, createVersionRespose) {
-	auto writer = MessageWriter{_writer, kNoTag};
+TEST_F(P9Messages, createVersionResponse) {
+	auto writer = ResponseWriter{_writer, kNoTag};
 	writer << Response::Version{718, "9Pe"};
 	writer.build();
 
@@ -328,7 +328,7 @@ TEST_F(P9Messages, createVersionRespose) {
             });
 }
 
-TEST_F(P9Messages, parseVersionRespose) {
+TEST_F(P9Messages, parseVersionResponse) {
     // Set declared message size to be more then negotiated message size
     writeHeader(_writer, headerSize() + sizeof(int32) + sizeof(int16) + 2, MessageType::RVersion, 1);
 	_writer.writeLE(static_cast<int32>(512));
@@ -345,7 +345,7 @@ TEST_F(P9Messages, parseVersionRespose) {
 
 
 TEST_F(P9Messages, createAuthRequest) {
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer <<  Request::Auth{312, "User mcUsers", "Somewhere near"};
 	writer.build();
 
@@ -358,14 +358,14 @@ TEST_F(P9Messages, createAuthRequest) {
 }
 
 
-TEST_F(P9Messages, createAuthRespose) {
+TEST_F(P9Messages, createAuthResponse) {
     auto const qid = Qid {
 			8187,
             71,
 			17
     };
 
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Auth{qid};
 	writer.build();
 
@@ -377,7 +377,7 @@ TEST_F(P9Messages, createAuthRespose) {
 }
 
 
-TEST_F(P9Messages, parseAuthRespose) {
+TEST_F(P9Messages, parseAuthResponse) {
     // Set declared message size to be more then negotiated message size
     writeHeader(_writer, headerSize() + 13, MessageType::RAuth, 1);
 
@@ -396,9 +396,9 @@ TEST_F(P9Messages, parseAuthRespose) {
 
 // No such thing as error request!
 
-TEST_F(P9Messages, createErrorRespose) {
+TEST_F(P9Messages, createErrorResponse) {
     auto const testError = StringLiteral{"Something went right :)"};
-	MessageWriter writer{_writer, 3};
+	ResponseWriter writer{_writer, 3};
 	writer << Response::Error{testError};
 	writer.build();
 
@@ -408,7 +408,7 @@ TEST_F(P9Messages, createErrorRespose) {
             });
 }
 
-TEST_F(P9Messages, parseErrorRespose) {
+TEST_F(P9Messages, parseErrorResponse) {
 	auto const expectedErrorMessage = StringLiteral{"All good!"};
 
 	styxe::Encoder encoder{_writer};
@@ -425,7 +425,7 @@ TEST_F(P9Messages, parseErrorRespose) {
 
 
 TEST_F(P9Messages, createFlushRequest) {
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::Flush{7711};
 	writer.build();
 
@@ -437,7 +437,7 @@ TEST_F(P9Messages, createFlushRequest) {
 
 
 TEST_F(P9Messages, createFlushResponse) {
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Flush{};
 	writer.build();
 
@@ -445,7 +445,7 @@ TEST_F(P9Messages, createFlushResponse) {
 }
 
 
-TEST_F(P9Messages, parseFlushRespose) {
+TEST_F(P9Messages, parseFlushResponse) {
     writeHeader(_writer, headerSize(), MessageType::RFlush, 1);
     _writer.flip();
 
@@ -454,7 +454,7 @@ TEST_F(P9Messages, parseFlushRespose) {
 
 
 TEST_F(P9Messages, createAttachRequest) {
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::Attach{3310, 1841, "McFace", "close to u"};
 	writer.build();
 
@@ -467,14 +467,14 @@ TEST_F(P9Messages, createAttachRequest) {
             });
 }
 
-TEST_F(P9Messages, createAttachRespose) {
+TEST_F(P9Messages, createAttachResponse) {
     auto const qid = Qid {
 			7771,
             91,
 			3
     };
 
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Attach{qid};
 	writer.build();
 
@@ -484,7 +484,7 @@ TEST_F(P9Messages, createAttachRespose) {
             });
 }
 
-TEST_F(P9Messages, parseAttachRespose) {
+TEST_F(P9Messages, parseAttachResponse) {
     writeHeader(_writer, headerSize() + 13, MessageType::RAttach, 1);
 
 	_writer.writeLE(byte(81));                      // QID.type
@@ -502,7 +502,7 @@ TEST_F(P9Messages, parseAttachRespose) {
 
 
 TEST_F(P9Messages, createOpenRequest) {
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::Open{517, OpenMode::RDWR};
 	writer.build();
 
@@ -514,10 +514,10 @@ TEST_F(P9Messages, createOpenRequest) {
 }
 
 
-TEST_F(P9Messages, createOpenRespose) {
+TEST_F(P9Messages, createOpenResponse) {
 	auto const qid = Qid {881, 13, 23};
 
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Open{qid, 817};
 	writer.build();
 
@@ -528,7 +528,7 @@ TEST_F(P9Messages, createOpenRespose) {
             });
 }
 
-TEST_F(P9Messages, parseOpenRespose) {
+TEST_F(P9Messages, parseOpenResponse) {
 	auto const qid = Qid {4173, 71, 2};
     size_type const iounit = 998;
 
@@ -553,7 +553,7 @@ TEST_F(P9Messages, parseOpenRespose) {
 
 
 TEST_F(P9Messages, createCreateRequest) {
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::Create{1734, "mcFance", 11, OpenMode::EXEC};
 	writer.build();
 
@@ -566,14 +566,14 @@ TEST_F(P9Messages, createCreateRequest) {
             });
 }
 
-TEST_F(P9Messages, createCreateRespose) {
+TEST_F(P9Messages, createCreateResponse) {
     auto const qid = Qid {
 			323,
             8,
 			13
     };
 
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Create{qid, 718};
 	writer.build();
 
@@ -584,7 +584,7 @@ TEST_F(P9Messages, createCreateRespose) {
             });
 }
 
-TEST_F(P9Messages, parseCreateRespose) {
+TEST_F(P9Messages, parseCreateResponse) {
     auto const qid = Qid {
 			323,
             8,
@@ -612,7 +612,7 @@ TEST_F(P9Messages, parseCreateRespose) {
 
 
 TEST_F(P9Messages, createReadRequest) {
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::Read{7234, 18, 772};
 	writer.build();
 
@@ -624,10 +624,10 @@ TEST_F(P9Messages, createReadRequest) {
             });
 }
 
-TEST_F(P9Messages, createReadRespose) {
+TEST_F(P9Messages, createReadResponse) {
 	char const content[] = "Good news everyone!";
     auto data = wrapMemory(content);
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Read{data};
 	writer.build();
 
@@ -637,7 +637,7 @@ TEST_F(P9Messages, createReadRespose) {
             });
 }
 
-TEST_F(P9Messages, parseReadRespose) {
+TEST_F(P9Messages, parseReadResponse) {
     auto const messageData = StringLiteral{"This is a very important data d-_^b"};
 	uint32 const dataLen = messageData.size();
 
@@ -660,7 +660,7 @@ TEST_F(P9Messages, createWriteRequest) {
 	char const messageData[] = "This is a very important data d-_^b";
     auto data = wrapMemory(messageData);
 
-	MessageWriter writer{_writer, 1};
+	RequestWriter writer{_writer, 1};
 	writer << Request::Write{15927, 98, data};
 	writer.build();
 
@@ -672,8 +672,8 @@ TEST_F(P9Messages, createWriteRequest) {
             });
 }
 
-TEST_F(P9Messages, createWriteRespose) {
-	MessageWriter writer{_writer, 1};
+TEST_F(P9Messages, createWriteResponse) {
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Write{71717};
 	writer.build();
 
@@ -683,7 +683,7 @@ TEST_F(P9Messages, createWriteRespose) {
             });
 }
 
-TEST_F(P9Messages, parseWriteRespose) {
+TEST_F(P9Messages, parseWriteResponse) {
     writeHeader(_writer, headerSize() + sizeof(uint32), MessageType::RWrite, 1);
     // iounit
 	_writer.writeLE(static_cast<uint32>(81177));
@@ -698,7 +698,7 @@ TEST_F(P9Messages, parseWriteRespose) {
 
 
 TEST_F(P9Messages, createClunkRequest) {
-	MessageWriter writer{_writer, 1};
+	RequestWriter writer{_writer, 1};
 	writer << Request::Clunk{37509};
 	writer.build();
 
@@ -708,15 +708,15 @@ TEST_F(P9Messages, createClunkRequest) {
             });
 }
 
-TEST_F(P9Messages, createClunkRespose) {
-	MessageWriter writer{_writer, 1};
+TEST_F(P9Messages, createClunkResponse) {
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Clunk{};
 	writer.build();
 
 	getResponseOrFail<Response::Clunk>();
 }
 
-TEST_F(P9Messages, parseClunkRespose) {
+TEST_F(P9Messages, parseClunkResponse) {
     writeHeader(_writer, headerSize(), MessageType::RClunk, 1);
     _writer.flip();
 
@@ -726,7 +726,7 @@ TEST_F(P9Messages, parseClunkRespose) {
 
 
 TEST_F(P9Messages, createRemoveRequest) {
-	MessageWriter writer{_writer, 1};
+	RequestWriter writer{_writer, 1};
 	writer << Request::Remove{54329};
 	writer.build();
 
@@ -736,15 +736,15 @@ TEST_F(P9Messages, createRemoveRequest) {
             });
 }
 
-TEST_F(P9Messages, createRemoveRespose) {
-	MessageWriter writer{_writer, 1};
+TEST_F(P9Messages, createRemoveResponse) {
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Remove{};
 	writer.build();
 
 	getResponseOrFail<Response::Remove>();
 }
 
-TEST_F(P9Messages, parseRemoveRespose) {
+TEST_F(P9Messages, parseRemoveResponse) {
     writeHeader(_writer, headerSize(), MessageType::RRemove, 1);
     _writer.flip();
 
@@ -754,7 +754,7 @@ TEST_F(P9Messages, parseRemoveRespose) {
 
 
 TEST_F(P9Messages, createStatRequest) {
-	MessageWriter writer{_writer, 1};
+	RequestWriter writer{_writer, 1};
 	writer << Request::Stat{7872};
 	writer.build();
 
@@ -764,7 +764,7 @@ TEST_F(P9Messages, createStatRequest) {
             });
 }
 
-TEST_F(P9Messages, createStatRespose) {
+TEST_F(P9Messages, createStatResponse) {
     Stat stat;
     stat.atime = 12;
     stat.dev = 3310;
@@ -780,7 +780,7 @@ TEST_F(P9Messages, createStatRespose) {
     stat.type = 3;
     stat.uid = "User McUserface -2";
 
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << Response::Stat{stat.size, stat};
 	writer.build();
 
@@ -790,7 +790,7 @@ TEST_F(P9Messages, createStatRespose) {
             });
 }
 
-TEST_F(P9Messages, parseStatRespose) {
+TEST_F(P9Messages, parseStatResponse) {
     Response::Stat statResponse;
     statResponse.dummySize = 1;
 
@@ -840,7 +840,7 @@ TEST_F(P9Messages, createWStatRequest) {
     stat.type = 1;
     stat.uid = "Userface McUse";
 
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::WStat{8193, stat};
 	writer.build();
 
@@ -851,15 +851,15 @@ TEST_F(P9Messages, createWStatRequest) {
             });
 }
 
-TEST_F(P9Messages, createWStatRespose) {
-	MessageWriter writer{_writer, 1};
+TEST_F(P9Messages, createWStatResponse) {
+	ResponseWriter writer{_writer, 1};
 	writer << Response::WStat{};
 	writer.build();
 
 	getResponseOrFail<Response::WStat>();
 }
 
-TEST_F(P9Messages, parseWStatRespose) {
+TEST_F(P9Messages, parseWStatResponse) {
     writeHeader(_writer, headerSize(), MessageType::RWStat, 1);
     _writer.flip();
 
@@ -876,7 +876,7 @@ TEST_F(P9Messages, createWalkRequest) {
 	encoder << StringView{"space"}
 			<< StringView{"knowhere"};
 
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::Walk{213, 124, WalkPath{2, wrapMemory(buffer)}};
 	writer.build();
 
@@ -890,7 +890,7 @@ TEST_F(P9Messages, createWalkRequest) {
 }
 
 TEST_F(P9Messages, createWalkEmptyPathRequest) {
-	MessageWriter writer{_writer};
+	RequestWriter writer{_writer};
 	writer << Request::Walk{7374, 542, WalkPath(0, MemoryView{})};
 	writer.build();
 
@@ -903,14 +903,14 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
 }
 
 
-TEST_F(P9Messages, createWalkRespose) {
+TEST_F(P9Messages, createWalkResponse) {
 	Response::Walk message;
 	message.nqids = 3;
 	message.qids[2].path = 21;
 	message.qids[2].version = 117;
 	message.qids[2].type = 81;
 
-	MessageWriter writer{_writer, 1};
+	ResponseWriter writer{_writer, 1};
 	writer << message;
 	writer.build();
 
@@ -921,7 +921,7 @@ TEST_F(P9Messages, createWalkRespose) {
             });
 }
 
-TEST_F(P9Messages, parseWalkRespose) {
+TEST_F(P9Messages, parseWalkResponse) {
     auto const qid = Qid {
             87,
             5481,

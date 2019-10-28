@@ -96,14 +96,14 @@ styxe::operator>> (ByteReader& data, _9P2000E::Response::ShortWrite& dest) {
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, _9P2000E::Response::Session const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::Session const& response) {
 	writer.messageType(messageCode(response));
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, _9P2000E::Response::ShortRead const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortRead const& response) {
 	writer.messageType(messageCode(response))
 			<< response.data;
 
@@ -111,8 +111,8 @@ styxe::operator<< (MessageWriter& writer, _9P2000E::Response::ShortRead const& r
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, _9P2000E::Response::ShortWrite const& response) {
+ResponseWriter&
+styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortWrite const& response) {
 	writer.messageType(messageCode(response))
 			<< response.count;
 
@@ -120,8 +120,8 @@ styxe::operator<< (MessageWriter& writer, _9P2000E::Response::ShortWrite const& 
 }
 
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, _9P2000E::Request::Session const& response) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Session const& response) {
 	writer.messageType(messageCode(response))
 			<< response.key[0]
 			<< response.key[1]
@@ -135,8 +135,8 @@ styxe::operator<< (MessageWriter& writer, _9P2000E::Request::Session const& resp
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, _9P2000E::Request::ShortRead const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortRead const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.path;
@@ -144,8 +144,8 @@ styxe::operator<< (MessageWriter& writer, _9P2000E::Request::ShortRead const& re
 	return writer;
 }
 
-MessageWriter&
-styxe::operator<< (MessageWriter& writer, _9P2000E::Request::ShortWrite const& request) {
+RequestWriter&
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.path
