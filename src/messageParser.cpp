@@ -133,12 +133,9 @@ ResponseParseTable getResponseParserTable() {
 	return table;
 }
 
-StringView messageTypeToString(byte type) {
-	if (type < static_cast<byte>(styxe::MessageType::_beginSupportedMessageCode) ||
-		type > static_cast<byte>(styxe::MessageType::_endSupportedMessageCode) ) {
-		return "Unsupported";
-	}
 
+StringView
+messageTypeToString(byte type) {
 	auto mType = static_cast<styxe::MessageType>(type);
 	switch (mType) {
 	case MessageType::TVersion: return "TVersion";
@@ -170,6 +167,8 @@ StringView messageTypeToString(byte type) {
 	case MessageType::TWStat:   return "TWStat";
 	case MessageType::RWStat:   return "RWStat";
 	}
+
+	return "Unsupported";
 }
 
 }  // namespace _9P2000
@@ -197,6 +196,21 @@ ResponseParseTable getResponseParserTable() {
 	return table;
 }
 
+
+StringView
+messageTypeToString(byte type) {
+	auto mType = static_cast<MessageType>(type);
+	switch (mType) {
+	case MessageType::TSession:		return "TSession";
+	case MessageType::RSession:		return "RSession";
+	case MessageType::TShortRead:	return "TShortRead";
+	case MessageType::RShortRead:	return "RShortRead";
+	case MessageType::TShortWrite:  return "TShortWrite";
+	case MessageType::RShortWrite:  return "RShortWrite";
+	}
+
+	return _9P2000::messageTypeToString(type);
+}
 }  // namespace styxe::_9P2000E
 
 
@@ -279,10 +293,16 @@ styxe::createParser(size_type maxMessageSize, Solace::StringView version) noexce
 
 	if (version == kProtocolVersion) {
 		return Result<Parser, Error>{types::okTag, in_place,
-					maxMessageSize, _9P2000::getRequestParserTable(), _9P2000::getResponseParserTable() };
+					maxMessageSize,
+					_9P2000::messageTypeToString,
+					_9P2000::getRequestParserTable(),
+					_9P2000::getResponseParserTable() };
 	}  else if (version == _9P2000E::kProtocolVersion) {
 		return Result<Parser, Error>{types::okTag, in_place,
-					maxMessageSize, _9P2000E::getRequestParserTable(), _9P2000E::getResponseParserTable() };
+					maxMessageSize,
+					_9P2000E::messageTypeToString,
+					_9P2000E::getRequestParserTable(),
+					_9P2000E::getResponseParserTable() };
 	}
 
 	return Result<Parser, Error>{types::errTag, getCannedError(CannedError::UnsupportedVersion) };
@@ -313,5 +333,5 @@ Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
 
 StringView
 Parser::messageName(byte messageType) const {
-	return _9P2000::messageTypeToString(messageType);
+	return _nameMapper(messageType);
 }

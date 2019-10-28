@@ -110,14 +110,15 @@ std::ostream& operator<< (std::ostream& ostr, Stat const& stat) {
          << '}';
 }
 
-std::ostream& operator<< (std::ostream& ostr, MessageHeader const& header) {
+void
+printHeader (std::ostream& ostr, Parser const& parser, MessageHeader const& header) {
 	bool const isRequest = ((header.type % 2) == 0);
     ostr  << (isRequest ? "→" : "←");
 
-    return ostr << " ["
-                << std::setw(5) << header.messageSize
-                << "] <" << header.tag << "> "
-				<< static_cast<int>(header.type);
+	ostr << " ["
+		 << std::setw(5) << header.messageSize
+		 << "] <" << header.tag << "> "
+		 << parser.messageName(header.type);
 }
 
 
@@ -293,7 +294,7 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, Parser& proc)
 
     proc.parseMessageHeader(reader)
             .then([&](MessageHeader&& header) {
-                std::cout << header;
+				printHeader(std::cout, proc, header);
 
                 in.read(buffer.view().dataAs<char>(), header.payloadSize());
                 reader.rewind()

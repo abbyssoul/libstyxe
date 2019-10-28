@@ -73,6 +73,14 @@ using RequestParseTable = std::array<RequestParseFunc, 1 << 8*sizeof(MessageHead
 using ResponseParseTable = std::array<ResponseParseFunc, 1 << 8*sizeof(MessageHeader::type)>;
 
 
+/**
+ * 9p2000 message parser for unspecified protocol version.
+ * Note: this parser only able to parse basic messages of the protocol.
+ * In practice it means Version negotiation request.
+ *
+ * Once protocol version is negotiated - create a Parser instance for that version.
+ * @see createParser for details.
+ */
 struct UnversionedParser {
 
 	/**
@@ -83,12 +91,22 @@ struct UnversionedParser {
 	Solace::Result<MessageHeader, Error>
 	parseMessageHeader(Solace::ByteReader& byteStream) const;
 
+	/**
+	 * Parse protocol message from a byte stream.
+	 * @param header Fixed-size message header.
+	 * @param byteStream A byte stream to parse a message from.
+	 * @return Either a parsed message or an error.
+	 */
 	Solace::Result<Request::Version, Error>
 	parseMessage(MessageHeader header, Solace::ByteReader& byteStream) const;
 
+	/**
+	 * Get maximum message size in bytes. That includes size of a message header and the payload.
+	 * @return
+	 */
 	size_type maxMessageSize() const noexcept { return headerSize() + maxPayloadSize; }
 
-	size_type const         maxPayloadSize;                /// Initial value of the maximum message size in bytes.
+	size_type const         maxPayloadSize;		/// Initial value of the maximum message payload size in bytes.
 };
 
 
@@ -112,6 +130,8 @@ struct UnversionedParser {
 struct Parser :
 		public UnversionedParser {
 
+	using VersionedNameMapper = Solace::StringView	(*)(Solace::byte);
+
 	Parser(Parser const& ) = delete;
 	Parser& operator= (Parser const& ) = delete;
 
@@ -122,9 +142,11 @@ struct Parser :
 	 * @param version Supported protocol version. This is advertized by the protocol during version/size negotiation.
 	 */
 	Parser(size_type maxMassageSize,
+		   VersionedNameMapper	messageNameMapper,
 		   RequestParseTable	versionedRequestParser,
 		   ResponseParseTable	versionedResponseParser) noexcept
 		: UnversionedParser{maxMassageSize}
+		, _nameMapper{messageNameMapper}
 		, _versionedRequestParser{Solace::mv(versionedRequestParser)}
 		, _versionedResponseParser{Solace::mv(versionedResponseParser)}
 	{}
@@ -154,8 +176,10 @@ struct Parser :
 	Solace::StringView messageName(Solace::byte messageType) const;
 
 private:
-	RequestParseTable	_versionedRequestParser;  /// Parser V-table.
-	ResponseParseTable	_versionedResponseParser;  /// Parser V-table.
+
+	VersionedNameMapper	_nameMapper;
+	RequestParseTable	_versionedRequestParser;	/// Parser V-table.
+	ResponseParseTable	_versionedResponseParser;	/// Parser V-table.
 };
 
 
