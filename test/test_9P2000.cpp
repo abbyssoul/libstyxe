@@ -22,7 +22,6 @@
 #include "styxe/messageWriter.hpp"
 #include "styxe/messageParser.hpp"
 
-#include "styxe/print.hpp"
 #include <solace/output_utils.hpp>
 
 #include <gtest/gtest.h>

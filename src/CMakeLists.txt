@@ -2,7 +2,6 @@
 set(SOURCE_FILES
     encoder.cpp
     decoder.cpp
-    debug.cpp
     errorDomain.cpp
 
     9p2000.cpp
