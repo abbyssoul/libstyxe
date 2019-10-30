@@ -7,7 +7,7 @@ set(SOURCE_FILES
     9p2000.cpp
     9p2000_writer.cpp
     9p2000e.cpp
-#    9p2000l.cpp
+    9p2000L.cpp
     messageWriter.cpp
     messageParser.cpp
     )

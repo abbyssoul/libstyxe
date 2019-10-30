@@ -13,29 +13,13 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 */
-#pragma once
-#ifndef STYXE_9P2000L_HPP
-#define STYXE_9P2000L_HPP
+
+#include "styxe/9p2000L.hpp"
+#include "styxe/decoder.hpp"
 
 
-#include "styxe/9p2000.hpp"
+using namespace Solace;
+using namespace styxe;
 
 
-namespace styxe {
-namespace _9P2000L {
-
-/// Protocol version literal
-extern const Solace::StringLiteral kProtocolVersion;
-
-
-enum class MessageType : Solace::byte {
-	/**
-	 * 9P2000.L extension
-	 */
-};
-
-}  // end of namespace _9P2000L
-
-
-}  // end of namespace styxe
-#endif  // STYXE_9P2000L_HPP
+const StringLiteral _9P2000L::kProtocolVersion{"9P2000.L"};

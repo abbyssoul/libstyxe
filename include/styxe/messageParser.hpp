@@ -19,7 +19,7 @@
 
 #include "styxe/9p2000.hpp"
 #include "styxe/9p2000e.hpp"
-#include "styxe/9p2000l.hpp"
+#include "styxe/9p2000L.hpp"
 
 
 namespace styxe {

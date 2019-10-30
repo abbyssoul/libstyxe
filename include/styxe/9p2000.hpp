@@ -447,43 +447,6 @@ struct Response {
 };
 
 
-/*
-using RequestMessage = std::variant<
-							Request::Version,
-							Request::Auth,
-							Request::Flush,
-							Request::Attach,
-							Request::Walk,
-							Request::Open,
-							Request::Create,
-							Request::Read,
-							Request::Write,
-							Request::Clunk,
-							Request::Remove,
-							Request::Stat,
-							Request::WStat
-							>;
-
-/// Type representing response message
-using ResponseMessage = std::variant<
-							Response::Version,
-							Response::Auth,
-							Response::Attach,
-							Response::Error,
-							Response::Flush,
-							Response::Walk,
-							Response::Open,
-							Response::Create,
-							Response::Read,
-							Response::Write,
-							Response::Clunk,
-							Response::Remove,
-							Response::Stat,
-							Response::WStat
-							>;
-*/
-
-
 /**
  * @brief A helper class that allows to build response content for DIR `read` request.
  * @see Protocol::Request::Read
