@@ -44,13 +44,16 @@ Note that the size of the target buffer should be no more then negotiated messag
 Solace::ByteWriter buffer{...};
 
 // Write TVersion request into the beffer
-styxe::RequestBuilder{destBuffer}
-            .version();
-...
-// Write TOpen request into the given destination buffer
-styxe::RequestBuilder{destBuffer}
-            .open(42, styxe::OpenMode::READ));
+styxe::RequestWriter requestWriter{buffer, 1};
+requestWriter << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion}
+requestWriter.build();
 
+...
+
+// Write TOpen request into the given destination buffer
+styxe::RequestWriter requestWriter{buffer, 1};
+requestWriter << Open{42, styxe::OpenMode::READ)};
+requestWriter.build();
 ```
 
 ### Parsing 9P message from a byte buffer:
@@ -58,7 +61,27 @@ Parsing of 9P protocol messages differ slightly depending on if you are implemen
 
 ### Parsing requests (server side):
 ```C++
+styxe::Parser parser{...};
+...
+Solace::ByteReader buffer{...};
+auto maybeHeader = parser.parseMessageHeader{buffer};
+if (!maybeHeader) {
+    LOG() << "Failed to parse message header";
+    return maybeHeader.getError();
+}
 
+auto maybeMessage = parser.parseRequest(*maybeHeader, buffer);
+if (!maybeMessage) {
+    LOG() << "Failed to parse message";
+    return maybeMessage.getError();
+}
+
+handleRequest(*maybeMessage);
+...
+```
+
+Alternatively you can prefer fluent interface:
+```c++
 styxe::Parser parser{...};
 ...
 Solace::ByteReader buffer{...};
