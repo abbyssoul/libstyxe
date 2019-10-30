@@ -34,8 +34,8 @@ MessageWriterBase::build() {
 	_header.messageSize = narrow_cast<size_type>(messageSize);
 	_encoder << _header;
 
-	if (_header.type == static_cast<byte>(MessageType::RRead) ||
-		_header.type == static_cast<byte>(_9P2000E::MessageType::RShortRead)) {
+	if (_header.type == asByte(MessageType::RRead) ||
+		_header.type == asByte(_9P2000E::MessageType::RShortRead)) {
 		auto const dataSize = narrow_cast<size_type>(finalPos - buffer.position() - sizeof(size_type));
 		_encoder << dataSize;
 	}

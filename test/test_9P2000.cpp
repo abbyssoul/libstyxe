@@ -71,7 +71,7 @@ void encode9P(ByteWriter& dest, Stat const& stat) {
 
 void writeHeader(ByteWriter& byteStream, size_type msgSize, MessageType type, byte tag) {
 	byteStream.writeLE(msgSize);
-	byteStream.writeLE(static_cast<byte>(type));
+	byteStream.writeLE(asByte(type));
 	byteStream.writeLE(Tag(tag));
 }
 
@@ -94,7 +94,7 @@ TEST(P9, testParsingMessageHeader) {
 
     auto header = res.unwrap();
     ASSERT_EQ(4u + 1u + 2u, header.messageSize);
-	ASSERT_EQ(static_cast<byte>(MessageType::TVersion), header.type);
+	ASSERT_EQ(asByte(MessageType::TVersion), header.type);
     ASSERT_EQ(1_us, header.tag);
 }
 
@@ -412,7 +412,7 @@ TEST_F(P9Messages, parseErrorResponse) {
 	auto const expectedErrorMessage = StringLiteral{"All good!"};
 
 	styxe::Encoder encoder{_writer};
-	encoder << makeHeaderWithPayload(static_cast<byte>(MessageType::RError), 1, styxe::protocolSize(expectedErrorMessage))
+	encoder << makeHeaderWithPayload(asByte(MessageType::RError), 1, styxe::protocolSize(expectedErrorMessage))
 			<< static_cast<StringView>(expectedErrorMessage);
 
     _writer.flip();

@@ -87,7 +87,7 @@ RequestParseTable getRequestParserTable() {
 	RequestParseTable table{getBlankRequestParserTable()};
 
 #define FILL_REQUEST(message) \
-	table[static_cast<byte>(MessageType::T##message)] = parseRequest<Request::message>
+	table[asByte(MessageType::T##message)] = parseRequest<Request::message>
 
 
 	FILL_REQUEST(Version);
@@ -112,7 +112,7 @@ ResponseParseTable getResponseParserTable() {
 	ResponseParseTable table{getBlankResponseParserTable()};
 
 #define FILL_RESPONSE(message) \
-	table[static_cast<byte>(MessageType::R##message)] = parseResponse<Response::message>
+	table[asByte(MessageType::R##message)] = parseResponse<Response::message>
 
 	FILL_RESPONSE(Version);
 	FILL_RESPONSE(Auth);
@@ -179,9 +179,9 @@ namespace styxe::_9P2000E {
 RequestParseTable getRequestParserTable() {
 	auto table = ::_9P2000::getRequestParserTable();
 
-	table[static_cast<byte>(MessageType::TSession)] = parseRequest<Request::Session>;
-	table[static_cast<byte>(MessageType::TShortRead)] = parseRequest<Request::ShortRead>;
-	table[static_cast<byte>(MessageType::TShortWrite)] = parseRequest<Request::ShortWrite>;
+	table[asByte(MessageType::TSession)] = parseRequest<Request::Session>;
+	table[asByte(MessageType::TShortRead)] = parseRequest<Request::ShortRead>;
+	table[asByte(MessageType::TShortWrite)] = parseRequest<Request::ShortWrite>;
 
 	return table;
 }
@@ -189,9 +189,9 @@ RequestParseTable getRequestParserTable() {
 ResponseParseTable getResponseParserTable() {
 	auto table = ::_9P2000::getResponseParserTable();
 
-	table[static_cast<byte>(MessageType::RSession)] = parseResponse<Response::Session>;
-	table[static_cast<byte>(MessageType::RShortRead)] = parseResponse<Response::ShortRead>;
-	table[static_cast<byte>(MessageType::RShortWrite)] = parseResponse<Response::ShortWrite>;
+	table[asByte(MessageType::RSession)] = parseResponse<Response::Session>;
+	table[asByte(MessageType::RShortRead)] = parseResponse<Response::ShortRead>;
+	table[asByte(MessageType::RShortWrite)] = parseResponse<Response::ShortWrite>;
 
 	return table;
 }
@@ -276,7 +276,7 @@ UnversionedParser::parseMessage(MessageHeader header, ByteReader& data) const {
 	if (!isValid)
 		return isValid.getError();
 
-	if (header.type != static_cast<byte>(MessageType::TVersion))
+	if (header.type != asByte(MessageType::TVersion))
 		return Result<Request::Version, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType) };
 
 	Request::Version version;

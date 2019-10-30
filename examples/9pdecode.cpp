@@ -300,7 +300,7 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, Parser& proc)
                 reader.rewind()
                         .limit(in.gcount());
 
-                bool const isRequest = (static_cast<byte>(header.type) % 2) == 0;
+				bool const isRequest = (header.type % 2) == 0;
                 if (isRequest) {
                     proc.parseRequest(header, reader)
                             .then([](RequestMessage&& reqMsg) { std::visit(VisitRequest{}, reqMsg); });
