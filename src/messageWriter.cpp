@@ -15,31 +15,36 @@
 */
 
 #include "styxe/messageWriter.hpp"
-#include "styxe/encoder.hpp"
 
-#include "styxe/9p2000.hpp"
-#include "styxe/9p2000e.hpp"
 
 using namespace Solace;
 using namespace styxe;
 
 
-ByteWriter&
-MessageWriterBase::build() {
+void MessageWriterBase::updateMessageSize() {
 	auto const finalPos = _encoder.buffer().position();
 	auto const messageSize = finalPos - _pos;  // Re-compute actual message size
-	auto& buffer = _encoder.buffer();
-	buffer.position(_pos);  // Reset to the start position
-
-	_header.messageSize = narrow_cast<size_type>(messageSize);
-	_encoder << _header;
-
-	if (_header.type == asByte(MessageType::RRead) ||
-		_header.type == asByte(_9P2000E::MessageType::RShortRead)) {
-		auto const dataSize = narrow_cast<size_type>(finalPos - buffer.position() - sizeof(size_type));
-		_encoder << dataSize;
+	if (finalPos == _pos || _header.messageSize == messageSize) {  // Nothing to do
+		return;
 	}
 
+	// Update message size filed in the header
+	_header.messageSize = narrow_cast<size_type>(messageSize);
+
+	auto& buffer = _encoder.buffer();
+	buffer.position(_pos);  // Reset output stream to the start position
+
+	// Write a new header with updated message size
+	_encoder << _header;
+
+	// Reset output stream to the current position
 	buffer.position(finalPos);
-	return buffer.flip();
+}
+
+
+ByteWriter&
+MessageWriterBase::build() {
+	updateMessageSize();
+
+	return _encoder.buffer().flip();
 }

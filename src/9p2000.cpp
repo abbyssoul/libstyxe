@@ -17,6 +17,7 @@
 #include "styxe/9p2000.hpp"
 #include "styxe/messageParser.hpp"
 
+#include "parse_helper.hpp"
 
 #include <solace/assert.hpp>
 #include <algorithm>  // std::min
@@ -40,18 +41,6 @@ const byte OpenMode::EXEC;
 const byte OpenMode::TRUNC;
 const byte OpenMode::CEXEC;
 const byte OpenMode::RCLOSE;
-
-
-template<typename...Args>
-Result<ByteReader&, Error>
-decode(ByteReader& data, Args&& ...args) {
-	Decoder decoder{data};
-	auto result = (decoder >> ... >> args);
-	if (!result) return result.moveError();
-
-	return Result<ByteReader&, Error>{types::okTag, data};
-}
-
 
 
 Result<ByteReader&, Error>

@@ -31,167 +31,6 @@ using namespace Solace;
 using namespace styxe;
 
 
-inline uint16 operator "" _us(unsigned long long value) {  // NOLINT(runtime/int)
-    return static_cast<uint16>(value);
-}
-
-
-void encode9P(ByteWriter& dest, Qid qid) {
-    dest.writeLE(qid.type);
-    dest.writeLE(qid.version);
-    dest.writeLE(qid.path);
-}
-
-
-void encode9P(ByteWriter& dest, Stat const& stat) {
-    dest.writeLE(stat.size);
-    dest.writeLE(stat.type);
-    dest.writeLE(stat.dev);
-
-    encode9P(dest, stat.qid);
-
-    dest.writeLE(stat.mode);
-    dest.writeLE(stat.atime);
-    dest.writeLE(stat.mtime);
-    dest.writeLE(stat.length);
-
-    dest.writeLE(static_cast<uint16>(stat.name.size()));
-    dest.write(stat.name.view());
-
-    dest.writeLE(static_cast<uint16>(stat.uid.size()));
-    dest.write(stat.uid.view());
-
-    dest.writeLE(static_cast<uint16>(stat.gid.size()));
-    dest.write(stat.gid.view());
-
-    dest.writeLE(static_cast<uint16>(stat.muid.size()));
-    dest.write(stat.muid.view());
-}
-
-void writeHeader(ByteWriter& byteStream, size_type msgSize, MessageType type, byte tag) {
-	byteStream.writeLE(msgSize);
-	byteStream.writeLE(asByte(type));
-	byteStream.writeLE(Tag(tag));
-}
-
-
-TEST(P9, testHeaderSize) {
-    ASSERT_EQ(4u + 1u + 2u, headerSize());
-}
-
-
-TEST(P9, testParsingMessageHeader) {
-    // Form a normal message with no data:
-	byte buffer[16];
-	auto byteStream = ByteWriter{wrapMemory(buffer)};
-	writeHeader(byteStream, 4 + 1 + 2, MessageType::TVersion, 1);
-
-	auto reader = ByteReader{byteStream.viewWritten()};
-	auto res = UnversionedParser{127}
-			.parseMessageHeader(reader);
-    ASSERT_TRUE(res.isOk());
-
-    auto header = res.unwrap();
-    ASSERT_EQ(4u + 1u + 2u, header.messageSize);
-	ASSERT_EQ(asByte(MessageType::TVersion), header.type);
-    ASSERT_EQ(1_us, header.tag);
-}
-
-
-TEST(P9, parsingMessageHeaderWithUnknownMessageType) {
-    // Form a normal message with no data:
-	byte buffer[16];
-	auto byteStream = ByteWriter{wrapMemory(buffer)};
-	byteStream.writeLE(size_type(4 + 1 + 2));
-	byteStream.writeLE(static_cast<byte>(-1));
-	byteStream.writeLE(Tag(1));
-
-	auto reader = ByteReader{byteStream.viewWritten()};
-	ASSERT_TRUE(UnversionedParser{128}.parseMessageHeader(reader).isOk());
-}
-
-
-TEST(P9, testParsingHeaderWithInsufficientData) {
-	byte buffer[16];
-	auto byteStream = ByteWriter{wrapMemory(buffer)};
-
-    // Only write one header field. Should be not enough data to read a header.
-	byteStream.writeLE(size_type(4 + 1 + 2));  // type and tag are not written deliberately
-
-	auto reader = ByteReader{byteStream.viewWritten()};
-	auto maybeHeader = UnversionedParser{16}.parseMessageHeader(reader);
-	ASSERT_TRUE(maybeHeader.isError());
-}
-
-
-TEST(P9_2000, testParsingIllformedMessageHeader) {
-	byte buffer[16];
-	auto byteStream = ByteWriter{wrapMemory(buffer)};
-	// Set declared message size less then header size.
-	writeHeader(byteStream, 1 + 2, MessageType::TVersion, 1);
-
-	auto reader = ByteReader{byteStream.viewWritten()};
-	ASSERT_TRUE(UnversionedParser{32}.parseMessageHeader(reader).isError());
-}
-
-
-TEST(P9, parsingIllFormedHeaderForMessagesLargerMTUShouldError) {
-	byte buffer[16];
-	auto byteStream = ByteWriter{wrapMemory(buffer)};
-
-	UnversionedParser proc{12};
-    // Set declared message size to be more then negotiated message size
-	writeHeader(byteStream, proc.maxMessageSize() + 100, MessageType::TVersion, 1);
-
-	auto reader = ByteReader{byteStream.viewWritten()};
-	ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
-}
-
-
-TEST(P9_2000, parseIncorrectlySizedSmallerResponse) {
-	byte buffer[16];
-	auto byteStream = ByteWriter{wrapMemory(buffer)};
-
-    // Set declared message size to be more then negotiated message size
-	writeHeader(byteStream, headerSize() + sizeof(int32), MessageType::RVersion, 1);
-	byteStream.writeLE(byte(3));
-
-	auto maybeParser = createParser(20, kProtocolVersion);
-	ASSERT_TRUE(maybeParser.isOk());
-	auto& parser = *maybeParser;
-
-	auto reader = ByteReader{byteStream.viewWritten()};
-	auto header = parser.parseMessageHeader(reader);
-    ASSERT_TRUE(header.isOk());
-
-	auto message = parser.parseResponse(header.unwrap(), reader);
-    ASSERT_TRUE(message.isError());
-}
-
-
-TEST(P9_2000, parseIncorrectlySizedLargerResponse) {
-	byte buffer[16];
-	auto byteStream = ByteWriter{wrapMemory(buffer)};
-
-    // Set declared message size to be more then negotiated message size
-	writeHeader(byteStream, headerSize() + sizeof(int32), MessageType::RVersion, 1);
-	byteStream.writeLE(static_cast<int64>(999999));
-
-	auto reader = ByteReader{byteStream.viewWritten()};
-
-	auto maybeParser = createParser(20, kProtocolVersion);
-	ASSERT_TRUE(maybeParser.isOk());
-	auto& parser = *maybeParser;
-
-	auto header = parser.parseMessageHeader(reader);
-    ASSERT_TRUE(header.isOk());
-
-	auto message = parser.parseResponse(*header, reader);
-    ASSERT_TRUE(message.isError());
-}
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// 9P2000 Message parsing test suit
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,10 +48,9 @@ protected:
     template<typename RequestType>
     Result<RequestType, Error>
 	getRequestOrFail() {
-        _reader.limit(_writer.limit());
+		_reader.limit(_writer.position());
 
-
-		auto maybeParser = createParser(kMaxMessageSize, kProtocolVersion);
+		auto maybeParser = createRequestParser(kProtocolVersion, kMaxMessageSize);
 		if (!maybeParser) {
 			[&maybeParser]() { FAIL() << "Failed to create a parser: " << maybeParser.getError(); } ();
 			return maybeParser.moveError();
@@ -220,8 +58,8 @@ protected:
 
 		auto& proc = *maybeParser;
 		auto const expectType = messageCode(RequestType{});
-
-        return proc.parseMessageHeader(_reader)
+		auto headerParser = UnversionedParser{kMaxMessageSize};
+		return headerParser.parseMessageHeader(_reader)
 				.then([expectType](MessageHeader header) {
 					return (header.type != expectType)
 							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
@@ -253,9 +91,9 @@ protected:
     template<typename ResponseType>
     Result<ResponseType, Error>
 	getResponseOrFail() {
-        _reader.limit(_writer.limit());
+		_reader.limit(_writer.position());
 
-		auto maybeParser = createParser(kMaxMessageSize, kProtocolVersion);
+		auto maybeParser = createResponseParser(kProtocolVersion, kMaxMessageSize);
 		if (!maybeParser) {
 			[&maybeParser]() { FAIL() << "Failed to create a parser: " << maybeParser.getError(); } ();
 			return maybeParser.moveError();
@@ -264,7 +102,8 @@ protected:
 		auto& proc = *maybeParser;
 
 		auto const expectType = messageCode(ResponseType{});
-		return proc.parseMessageHeader(_reader)
+		auto headerParser = UnversionedParser{kMaxMessageSize};
+		return headerParser.parseMessageHeader(_reader)
 				.then([expectType](MessageHeader header) {
 					return (header.type == expectType)
 							? Result<MessageHeader, Error>{types::okTag, std::move(header)}
@@ -306,7 +145,6 @@ TEST_F(P9Messages, createVersionRequest) {
 
 	auto writer = RequestWriter{_writer, kNoTag};
 	writer << Request::Version{kMaxMessageSize, testVersion};
-	writer.build();
 
 	getRequestOrFail<Request::Version>()
 			.then([testVersion](Request::Version const& request) {
@@ -318,7 +156,6 @@ TEST_F(P9Messages, createVersionRequest) {
 TEST_F(P9Messages, createVersionResponse) {
 	auto writer = ResponseWriter{_writer, kNoTag};
 	writer << Response::Version{718, "9Pe"};
-	writer.build();
 
 	getResponseOrFail<Response::Version>()
             .then([](Response::Version const& response) {
@@ -328,12 +165,11 @@ TEST_F(P9Messages, createVersionResponse) {
 }
 
 TEST_F(P9Messages, parseVersionResponse) {
+	styxe::Encoder encoder{_writer};
     // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, headerSize() + sizeof(int32) + sizeof(int16) + 2, MessageType::RVersion, 1);
-	_writer.writeLE(static_cast<int32>(512));
-	_writer.writeLE(static_cast<int16>(2));
-    _writer.write(StringLiteral("9P").view());
-    _writer.flip();
+	encoder << makeHeaderWithPayload(asByte(MessageType::RVersion), 1, sizeof(int32) + sizeof(int16) + 2)
+			<< uint32{512}
+			<< StringLiteral("9P");
 
 	getResponseOrFail<Response::Version>()
             .then([](Response::Version const& response) {
@@ -346,7 +182,6 @@ TEST_F(P9Messages, parseVersionResponse) {
 TEST_F(P9Messages, createAuthRequest) {
 	RequestWriter writer{_writer};
 	writer <<  Request::Auth{312, "User mcUsers", "Somewhere near"};
-	writer.build();
 
 	getRequestOrFail<Request::Auth>()
             .then([](Request::Auth&& request) {
@@ -366,8 +201,6 @@ TEST_F(P9Messages, createAuthResponse) {
 
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Auth{qid};
-	writer.build();
-
 
 	getResponseOrFail<Response::Auth>()
             .then([qid](Response::Auth&& response) {
@@ -377,19 +210,17 @@ TEST_F(P9Messages, createAuthResponse) {
 
 
 TEST_F(P9Messages, parseAuthResponse) {
-    // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, headerSize() + 13, MessageType::RAuth, 1);
-
-	_writer.writeLE(byte(13));     // QID.type
-	_writer.writeLE(static_cast<uint32>(91));   // QID.version
-	_writer.writeLE(static_cast<uint64>(441));  // QID.path
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RAuth), 1, 13)
+			<< byte{13}	      // Qid.type
+			<< uint32{91}	  // Qid.version
+			<< uint64{4451};  // Qid.path
 
 	getResponseOrFail<Response::Auth>()
             .then([](Response::Auth&& response) {
                 EXPECT_EQ(13, response.qid.type);
                 EXPECT_EQ(91, response.qid.version);
-                EXPECT_EQ(441, response.qid.path);
+				EXPECT_EQ(4451, response.qid.path);
             });
 }
 
@@ -399,7 +230,6 @@ TEST_F(P9Messages, createErrorResponse) {
     auto const testError = StringLiteral{"Something went right :)"};
 	ResponseWriter writer{_writer, 3};
 	writer << Response::Error{testError};
-	writer.build();
 
 	getResponseOrFail<Response::Error>()
             .then([testError](Response::Error&& response) {
@@ -414,8 +244,6 @@ TEST_F(P9Messages, parseErrorResponse) {
 	encoder << makeHeaderWithPayload(asByte(MessageType::RError), 1, styxe::protocolSize(expectedErrorMessage))
 			<< static_cast<StringView>(expectedErrorMessage);
 
-    _writer.flip();
-
 	getResponseOrFail<Response::Error>()
             .then([expectedErrorMessage](Response::Error&& response) {
                 EXPECT_EQ(expectedErrorMessage, response.ename);
@@ -426,7 +254,6 @@ TEST_F(P9Messages, parseErrorResponse) {
 TEST_F(P9Messages, createFlushRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Flush{7711};
-	writer.build();
 
 	getRequestOrFail<Request::Flush>()
             .then([](Request::Flush&& request) {
@@ -438,15 +265,14 @@ TEST_F(P9Messages, createFlushRequest) {
 TEST_F(P9Messages, createFlushResponse) {
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Flush{};
-	writer.build();
 
 	getResponseOrFail<Response::Flush>();
 }
 
 
 TEST_F(P9Messages, parseFlushResponse) {
-    writeHeader(_writer, headerSize(), MessageType::RFlush, 1);
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RFlush), 1, 0);
 
 	getResponseOrFail<Response::Flush>();
 }
@@ -455,7 +281,6 @@ TEST_F(P9Messages, parseFlushResponse) {
 TEST_F(P9Messages, createAttachRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Attach{3310, 1841, "McFace", "close to u"};
-	writer.build();
 
 	getRequestOrFail<Request::Attach>()
             .then([](Request::Attach&& request) {
@@ -475,7 +300,6 @@ TEST_F(P9Messages, createAttachResponse) {
 
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Attach{qid};
-	writer.build();
 
 	getResponseOrFail<Response::Attach>()
             .then([qid](Response::Attach&& response) {
@@ -484,12 +308,11 @@ TEST_F(P9Messages, createAttachResponse) {
 }
 
 TEST_F(P9Messages, parseAttachResponse) {
-    writeHeader(_writer, headerSize() + 13, MessageType::RAttach, 1);
-
-	_writer.writeLE(byte(81));                      // QID.type
-	_writer.writeLE(static_cast<uint32>(3));        // QID.version
-	_writer.writeLE(static_cast<uint64>(1049));     // QID.path
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RAttach), 1, 13)
+			<< byte{81}			// Qid.type
+			<< uint32{3}		// Qid.version
+			<< uint64{1049};    // Qid.path
 
 	getResponseOrFail<Response::Attach>()
             .then([](Response::Attach&& response) {
@@ -503,7 +326,6 @@ TEST_F(P9Messages, parseAttachResponse) {
 TEST_F(P9Messages, createOpenRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Open{517, OpenMode::RDWR};
-	writer.build();
 
 	getRequestOrFail<Request::Open>()
             .then([](Request::Open&& request) {
@@ -518,7 +340,6 @@ TEST_F(P9Messages, createOpenResponse) {
 
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Open{qid, 817};
-	writer.build();
 
 	getResponseOrFail<Response::Open>()
             .then([qid](Response::Open&& response) {
@@ -531,16 +352,12 @@ TEST_F(P9Messages, parseOpenResponse) {
 	auto const qid = Qid {4173, 71, 2};
     size_type const iounit = 998;
 
-    writeHeader(_writer,
-                headerSize() +
-				styxe::protocolSize(qid) +
-				styxe::protocolSize(iounit),
-                MessageType::ROpen, 1);
-    // qid
-    encode9P(_writer, qid);
-    // iounit
-	_writer.writeLE(iounit);
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::ROpen), 1,
+									 styxe::protocolSize(qid) +
+									 styxe::protocolSize(iounit))
+			<< qid
+			<< iounit;
 
 	getResponseOrFail<Response::Open>()
             .then([qid, iounit](Response::Open&& response) {
@@ -554,7 +371,6 @@ TEST_F(P9Messages, parseOpenResponse) {
 TEST_F(P9Messages, createCreateRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Create{1734, "mcFance", 11, OpenMode::EXEC};
-	writer.build();
 
 	getRequestOrFail<Request::Create>()
             .then([](Request::Create&& request) {
@@ -574,7 +390,6 @@ TEST_F(P9Messages, createCreateResponse) {
 
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Create{qid, 718};
-	writer.build();
 
 	getResponseOrFail<Response::Create>()
             .then([qid](Response::Create&& response) {
@@ -591,16 +406,12 @@ TEST_F(P9Messages, parseCreateResponse) {
     };
     size_type const iounit = 778;
 
-    writeHeader(_writer,
-                headerSize() +
-				styxe::protocolSize(qid) +
-				styxe::protocolSize(iounit),
-                MessageType::RCreate, 1);
-
-    encode9P(_writer, qid);
-    // iounit
-	_writer.writeLE(iounit);
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RCreate), 1,
+									 styxe::protocolSize(qid) +
+									 styxe::protocolSize(iounit))
+			<< qid
+			<< iounit;
 
 	getResponseOrFail<Response::Create>()
             .then([qid](Response::Create&& response) {
@@ -613,7 +424,6 @@ TEST_F(P9Messages, parseCreateResponse) {
 TEST_F(P9Messages, createReadRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Read{7234, 18, 772};
-	writer.build();
 
 	getRequestOrFail<Request::Read>()
             .then([](Request::Read&& request) {
@@ -628,7 +438,6 @@ TEST_F(P9Messages, createReadResponse) {
     auto data = wrapMemory(content);
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Read{data};
-	writer.build();
 
 	getResponseOrFail<Response::Read>()
             .then([data](Response::Read&& response) {
@@ -637,20 +446,18 @@ TEST_F(P9Messages, createReadResponse) {
 }
 
 TEST_F(P9Messages, parseReadResponse) {
-    auto const messageData = StringLiteral{"This is a very important data d-_^b"};
+	auto const messageText = StringLiteral{"This is a very important data d-_^b"};
+	auto const messageData = messageText.view();
 	uint32 const dataLen = messageData.size();
 
-    // Set declared message size to be more then negotiated message size
-    writeHeader(_writer, headerSize() + sizeof(uint32) + dataLen, MessageType::RRead, 1);
-    // iounit
-	_writer.writeLE(dataLen);
-    _writer.write(messageData.view());
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RRead), 1, sizeof(uint32) + dataLen)
+			<< messageData;
 
 	getResponseOrFail<Response::Read>()
             .then([dataLen, messageData](Response::Read&& response) {
                 EXPECT_EQ(dataLen, response.data.size());
-                EXPECT_EQ(response.data, messageData.view());
+				EXPECT_EQ(response.data, messageData);
             });
 }
 
@@ -661,7 +468,6 @@ TEST_F(P9Messages, createWriteRequest) {
 
 	RequestWriter writer{_writer, 1};
 	writer << Request::Write{15927, 98, data};
-	writer.build();
 
 	getRequestOrFail<Request::Write>()
             .then([data](Request::Write&& request) {
@@ -674,7 +480,6 @@ TEST_F(P9Messages, createWriteRequest) {
 TEST_F(P9Messages, createWriteResponse) {
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Write{71717};
-	writer.build();
 
 	getResponseOrFail<Response::Write>()
             .then([](Response::Write&& response) {
@@ -683,14 +488,14 @@ TEST_F(P9Messages, createWriteResponse) {
 }
 
 TEST_F(P9Messages, parseWriteResponse) {
-    writeHeader(_writer, headerSize() + sizeof(uint32), MessageType::RWrite, 1);
-    // iounit
-	_writer.writeLE(static_cast<uint32>(81177));
-    _writer.flip();
+	uint32 const iounit = 81177;
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RWrite), 1, sizeof(int32))
+			<< iounit;
 
 	getResponseOrFail<Response::Write>()
-            .then([](Response::Write&& response) {
-                EXPECT_EQ(81177, response.count);
+			.then([&](Response::Write&& response) {
+				EXPECT_EQ(iounit, response.count);
             });
 }
 
@@ -699,7 +504,6 @@ TEST_F(P9Messages, parseWriteResponse) {
 TEST_F(P9Messages, createClunkRequest) {
 	RequestWriter writer{_writer, 1};
 	writer << Request::Clunk{37509};
-	writer.build();
 
 	getRequestOrFail<Request::Clunk>()
             .then([](Request::Clunk&& request) {
@@ -710,14 +514,13 @@ TEST_F(P9Messages, createClunkRequest) {
 TEST_F(P9Messages, createClunkResponse) {
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Clunk{};
-	writer.build();
 
 	getResponseOrFail<Response::Clunk>();
 }
 
 TEST_F(P9Messages, parseClunkResponse) {
-    writeHeader(_writer, headerSize(), MessageType::RClunk, 1);
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RClunk), 1, 0);
 
 	getResponseOrFail<Response::Clunk>();
 }
@@ -727,7 +530,6 @@ TEST_F(P9Messages, parseClunkResponse) {
 TEST_F(P9Messages, createRemoveRequest) {
 	RequestWriter writer{_writer, 1};
 	writer << Request::Remove{54329};
-	writer.build();
 
 	getRequestOrFail<Request::Remove>()
             .then([](Request::Remove&& request) {
@@ -738,14 +540,13 @@ TEST_F(P9Messages, createRemoveRequest) {
 TEST_F(P9Messages, createRemoveResponse) {
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Remove{};
-	writer.build();
 
 	getResponseOrFail<Response::Remove>();
 }
 
 TEST_F(P9Messages, parseRemoveResponse) {
-    writeHeader(_writer, headerSize(), MessageType::RRemove, 1);
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RRemove), 1, 0);
 
 	getResponseOrFail<Response::Remove>();
 }
@@ -755,7 +556,6 @@ TEST_F(P9Messages, parseRemoveResponse) {
 TEST_F(P9Messages, createStatRequest) {
 	RequestWriter writer{_writer, 1};
 	writer << Request::Stat{7872};
-	writer.build();
 
 	getRequestOrFail<Request::Stat>()
 			.then([](Request::Stat&& request) {
@@ -781,7 +581,6 @@ TEST_F(P9Messages, createStatResponse) {
 
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Stat{stat.size, stat};
-	writer.build();
 
 	getResponseOrFail<Response::Stat>()
             .then([stat](Response::Stat&& response) {
@@ -807,13 +606,11 @@ TEST_F(P9Messages, parseStatResponse) {
     statResponse.data.uid = "User McUserface";
     statResponse.data.size = DirListingWriter::sizeStat(statResponse.data);
 
-    writeHeader(_writer,
-				headerSize() + sizeof(statResponse.dummySize) + styxe::protocolSize(statResponse.data),
-                MessageType::RStat,
-                1);
-	_writer.writeLE(statResponse.dummySize);
-    encode9P(_writer, statResponse.data);
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RStat), 1,
+									 sizeof(statResponse.dummySize) + styxe::protocolSize(statResponse.data))
+			<< statResponse.dummySize
+			<< statResponse.data;
 
 	getResponseOrFail<Response::Stat>()
             .then([statResponse](Response::Stat&& response) {
@@ -841,7 +638,6 @@ TEST_F(P9Messages, createWStatRequest) {
 
 	RequestWriter writer{_writer};
 	writer << Request::WStat{8193, stat};
-	writer.build();
 
 	getRequestOrFail<Request::WStat>()
             .then([stat](Request::WStat&& request) {
@@ -850,22 +646,20 @@ TEST_F(P9Messages, createWStatRequest) {
             });
 }
 
+
 TEST_F(P9Messages, createWStatResponse) {
 	ResponseWriter writer{_writer, 1};
 	writer << Response::WStat{};
-	writer.build();
 
 	getResponseOrFail<Response::WStat>();
 }
 
 TEST_F(P9Messages, parseWStatResponse) {
-    writeHeader(_writer, headerSize(), MessageType::RWStat, 1);
-    _writer.flip();
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RWStat), 1, 0);
 
 	getResponseOrFail<Response::WStat>();
 }
-
-
 
 
 TEST_F(P9Messages, createWalkRequest) {
@@ -877,7 +671,6 @@ TEST_F(P9Messages, createWalkRequest) {
 
 	RequestWriter writer{_writer};
 	writer << Request::Walk{213, 124, WalkPath{2, wrapMemory(buffer)}};
-	writer.build();
 
 	getRequestOrFail<Request::Walk>()
 			.then([](Request::Walk&& request) {
@@ -891,7 +684,6 @@ TEST_F(P9Messages, createWalkRequest) {
 TEST_F(P9Messages, createWalkEmptyPathRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Walk{7374, 542, WalkPath(0, MemoryView{})};
-	writer.build();
 
 	getRequestOrFail<Request::Walk>()
             .then([](Request::Walk&& request) {
@@ -911,7 +703,6 @@ TEST_F(P9Messages, createWalkResponse) {
 
 	ResponseWriter writer{_writer, 1};
 	writer << message;
-	writer.build();
 
 	getResponseOrFail<Response::Walk>()
 			.then([&](Response::Walk&& response) {
@@ -921,24 +712,17 @@ TEST_F(P9Messages, createWalkResponse) {
 }
 
 TEST_F(P9Messages, parseWalkResponse) {
+	uint16 const nQids = 1;
     auto const qid = Qid {
             87,
             5481,
             17
     };
 
-    // Set declared message size to be more then negotiated message size
-	auto const headPosition = _writer.position();
-    writeHeader(_writer, 0, MessageType::RWalk, 1);
-    // nwqid
-	_writer.writeLE(uint16(1));
-    encode9P(_writer, qid);
-
-
-	auto const totalSize = _writer.position();
-    _writer.limit(totalSize);
-    _writer.position(headPosition);
-	_writer.writeLE(size_type(totalSize));
+	styxe::Encoder encoder{_writer};
+	encoder << makeHeaderWithPayload(asByte(MessageType::RWalk), 1, 2 + 13)
+			<< nQids
+			<< qid;
 
 	getResponseOrFail<Response::Walk>()
             .then([](Response::Walk&& response) {

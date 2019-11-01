@@ -15,7 +15,8 @@
 */
 
 #include "styxe/9p2000e.hpp"
-#include "styxe/decoder.hpp"
+
+#include "parse_helper.hpp"
 
 
 using namespace Solace;
@@ -27,46 +28,26 @@ const StringLiteral _9P2000E::kProtocolVersion{"9P2000.e"};
 
 Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, _9P2000E::Request::Session& dest) {
-	Decoder decoder{data};
-	auto result = decoder
-			>> dest.key[0]
-			>> dest.key[1]
-			>> dest.key[2]
-			>> dest.key[3]
-			>> dest.key[4]
-			>> dest.key[5]
-			>> dest.key[6]
-			>> dest.key[7];
-
-	if (!result)
-		return result.moveError();
-
-	return Result<ByteReader&, Error>{types::okTag, data};
+	return decode(data,
+				dest.key[0],
+				dest.key[1],
+				dest.key[2],
+				dest.key[3],
+				dest.key[4],
+				dest.key[5],
+				dest.key[6],
+				dest.key[7]);
 }
 
 
 Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, _9P2000E::Request::ShortRead& dest) {
-	Decoder decoder{data};
-	auto result = decoder >> dest.fid
-						  >> dest.path;
-	if (!result)
-		return result.moveError();
-
-	return Result<ByteReader&, Error>{types::okTag, data};
-
+	return decode(data, dest.fid, dest.path);
 }
 
 Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, _9P2000E::Request::ShortWrite& dest) {
-	Decoder decoder{data};
-	auto result = decoder >> dest.fid
-						  >> dest.path
-						  >> dest.data;
-	if (!result)
-		return result.moveError();
-
-	return Result<ByteReader&, Error>{types::okTag, data};
+	return decode(data, dest.fid, dest.path, dest.data);
 }
 
 
@@ -78,27 +59,21 @@ styxe::operator>> (ByteReader& data, _9P2000E::Response::Session& ) {
 
 Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, _9P2000E::Response::ShortRead& dest) {
-	Decoder decoder{data};
-	auto result = decoder >> dest.data;
-
-	if (!result) return result.moveError();
-	return Result<ByteReader&, Error>{types::okTag, data};
+	return decode(data, dest.data);
 }
 
 
 Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, _9P2000E::Response::ShortWrite& dest) {
-	Decoder decoder{data};
-	auto result = decoder >> dest.count;
-
-	if (!result) return result.moveError();
-	return Result<ByteReader&, Error>{types::okTag, data};
+	return decode(data, dest.count);
 }
 
 
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::Session const& response) {
 	writer.messageType(messageCode(response));
+	writer.updateMessageSize();
+
 	return writer;
 }
 
@@ -106,6 +81,7 @@ ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortRead const& response) {
 	writer.messageType(messageCode(response))
 			<< response.data;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -115,6 +91,7 @@ ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortWrite const& response) {
 	writer.messageType(messageCode(response))
 			<< response.count;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -131,6 +108,7 @@ styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Session const& resp
 			<< response.key[5]
 			<< response.key[6]
 			<< response.key[7];
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -140,6 +118,7 @@ styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortRead const& re
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.path;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -150,6 +129,7 @@ styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& r
 			<< request.fid
 			<< request.path
 			<< request.data;
+	writer.updateMessageSize();
 
 	return writer;
 }

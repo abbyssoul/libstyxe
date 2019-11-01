@@ -49,10 +49,9 @@ struct MessageWriterBase {
 		, _header{headerSize(), 0, messageTag}
 	{}
 
-	/** Finalize the message build.
-	* @return ByteWriter stream
-	*/
-	Solace::ByteWriter& build();
+
+	void updateMessageSize();
+
 
 	/** Get underlying data encoder
 	* @return Encoder
@@ -72,10 +71,15 @@ struct MessageWriterBase {
    }
 
 private:
+   /** Finalize the message build.
+   * @return ByteWriter stream
+   */
+   Solace::ByteWriter& build();
+
 	/// Data encoder used to write data out
 	Encoder							_encoder;
 
-	/// Current position in the write stream where the message header starts
+	/// Current position in the output stream where the message header starts
 	Solace::ByteWriter::size_type	_pos;
 
 	/// Message header
@@ -86,7 +90,7 @@ private:
 * Helper type used to represent a message being built.
 */
 template<typename MessageTag>
-struct MessageWriter: public MessageWriterBase {
+struct MessageWriter : public MessageWriterBase {
 
 	/**
 	 * @brief Construct a new MessageWriter.
@@ -97,6 +101,14 @@ struct MessageWriter: public MessageWriterBase {
 		: MessageWriterBase{dest, messageTag}
 	{}
 
+	MessageWriter& operator<< (MessageWriter& (*pf)(MessageWriter&)) {
+		return pf(*this);
+	}
+
+	void operator<< (void (*pf)(MessageWriter&)) {
+		pf(*this);
+	}
+
 };
 
 
@@ -105,6 +117,7 @@ struct RequestTag {};
 
 using RequestWriter = MessageWriter<RequestTag>;
 using ResponseWriter = MessageWriter<ResponseTag>;
+
 
 }  // end of namespace styxe
 #endif  // STYXE_MESSAGEWRITER_HPP

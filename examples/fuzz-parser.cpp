@@ -37,21 +37,31 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     ByteReader reader{wrapMemory(data, size)};
 
     // Case1: parse message header
-	auto maybeParser = createParser(kMaxMessageSize, _9P2000E::kProtocolVersion);
-	if (!maybeParser) {
-		std::cerr << "Failed to create parser: " << maybeParser.getError() << std::endl;
+	auto maybeReqParser = createRequestParser(_9P2000E::kProtocolVersion, kMaxMessageSize);
+	if (!maybeReqParser) {
+		std::cerr << "Failed to create parser: " << maybeReqParser.getError() << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	auto& parser = *maybeParser;
-	parser.parseMessageHeader(reader)
+	auto maybeRespParser = createResponseParser(_9P2000E::kProtocolVersion, kMaxMessageSize);
+	if (!maybeRespParser) {
+		std::cerr << "Failed to create parser: " << maybeRespParser.getError() << std::endl;
+		return EXIT_FAILURE;
+	}
+
+
+	auto& tparser = *maybeReqParser;
+	auto& rparser = *maybeRespParser;
+
+	auto headerParser = UnversionedParser{narrow_cast<size_type>(size)};
+	headerParser.parseMessageHeader(reader)
 			.then([&](MessageHeader&& header) {
 				bool const isRequest = ((header.type % 2) == 0);
 				if (isRequest) {
-					parser.parseRequest(header, reader)
+					tparser.parseRequest(header, reader)
 							.then(dispayRequest);
 				} else {
-					parser.parseResponse(header, reader)
+					rparser.parseResponse(header, reader)
 							.then(dispayResponse);
 				}
 	});

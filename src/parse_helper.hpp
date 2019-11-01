@@ -14,19 +14,26 @@
 *  limitations under the License.
 */
 #pragma once
-#ifndef STYXE_STYXE_HPP
-#define STYXE_STYXE_HPP
+#ifndef STYXE_INTERNAL_PARSE_HELPER_HPP
+#define STYXE_INTERNAL_PARSE_HELPER_HPP
 
-// Convenience include header
+#include "styxe/errorDomain.hpp"
+#include "styxe/decoder.hpp"
 
-#include "version.hpp"
+#include <solace/byteReader.hpp>
+#include <solace/result.hpp>
 
-#include "9p2000.hpp"
-#include "9p2000e.hpp"
-#include "9p2000u.hpp"
-#include "9p2000L.hpp"
+namespace styxe {
 
-#include "messageWriter.hpp"
-#include "messageParser.hpp"
+template<typename...Args>
+Solace::Result<Solace::ByteReader&, Error>
+decode(Solace::ByteReader& data, Args&& ...args) {
+	Decoder decoder{data};
+	auto result = (decoder >> ... >> args);
+	if (!result) return result.moveError();
 
-#endif  // STYXE_STYXE_HPP
+	return Solace::Result<Solace::ByteReader&, Error>{Solace::types::okTag, data};
+}
+
+}  // namespace styxe
+#endif  // STYXE_INTERNAL_PARSE_HELPER_HPP

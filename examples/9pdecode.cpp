@@ -15,7 +15,6 @@
 */
 
 #include <styxe/styxe.hpp>
-#include <styxe/print.hpp>
 
 #include <solace/output_utils.hpp>
 
@@ -111,7 +110,7 @@ std::ostream& operator<< (std::ostream& ostr, Stat const& stat) {
 }
 
 void
-printHeader (std::ostream& ostr, Parser const& parser, MessageHeader const& header) {
+printHeader(std::ostream& ostr, ParserBase const& parser, MessageHeader const& header) {
 	bool const isRequest = ((header.type % 2) == 0);
     ostr  << (isRequest ? "→" : "←");
 
@@ -126,83 +125,98 @@ printHeader (std::ostream& ostr, Parser const& parser, MessageHeader const& head
 struct VisitRequest {
 
     void operator()(Request::Version const& req) {
-        std::cout << ": " << req.msize << ' ' << quote(req.version) <<std::endl;
+		std::cout << ": " << req.msize << ' ' << quote(req.version);
     }
 
     void operator()(Request::Auth const& req) {
-        std::cout << ": " << req.afid << ' ' << quote(req.uname) << ' ' << quote(req.aname) << std::endl;
+		std::cout << ": " << req.afid << ' ' << quote(req.uname) << ' ' << quote(req.aname);
     }
 
     void operator()(Request::Attach const& req) {
-        std::cout << ": " << req.fid << ' ' << req.afid << ' ' << quote(req.uname) << ' ' << quote(req.aname) << std::endl;
+		std::cout << ": " << req.fid << ' ' << req.afid << ' ' << quote(req.uname) << ' ' << quote(req.aname);
     }
 
     void operator()(Request::Clunk const& req) {
-        std::cout << ": " << req.fid << std::endl;
+		std::cout << ": " << req.fid;
     }
 
     void operator()(Request::Flush const& req) {
-        std::cout << ": " << req.oldtag << std::endl;
+		std::cout << ": " << req.oldtag;
     }
 
     void operator()(Request::Open const& req) {
-        std::cout << ": " << req.fid << ' ' << req.mode << std::endl;
+		std::cout << ": " << req.fid << ' ' << req.mode;
     }
 
     void operator()(Request::Create const& req) {
-        std::cout << ": " << req.fid << ' ' << quote(req.name) << ' ' << req.perm << ' ' << req.mode << std::endl;
+		std::cout << ": " << req.fid << ' ' << quote(req.name) << ' ' << req.perm << ' ' << req.mode;
     }
 
 
     void operator()(Request::Read const& req) {
-        std::cout << ": " << req.fid << ' ' << req.offset << ' ' << req.count << std::endl;
+		std::cout << ": " << req.fid << ' ' << req.offset << ' ' << req.count;
     }
 
     void operator()(Request::Write const& req) {
         std::cout << ": " << req.fid << ' '
                   << req.offset << ' '
                   << req.data.size()
-                  << " DATA[" << req.data << ']'
-                  << std::endl;
+				  << " DATA[" << req.data << ']';
     }
 
     void operator()(Request::Remove const& req) {
-        std::cout << ": " << req.fid << std::endl;
+		std::cout << ": " << req.fid;
     }
 
 	void operator()(Request::Stat const& req) {
-        std::cout << ": " << req.fid << std::endl;
+		std::cout << ": " << req.fid;
     }
 
     void operator()(Request::WStat const& req) {
-        std::cout << ": " << req.fid << ' ' << req.stat << std::endl;
+		std::cout << ": " << req.fid << ' ' << req.stat;
     }
 
     void operator()(Request::Walk const& req) {
         std::cout << ": "
                   << req.fid << ' '
                   << req.newfid << ' '
-				  << req.path.size() << ' ' << '['
-				  << req.path;
-
-        std::cout << ']' << std::endl;
+				  << req.path.size() << ' '
+				  << '[' << req.path << ']';
     }
 
+
+	void operator()(_9P2000U::Request::Auth const& req) {
+		operator() (static_cast<Request::Auth const&>(req));
+		std::cout << ' ' << req.n_uname;
+	}
+	void operator()(_9P2000U::Request::Attach const& req) {
+		operator() (static_cast<Request::Attach const&>(req));
+		std::cout << ' ' << req.n_uname;
+	}
+
+	void operator()(_9P2000U::Request::Create const& req) {
+		std::cout << ": " << req.fid << ' ' << quote(req.name) << ' ' << req.perm << ' ' << req.mode
+				  << ' ' << quote(req.extension);
+	}
+
+	void operator()(_9P2000U::Request::WStat const& req) {
+		std::cout << ": " << req.fid << ' ' << req.stat;
+	}
+
+
 	void operator()(_9P2000E::Request::Session const& req) {
-        std::cout << ": " << wrapMemory(req.key) << std::endl;
+		std::cout << ": " << wrapMemory(req.key);
     }
 
 	void operator()(_9P2000E::Request::ShortRead const& req) {
         std::cout << ": " << req.fid << ' '
-				  << '\'' << req.path << '\''
-				  << std::endl;
+				  << '\'' << req.path << '\'';
     }
 
 	void operator()(_9P2000E::Request::ShortWrite const& req) {
         std::cout << ": " << req.fid << ' '
 				  << '\'' << req.path << '\''
-                  << " DATA[" << req.data << "]"
-                  << std::endl;
+                  << " DATA[" << req.data << "]";
     }
 };
 
@@ -213,20 +227,18 @@ struct VisitResponse {
         std::cout << ": " << resp.msize << ' ' << quote(resp.version) <<std::endl;
     }
     void operator()(Response::Auth const& resp) {
-        std::cout << ": " << resp.qid << std::endl;
+		std::cout << ": " << resp.qid;
     }
 
     void operator()(Response::Attach const& resp) {
-        std::cout << ": " << resp.qid << std::endl;
+		std::cout << ": " << resp.qid;
     }
 
     void operator()(Response::Error const& resp) {
         std::cout << ": " << quote(resp.ename) <<std::endl;
     }
 
-    void operator()(Response::Flush const& /*res*/) {
-        std::cout << std::endl;
-    }
+	void operator()(Response::Flush const& /*res*/) noexcept { }
 
     void operator()(Response::Walk const& resp) {
 		std::cout << ": " << resp.nqids
@@ -239,75 +251,82 @@ struct VisitResponse {
 			if (i + 1 != nqids)
 			std::cout << ", ";
 		}
-         std::cout << ']' << std::endl;
+		 std::cout << ']';
     }
 
     void operator()(Response::Open const& resp) {
-        std::cout << ": " << resp.qid << " " << resp.iounit << std::endl;
+		std::cout << ": " << resp.qid << " " << resp.iounit;
     }
 
     void operator()(Response::Create const& resp) {
-        std::cout << ": " << resp.qid << " " << resp.iounit << std::endl;
+		std::cout << ": " << resp.qid << " " << resp.iounit;
     }
 
 
     void operator()(Response::Read const& resp) {
         std::cout << ": " << resp.data.size()
-                  << " DATA[" << resp.data << ']'
-                  << std::endl;
+                  << " DATA[" << resp.data << ']';
     }
     void operator()(Response::Write const& resp) {
-        std::cout << ": " << resp.count
-                  << std::endl;
+		std::cout << ": " << resp.count;
     }
 
-    void operator()(Response::Clunk& /*res*/) { std::cout << std::endl; }
-    void operator()(Response::Remove& /*res*/) { std::cout << std::endl; }
+	void operator()(Response::Clunk& /*res*/) noexcept {  }
+	void operator()(Response::Remove& /*res*/) noexcept { }
 
-    void operator()(Response::Stat const& stat) {
-        std::cout << ": " << stat.data << std::endl;
+	void operator()(Response::Stat const& resp) {
+		std::cout << ": " << resp.data;
     }
 
-    void operator()(Response::WStat& /*res*/) { std::cout << std::endl; }
-	void operator()(_9P2000E::Response::Session& /*res*/) { std::cout << std::endl; }
+	void operator()(Response::WStat& /*res*/) noexcept { }
+
+	void operator()(_9P2000U::Response::Error& resp) {
+		std::cout << ": " << quote(resp.ename) << ", code: " << resp.errcode;
+	}
+
+	void operator()(_9P2000U::Response::Stat& resp) {
+		std::cout << ": " << resp.data;
+	}
+
+	void operator()(_9P2000E::Response::Session& /*res*/) noexcept { }
 
 	void operator()(_9P2000E::Response::ShortRead& resp) {
 		std::cout << ": " << resp.data.size()
-				  << " DATA[" << resp.data << ']'
-				  << std::endl;
+				  << " DATA[" << resp.data << ']';
 	}
 
 	void operator()(_9P2000E::Response::ShortWrite& resp) {
-		std::cout << ": " << resp.count
-				  << std::endl;
+		std::cout << ": " << resp.count;
 	}
 };
 
 
-void readAndPrintMessage(std::istream& in, MemoryResource& buffer, Parser& proc) {
-
+void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser& tparser, ResponseParser& rparser) {
     // Message header is fixed size - so it is safe to attempt to read it.
     in.read(buffer.view().dataAs<char>(), headerSize());
 
     auto reader = ByteReader{buffer};
     reader.limit(in.gcount());
 
-    proc.parseMessageHeader(reader)
+	auto headerParser = UnversionedParser{narrow_cast<size_type>(buffer.size())};
+	headerParser.parseMessageHeader(reader)
             .then([&](MessageHeader&& header) {
-				printHeader(std::cout, proc, header);
-
                 in.read(buffer.view().dataAs<char>(), header.payloadSize());
                 reader.rewind()
                         .limit(in.gcount());
 
 				bool const isRequest = (header.type % 2) == 0;
                 if (isRequest) {
-                    proc.parseRequest(header, reader)
+					printHeader(std::cout, tparser, header);
+					tparser.parseRequest(header, reader)
                             .then([](RequestMessage&& reqMsg) { std::visit(VisitRequest{}, reqMsg); });
                 } else {
-                    proc.parseResponse(header, reader)
+					printHeader(std::cout, rparser, header);
+					rparser.parseResponse(header, reader)
                             .then([](ResponseMessage&& resp) { std::visit(VisitResponse{}, resp); });
                 }
+
+				std::cout << std::endl;
             })
             .orElse([](Error&& err) {
                 std::cerr << "Error parsing message header: " << err.toString() << std::endl;
@@ -363,16 +382,23 @@ int main(int argc, char* const* argv) {
 		}
 	}
 
-	auto maybeParser = createParser(maxMessageSize, requiredVersion);
-	if (!maybeParser) {
-		std::cerr << "Failed to create parser: " << maybeParser.getError() << std::endl;
+	auto maybeReqParser = createRequestParser(requiredVersion, maxMessageSize);
+	if (!maybeReqParser) {
+		std::cerr << "Failed to create parser: " << maybeReqParser.getError() << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	auto& parser = *maybeParser;
-	MemoryManager memManager{parser.maxMessageSize()};
+	auto maybeRespParser = createResponseParser(requiredVersion, maxMessageSize);
+	if (!maybeRespParser) {
+		std::cerr << "Failed to create parser: " << maybeRespParser.getError() << std::endl;
+		return EXIT_FAILURE;
+	}
 
-	auto memoryResource = memManager.allocate(parser.maxMessageSize());
+	auto& tparser = *maybeReqParser;
+	auto& rparser = *maybeRespParser;
+
+	MemoryManager memManager{maxMessageSize};
+	auto memoryResource = memManager.allocate(maxMessageSize);
 	if (!memoryResource) {
 		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError() << std::endl;
 		return EXIT_FAILURE;
@@ -387,10 +413,10 @@ int main(int argc, char* const* argv) {
                 return EXIT_FAILURE;
             }
 
-			readAndPrintMessage(input, buffer, parser);
+			readAndPrintMessage(input, buffer, tparser, rparser);
         }
     } else {
-		readAndPrintMessage(std::cin, buffer, parser);
+		readAndPrintMessage(std::cin, buffer, tparser, rparser);
     }
 
     return EXIT_SUCCESS;

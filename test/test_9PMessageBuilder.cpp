@@ -15,7 +15,7 @@
 */
 /*******************************************************************************
  * libstyxe Unit Test Suit
- * @file: test/test_9PMessageBuilder.cpp
+ * @file: test/test_P9DirListingWriter.cpp
  *
  *******************************************************************************/
 #include "styxe/messageWriter.hpp"  // Class being tested
@@ -30,10 +30,10 @@ using namespace Solace;
 using namespace styxe;
 
 
-class P9MessageBuilder : public ::testing::Test {
+class P9DirListingWriter : public ::testing::Test {
 public:
 
-	P9MessageBuilder()
+	P9DirListingWriter()
 		: _memManager{kMaxMessageSize}
     {}
 
@@ -50,10 +50,7 @@ protected:
 };
 
 
-TEST_F(P9MessageBuilder, dirListingMessage) {
-	auto responseWriter = ResponseWriter{_buffer, 1};
-	responseWriter << Response::Read{};  // Prime read request 0 size data!
-
+TEST_F(P9DirListingWriter, directoryReadResponse) {
     Stat testStats[] = {
         {
             0,
@@ -71,25 +68,29 @@ TEST_F(P9MessageBuilder, dirListingMessage) {
         }
     };
 
+	// Fix directory stat structs sizes
     for (auto& stat : testStats) {
         stat.size = DirListingWriter::sizeStat(stat);
     }
 
-	DirListingWriter writer{responseWriter.encoder().buffer(), 4096};
+	auto responseWriter = ResponseWriter{_buffer, 1};
+	auto dirWriter = DirListingWriter{responseWriter, 4096};
 	for (auto const& stat : testStats) {
-        if (!writer.encode(stat))
+		if (!dirWriter.encode(stat)) {
             break;
+		}
     }
-	ASSERT_EQ(writer.bytesEncoded(), protocolSize(testStats[0]));
+	ASSERT_EQ(dirWriter.bytesEncoded(), protocolSize(testStats[0]));
 
-    auto& buf = responseWriter.build();
-    ByteReader reader{buf.viewRemaining()};
-
-	auto maybeParser = createParser(128, kProtocolVersion);
+	auto maybeParser = createResponseParser(kProtocolVersion, 128);
 	ASSERT_TRUE(maybeParser.isOk());
 
 	auto& parser = *maybeParser;
-	auto maybeHeader = parser.parseMessageHeader(reader);
+
+	ByteReader reader{_buffer.viewWritten()};
+	auto headerParser = UnversionedParser{kMaxMessageSize};
+
+	auto maybeHeader = headerParser.parseMessageHeader(reader);
     ASSERT_TRUE(maybeHeader.isOk());
 
 	auto maybeMessage = parser.parseResponse(*maybeHeader, reader);
@@ -100,5 +101,5 @@ TEST_F(P9MessageBuilder, dirListingMessage) {
 
     auto read = std::get<Response::Read>(message);
 
-    ASSERT_EQ(writer.bytesEncoded(), read.data.size());
+	ASSERT_EQ(dirWriter.bytesEncoded(), read.data.size());
 }

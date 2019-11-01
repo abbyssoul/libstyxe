@@ -33,13 +33,13 @@ extern Solace::AtomValue const kProtocolErrorCatergory;
  * Enum class for protocol error codes.
  */
 enum class CannedError : int {
-	IllFormedHeader = 0,
+	UnsupportedProtocolVersion = 0,
+	UnsupportedMessageType,
+	IllFormedHeader,
 	IllFormedHeader_FrameTooShort,
 	IllFormedHeader_TooBig,
-	UnsupportedMessageType,
 	NotEnoughData,
 	MoreThenExpectedData,
-	UnsupportedVersion
 };
 
 /**

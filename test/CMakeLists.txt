@@ -6,9 +6,12 @@ set(TEST_SOURCE_FILES
         ci/teamcity_messages.cpp
         ci/teamcity_gtest.cpp
 
+        test_messageParser.cpp
+        test_9PMessageBuilder.cpp
         test_9P2000.cpp
         test_9P2000e.cpp
-        test_9PMessageBuilder.cpp
+        test_9P2000u.cpp
+#        test_9P2000l.cpp
     )
 
 

@@ -87,16 +87,17 @@ enum class MessageType : Solace::byte {
 
 
 struct statfs {
-	long    f_type;     /* type of file system (see below) */
-	long    f_bsize;    /* optimal transfer block size */
-	long    f_blocks;   /* total data blocks in file system */
-	long    f_bfree;    /* free blocks in fs */
-	long    f_bavail;   /* free blocks avail to non-superuser */
-	long    f_files;    /* total file nodes in file system */
-	long    f_ffree;    /* free file nodes in fs */
-	fsid_t  f_fsid;     /* file system id */
-	long    f_namelen;  /* maximum length of filenames */
+	Solace::uint32	f_type;     /* type of file system (see below) */
+	Solace::uint32	f_bsize;    /* optimal transfer block size */
+	Solace::uint64	f_blocks;   /* total data blocks in file system */
+	Solace::uint64	f_bfree;    /* free blocks in fs */
+	Solace::uint64	f_bavail;   /* free blocks avail to non-superuser */
+	Solace::uint64	f_files;    /* total file nodes in file system */
+	Solace::uint64	f_ffree;    /* free file nodes in fs */
+	Solace::uint64	f_fsid;     /* file system id */
+	Solace::uint32	f_namelen;  /* maximum length of filenames */
 };
+
 
 struct stat {
 	dev_t     st_dev;     /* ID of device containing file */
@@ -123,8 +124,8 @@ struct DirEntry {
 };
 
 struct flock {
-	short l_type;  /* Type of lock: F_RDLCK, F_WRLCK, F_UNLCK */
-	short l_whence;/* How to interpret l_start: SEEK_SET, SEEK_CUR, SEEK_END */
+	Solace::uint16 l_type;  /* Type of lock: F_RDLCK, F_WRLCK, F_UNLCK */
+	Solace::uint16 l_whence;/* How to interpret l_start: SEEK_SET, SEEK_CUR, SEEK_END */
 	off_t l_start; /* Starting offset for lock */
 	off_t l_len;   /* Number of bytes to lock */
 	pid_t l_pid;   /* PID of process blocking our lock (F_GETLK only) */

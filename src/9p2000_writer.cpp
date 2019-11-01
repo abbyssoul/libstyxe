@@ -27,6 +27,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Version const& response) {
 	writer.messageType(messageCode(response), kNoTag)
 			<< response.msize
 			<< response.version;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -35,6 +36,7 @@ ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Auth const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -44,6 +46,7 @@ ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Error const& response) {
 	writer.messageType(messageCode(response))
 			<< response.ename;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -51,6 +54,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Error const& response) {
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Flush const& response) {
 	writer.messageType(messageCode(response));
+	writer.updateMessageSize();
 	return writer;
 }
 
@@ -58,6 +62,7 @@ ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Attach const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -70,6 +75,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Walk const& response) {
 	for (size_t i = 0; i < response.nqids; ++i) {
 			e << response.qids[i];
 	}
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -79,6 +85,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Open const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid
 			<< response.iounit;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -89,6 +96,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Create const& response) {
 	writer.messageType(messageCode(response))
 			<< response.qid
 			<< response.iounit;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -98,6 +106,7 @@ ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Read const& response) {
 	writer.messageType(messageCode(response))
 			<< response.data;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -107,6 +116,7 @@ ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Write const& response) {
 	writer.messageType(messageCode(response))
 			<< response.count;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -115,6 +125,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Write const& response) {
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Clunk const& response) {
 	writer.messageType(messageCode(response));
+	writer.updateMessageSize();
 	return writer;
 }
 
@@ -122,6 +133,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Clunk const& response) {
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Remove const& response) {
 	writer.messageType(messageCode(response));
+	writer.updateMessageSize();
 	return writer;
 }
 
@@ -131,6 +143,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Stat const& response) {
 	writer.messageType(messageCode(response))
 			<< response.dummySize
 			<< response.data;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -139,6 +152,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Stat const& response) {
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::WStat const& response) {
 	writer.messageType(messageCode(response));
+	writer.updateMessageSize();
 	return writer;
 }
 
@@ -149,6 +163,7 @@ styxe::operator<< (RequestWriter& writer, Request::Version const& request) {
 	writer.messageType(messageCode(request))
 			<< request.msize
 			<< request.version;
+	writer.updateMessageSize();
 	return writer;
 }
 
@@ -159,6 +174,7 @@ styxe::operator<< (RequestWriter& writer, Request::Auth const& request) {
 			<< request.afid
 			<< request.uname
 			<< request.aname;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -167,6 +183,7 @@ RequestWriter&
 styxe::operator<< (RequestWriter& writer, Request::Flush const& request) {
 	writer.messageType(messageCode(request))
 			<< request.oldtag;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -179,6 +196,7 @@ styxe::operator<< (RequestWriter& writer, Request::Attach const& request) {
 			<< request.afid
 			<< request.uname
 			<< request.aname;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -190,6 +208,7 @@ styxe::operator<< (RequestWriter& writer, Request::Walk const& request) {
 			<< request.fid
 			<< request.newfid
 			<< request.path;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -200,6 +219,7 @@ styxe::operator<< (RequestWriter& writer, Request::Open const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.mode.mode;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -212,6 +232,7 @@ styxe::operator<< (RequestWriter& writer, Request::Create const& request) {
 			<< request.name
 			<< request.perm
 			<< request.mode.mode;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -223,6 +244,7 @@ styxe::operator<< (RequestWriter& writer, Request::Read const& request) {
 			<< request.fid
 			<< request.offset
 			<< request.count;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -234,6 +256,7 @@ styxe::operator<< (RequestWriter& writer, Request::Write const& request) {
 			<< request.fid
 			<< request.offset
 			<< request.data;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -243,6 +266,7 @@ RequestWriter&
 styxe::operator<< (RequestWriter& writer, Request::Clunk const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -252,6 +276,7 @@ RequestWriter&
 styxe::operator<< (RequestWriter& writer, Request::Remove const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -261,6 +286,7 @@ RequestWriter&
 styxe::operator<< (RequestWriter& writer, Request::Stat const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -271,6 +297,7 @@ styxe::operator<< (RequestWriter& writer, Request::WStat const& request) {
 	writer.messageType(messageCode(request))
 			<< request.fid
 			<< request.stat;
+	writer.updateMessageSize();
 
 	return writer;
 }
@@ -307,9 +334,26 @@ styxe::protocolSize(styxe::Stat const& stat) noexcept {
 
 
 
-var_datum_size_type
-DirListingWriter::sizeStat(Stat const& stat) {
-   return narrow_cast<var_datum_size_type>(::protocolSize(stat) - sizeof(stat.size));
+
+DirListingWriter::DirListingWriter(ResponseWriter& writer, Solace::uint32 maxBytes, Solace::uint64 offset) noexcept
+		: _offset{offset}
+		, _maxBytes{maxBytes}
+		, _writer{writer}
+{
+	auto& encoder = writer.messageType(asByte(MessageType::RRead));
+	_dataPosition = encoder.buffer().position();
+	encoder << MemoryView{}; 	// Prime writer with 0 size read response
+}
+
+
+void DirListingWriter::updateDataSize() {
+	auto& buffer = _writer.encoder().buffer();
+
+	auto const finalPos = buffer.position();
+	auto const dataSize = narrow_cast<size_type>(finalPos - _dataPosition - protocolSize(size_type{}));
+	buffer.position(_dataPosition);  // Reset output stream to the start position
+	_writer.encoder() << dataSize;
+	buffer.position(finalPos);  // Reset output stream to the final position
 }
 
 
@@ -328,8 +372,10 @@ bool DirListingWriter::encode(Stat const& stat) {
     }
 
     // Only encode the data if we have some room left, as specified by 'count' arg.
-	_encoder << stat;
+	_writer.encoder() << stat;
+
+	updateDataSize();
+	_writer.updateMessageSize();
 
     return true;
 }
-

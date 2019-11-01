@@ -81,7 +81,7 @@ RequestParseTable getBlankRequestParserTable() {
 
 
 
-namespace _9P2000 {
+namespace styxe::_9P2000 {
 
 RequestParseTable getRequestParserTable() {
 	RequestParseTable table{getBlankRequestParserTable()};
@@ -171,7 +171,35 @@ messageTypeToString(byte type) {
 	return "Unsupported";
 }
 
-}  // namespace _9P2000
+}  // namespace styxe::_9P2000
+
+
+
+namespace styxe::_9P2000U {
+
+RequestParseTable getRequestParserTable() {
+	auto table = ::_9P2000::getRequestParserTable();
+
+
+	table[asByte(::styxe::MessageType::TAuth)] = parseRequest<_9P2000U::Request::Auth>;
+	table[asByte(::styxe::MessageType::TAttach)] = parseRequest<_9P2000U::Request::Attach>;
+	table[asByte(::styxe::MessageType::TCreate)] = parseRequest<_9P2000U::Request::Create>;
+	table[asByte(::styxe::MessageType::TWStat)] = parseRequest<_9P2000U::Request::WStat>;
+
+	return table;
+}
+
+ResponseParseTable getResponseParserTable() {
+	auto table = ::_9P2000::getResponseParserTable();
+
+	table[asByte(::styxe::MessageType::RError)] = parseResponse<_9P2000U::Response::Error>;
+	table[asByte(::styxe::MessageType::RStat)] = parseResponse<_9P2000U::Response::Stat>;
+
+	return table;
+}
+
+}  // namespace styxe::_9P2000U
+
 
 
 namespace styxe::_9P2000E {
@@ -212,8 +240,6 @@ messageTypeToString(byte type) {
 	return _9P2000::messageTypeToString(type);
 }
 }  // namespace styxe::_9P2000E
-
-
 
 
 
@@ -271,7 +297,7 @@ UnversionedParser::parseMessageHeader(ByteReader& src) const {
 
 
 Result<Request::Version, Error>
-UnversionedParser::parseMessage(MessageHeader header, ByteReader& data) const {
+UnversionedParser::parseVersionRequest(MessageHeader header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
 		return isValid.getError();
@@ -288,29 +314,9 @@ UnversionedParser::parseMessage(MessageHeader header, ByteReader& data) const {
 }
 
 
-Result<Parser, Error>
-styxe::createParser(size_type maxMessageSize, Solace::StringView version) noexcept {
-
-	if (version == kProtocolVersion) {
-		return Result<Parser, Error>{types::okTag, in_place,
-					maxMessageSize,
-					_9P2000::messageTypeToString,
-					_9P2000::getRequestParserTable(),
-					_9P2000::getResponseParserTable() };
-	}  else if (version == _9P2000E::kProtocolVersion) {
-		return Result<Parser, Error>{types::okTag, in_place,
-					maxMessageSize,
-					_9P2000E::messageTypeToString,
-					_9P2000E::getRequestParserTable(),
-					_9P2000E::getResponseParserTable() };
-	}
-
-	return Result<Parser, Error>{types::errTag, getCannedError(CannedError::UnsupportedVersion) };
-}
-
 
 Result<ResponseMessage, Error>
-Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
+ResponseParser::parseResponse(MessageHeader const& header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
 		return isValid.getError();
@@ -321,7 +327,7 @@ Parser::parseResponse(MessageHeader const& header, ByteReader& data) const {
 
 
 Result<RequestMessage, Error>
-Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
+RequestParser::parseRequest(MessageHeader const& header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
 		return isValid.getError();
@@ -332,6 +338,54 @@ Parser::parseRequest(MessageHeader const& header, ByteReader& data) const {
 
 
 StringView
-Parser::messageName(byte messageType) const {
+ParserBase::messageName(byte messageType) const {
 	return _nameMapper(messageType);
+}
+
+
+
+
+Result<ResponseParser, Error>
+styxe::createResponseParser(Solace::StringView version, size_type maxPayloadSize) noexcept {
+
+	if (version == kProtocolVersion) {
+		return Result<ResponseParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000::messageTypeToString,
+					_9P2000::getResponseParserTable() };
+	} else if (version == _9P2000U::kProtocolVersion) {
+		return Result<ResponseParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000::messageTypeToString,
+					_9P2000U::getResponseParserTable() };
+	} else if (version == _9P2000E::kProtocolVersion) {
+		return Result<ResponseParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000E::messageTypeToString,
+					_9P2000E::getResponseParserTable() };
+	}
+
+	return Result<ResponseParser, Error>{types::errTag, getCannedError(CannedError::UnsupportedProtocolVersion) };
+}
+
+Result<RequestParser, Error>
+styxe::createRequestParser(StringView version, size_type maxPayloadSize) noexcept {
+	if (version == kProtocolVersion) {
+		return Result<RequestParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000::messageTypeToString,
+					_9P2000::getRequestParserTable()};
+	} else if (version == _9P2000U::kProtocolVersion) {
+		return Result<RequestParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000::messageTypeToString,
+					_9P2000U::getRequestParserTable()};
+	} else if (version == _9P2000E::kProtocolVersion) {
+		return Result<RequestParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000E::messageTypeToString,
+					_9P2000E::getRequestParserTable()};
+	}
+
+	return Result<RequestParser, Error>{types::errTag, getCannedError(CannedError::UnsupportedProtocolVersion) };
 }

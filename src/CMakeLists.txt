@@ -4,9 +4,10 @@ set(SOURCE_FILES
     decoder.cpp
     errorDomain.cpp
 
-    9p2000.cpp
     9p2000_writer.cpp
+    9p2000.cpp
     9p2000e.cpp
+    9p2000u.cpp
     9p2000L.cpp
     messageWriter.cpp
     messageParser.cpp

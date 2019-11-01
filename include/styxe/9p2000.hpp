@@ -447,6 +447,11 @@ struct Response {
 };
 
 
+
+size_type protocolSize(Qid const& value) noexcept;
+size_type protocolSize(Stat const& value) noexcept;
+
+
 /**
  * @brief A helper class that allows to build response content for DIR `read` request.
  * @see Protocol::Request::Read
@@ -476,7 +481,10 @@ struct DirListingWriter {
 	 * @param stat Stat struct to estimate the size requirements for.
 	 * @return Number of bytes requried for the serialized stat struct.
 	 */
-	static var_datum_size_type sizeStat(Stat const& stat);
+	template<typename StatType>
+	static var_datum_size_type sizeStat(StatType const& stat) {
+		return Solace::narrow_cast<var_datum_size_type>(protocolSize(stat) - sizeof(stat.size));
+	}
 
 	/**
 	 * @brief Create an instance of Dir listing writer that encodes no more then 'inCount' bytes after the offset.
@@ -484,11 +492,7 @@ struct DirListingWriter {
 	 * @param inOffset Number of bytes to skip.
 	 * @param dest Output buffer where resuling data is written.
 	 */
-	constexpr DirListingWriter(Solace::ByteWriter& dest, Solace::uint32 maxBytes, Solace::uint64 offset = 0) noexcept
-			: _offset{offset}
-			, _maxBytes{maxBytes}
-			, _encoder{dest}
-	{}
+	DirListingWriter(ResponseWriter& writer, Solace::uint32 maxBytes, Solace::uint64 offset = 0) noexcept;
 
 	/**
 	 * @brief Encode directory entry into response message
@@ -496,6 +500,8 @@ struct DirListingWriter {
 	 * @return True if more entries can be encoded.
 	 */
 	bool encode(Stat const& stat);
+
+	void updateDataSize();
 
 	/** Get number of bytes travesed.
 	 * @return Number of bytes seen so far.
@@ -508,6 +514,8 @@ struct DirListingWriter {
 	constexpr auto bytesEncoded() const noexcept { return _bytesEncoded; }
 
 private:
+	Solace::ByteWriter::size_type	_dataPosition;
+
 	/// Number of bytes traversed so far.
 	Solace::uint64			_bytesTraversed{0};
 	/// Number of bytes to skip before starting to write data.
@@ -516,13 +524,9 @@ private:
 	Solace::uint32 const	_maxBytes;
 	/// Number of bytes written.
 	Solace::uint32			_bytesEncoded{0};
-	/// Byte stream to write data to.
-	Encoder					_encoder;
+	/// Writer to write data to.
+	ResponseWriter&			_writer;
 };
-
-
-size_type protocolSize(Qid const& value) noexcept;
-size_type protocolSize(Stat const& value) noexcept;
 
 
 /** Encode a file Qid into the output stream.
