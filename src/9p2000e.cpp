@@ -135,4 +135,18 @@ styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& r
 }
 
 
+StringView
+styxe::_9P2000E::messageTypeToString(byte type) noexcept {
+	auto mType = static_cast<_9P2000E::MessageType>(type);
+	switch (mType) {
+	case _9P2000E::MessageType::TSession:		return "TSession";
+	case _9P2000E::MessageType::RSession:		return "RSession";
+	case _9P2000E::MessageType::TShortRead:		return "TShortRead";
+	case _9P2000E::MessageType::RShortRead:		return "RShortRead";
+	case _9P2000E::MessageType::TShortWrite:	return "TShortWrite";
+	case _9P2000E::MessageType::RShortWrite:	return "RShortWrite";
+	}
+
+	return styxe::messageTypeToString(type);
+}
 

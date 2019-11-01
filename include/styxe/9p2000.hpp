@@ -927,5 +927,13 @@ inline auto messageCode(Response::Stat const& ) noexcept { return asByte(Message
 inline auto messageCode(Response::WStat const& ) noexcept { return asByte(MessageType::RWStat); }
 
 
+/**
+ * Get a string representation of the message name given the op-code.
+ * @param messageType Message op-code to convert to a string.
+ * @return A string representation of a given message code.
+ */
+Solace::StringView
+messageTypeToString(Solace::byte type) noexcept;
+
 }  // end of namespace styxe
 #endif  // STYXE_9P2000_HPP

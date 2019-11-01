@@ -14,7 +14,10 @@
 *  limitations under the License.
 */
 
-#include "styxe/styxe.hpp"
+#include "styxe/9p2000.hpp"
+#include "styxe/9p2000u.hpp"
+#include "styxe/9p2000e.hpp"
+#include "styxe/messageWriter.hpp"
 
 #include <solace/array.hpp>
 #include <solace/output_utils.hpp>
@@ -27,6 +30,8 @@
 
 using namespace Solace;
 using namespace styxe;
+
+using MessageNameMapper = Solace::StringView(*)(Solace::byte);
 
 
 Stat genStats(StringView uid, StringView gid) {
@@ -70,7 +75,7 @@ struct MessageDump {
 		auto header = req.header();
 		auto buffer = req.encoder().buffer().viewWritten();
 
-		auto messageName = parser.messageName(header.type);
+		auto messageName = messageCodeToName(header.type);
 		dumpMessage(messageName, buffer);
 		req.encoder().buffer().clear();
 
@@ -81,7 +86,7 @@ struct MessageDump {
 		auto header = req.header();
 		auto buffer = req.encoder().buffer().viewWritten();
 
-		auto messageName = parser.messageName(header.type);
+		auto messageName = messageCodeToName(header.type);
 		dumpMessage(messageName, buffer);
 		req.encoder().buffer().clear();
 
@@ -103,25 +108,19 @@ struct MessageDump {
 		output.write(buffer.dataAs<char>(), buffer.size());
 	}
 
-	ParserBase& parser;
-	std::string corpusDirectory;
+	MessageNameMapper	messageCodeToName;
+	std::string			corpusDirectory;
 };
 
 
 /// Dump request messages
-void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, MemoryView payload) {
+void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, MessageNameMapper messageCodeToName, MemoryView payload) {
 	auto userName = StringView{getenv("USER")};
 	auto dummyStat = genStats(userName, userName);
 
-	auto maybeParser = createRequestParser(_9P2000E::kProtocolVersion, kMaxMessageSize);
-	if (!maybeParser) {
-		std::cerr << "Failed to create parser: " << maybeParser.getError() << std::endl;
-		return;
-	}
-
 	ByteWriter buffer{memoryResource};
 	RequestWriter requestWriter{buffer, 1};
-	MessageDump dump{*maybeParser, corpusDir};
+	MessageDump dump{messageCodeToName, corpusDir};
 
 	dump(requestWriter << Request::Version{kMaxMessageSize, _9P2000E::kProtocolVersion});
 	dump(requestWriter << Request::Auth{1, userName, "attachPoint"});
@@ -178,19 +177,13 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Memo
 
 
 /// Dump response messages
-void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, MemoryView payload) {
+void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, MessageNameMapper messageCodeToName, MemoryView payload) {
 	auto userName = StringView{getenv("USER")};
 	auto dummyStat = genStats(userName, userName);
 
-	auto maybeParser = createRequestParser(_9P2000E::kProtocolVersion, kMaxMessageSize);
-	if (!maybeParser) {
-		std::cerr << "Failed to create parser: " << maybeParser.getError() << std::endl;
-		return;
-	}
-
 	ByteWriter buffer{memoryResource};
 	ResponseWriter responseWriter{buffer, 1};
-	MessageDump dump{*maybeParser, corpusDir};
+	MessageDump dump{messageCodeToName, corpusDir};
 
 	dump(responseWriter << Response::Version{kMaxMessageSize, _9P2000E::kProtocolVersion});
 	dump(responseWriter << Response::Auth{randomQid(QidType::AUTH)});
@@ -198,9 +191,9 @@ void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, Mem
 	dump(responseWriter << Response::Flush{});
 	dump(responseWriter << Response::Attach{randomQid(QidType::MOUNT)});
 	dump(responseWriter << Response::Walk{3, {
-														randomQid(QidType::FILE),
-														randomQid(QidType::FILE),
-														randomQid(QidType::FILE)}});
+											  randomQid(QidType::FILE),
+											  randomQid(QidType::FILE),
+											  randomQid(QidType::FILE)}});
 
 	dump(responseWriter << Response::Open{randomQid(QidType::FILE), 4096});
 	dump(responseWriter << Response::Create{randomQid(QidType::FILE), 4096});
@@ -230,7 +223,12 @@ int main(int argc, char const **argv) {
         return EXIT_FAILURE;
     }
 
-    std::string corpusDir = argv[1];
+	std::string corpusDir{argv[1]};
+	StringView protocolVersion{kProtocolVersion};
+	if (argc > 2) {
+		protocolVersion = argv[2];
+	}
+
 
 	MemoryManager memManager{kMaxMessageSize};
 	auto memoryResource = memManager.allocate(kMaxMessageSize);
@@ -243,8 +241,16 @@ int main(int argc, char const **argv) {
 	auto payload = wrapMemory(data);
 	payload.fill(0xf1);
 
-	dumpAllRequests(*memoryResource, corpusDir, payload);
-	dumpAllResponses(*memoryResource, corpusDir, payload);
+	MessageNameMapper mapper = _9P2000U::messageTypeToString;
+	if (_9P2000E::kProtocolVersion == protocolVersion) {
+		mapper = _9P2000E::messageTypeToString;
+//	} else if (_9P2000L::kProtocolVersion == protocolVersion) {
+//		mapper = _9P2000L::messageTypeToString;
+	}
+
+
+	dumpAllRequests(*memoryResource, corpusDir, mapper, payload);
+	dumpAllResponses(*memoryResource, corpusDir, mapper, payload);
 
     return EXIT_SUCCESS;
 }

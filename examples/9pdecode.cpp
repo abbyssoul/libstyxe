@@ -224,7 +224,7 @@ struct VisitRequest {
 struct VisitResponse {
 
     void operator()(Response::Version const& resp) {
-        std::cout << ": " << resp.msize << ' ' << quote(resp.version) <<std::endl;
+		std::cout << ": " << resp.msize << ' ' << quote(resp.version);
     }
     void operator()(Response::Auth const& resp) {
 		std::cout << ": " << resp.qid;
@@ -235,7 +235,7 @@ struct VisitResponse {
     }
 
     void operator()(Response::Error const& resp) {
-        std::cout << ": " << quote(resp.ename) <<std::endl;
+		std::cout << ": " << quote(resp.ename);
     }
 
 	void operator()(Response::Flush const& /*res*/) noexcept { }
@@ -317,14 +317,25 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
 
 				bool const isRequest = (header.type % 2) == 0;
                 if (isRequest) {
-					printHeader(std::cout, tparser, header);
 					tparser.parseRequest(header, reader)
-                            .then([](RequestMessage&& reqMsg) { std::visit(VisitRequest{}, reqMsg); });
+							.then([&tparser, &header](RequestMessage&& reqMsg) {
+								printHeader(std::cout, tparser, header);
+								std::visit(VisitRequest{}, reqMsg);
+							})
+							.orElse([](Error&& err) {
+								std::cerr << "Error parsing message: " << err.toString() << std::endl;
+							});
+
                 } else {
-					printHeader(std::cout, rparser, header);
 					rparser.parseResponse(header, reader)
-                            .then([](ResponseMessage&& resp) { std::visit(VisitResponse{}, resp); });
-                }
+							.then([&rparser, &header](ResponseMessage&& resp) {
+								printHeader(std::cout, rparser, header);
+								std::visit(VisitResponse{}, resp);
+							})
+							.orElse([](Error&& err) {
+								std::cerr << "Error parsing message: " << err.toString() << std::endl;
+							});
+				}
 
 				std::cout << std::endl;
             })
@@ -358,7 +369,7 @@ int usage(const char* progname, size_type defaultMessageSize, StringView default
  */
 int main(int argc, char* const* argv) {
 	size_type maxMessageSize = kMaxMessageSize;
-	StringView requiredVersion = _9P2000E::kProtocolVersion;
+	StringView requiredVersion = _9P2000U::kProtocolVersion;
 
     int c;
 	while ((c = getopt(argc, argv, "m:p:h")) != -1) {

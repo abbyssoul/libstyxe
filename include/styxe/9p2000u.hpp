@@ -117,6 +117,19 @@ struct Response {
 	};
 };
 
+
+/**
+ * Get a string representation of the message name given the op-code.
+ * @param messageType Message op-code to convert to a string.
+ * @return A string representation of a given message code.
+ */
+inline
+Solace::StringView
+messageTypeToString(Solace::byte type) noexcept {
+	// Note: 9p2000u does not introduce new messages but extend existing
+	return ::styxe::messageTypeToString(type);
+}
+
 }  // end of namespace _9P2000U
 
 

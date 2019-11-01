@@ -33,18 +33,10 @@ extern const Solace::uint32 kNONUNAME;
  * 9P2000.L messages
  */
 enum class MessageType : Solace::byte {
-
-	TAttach,
-	RAttach,
-	TAuth,
-	RAuth,
-
-	TLERROR = 6,
+	Tlerror = 6,
 	Rlerror,
-
 	Tstatfs = 8,
 	Rstatfs,
-
 	Tlopen = 12,
 	Rlopen,
 	Tlcreate = 14,
@@ -84,9 +76,7 @@ enum class MessageType : Solace::byte {
 };
 
 
-
-
-struct statfs {
+struct StatFS {
 	Solace::uint32	f_type;     /* type of file system (see below) */
 	Solace::uint32	f_bsize;    /* optimal transfer block size */
 	Solace::uint64	f_blocks;   /* total data blocks in file system */
@@ -99,7 +89,7 @@ struct statfs {
 };
 
 
-struct stat {
+struct Stat {
 	dev_t     st_dev;     /* ID of device containing file */
 	ino_t     st_ino;     /* inode number */
 	mode_t    st_mode;    /* protection */
@@ -131,6 +121,13 @@ struct flock {
 	pid_t l_pid;   /* PID of process blocking our lock (F_GETLK only) */
 };
 
+/**
+ * Get a string representation of the message name given the op-code.
+ * @param messageType Message op-code to convert to a string.
+ * @return A string representation of a given message code.
+ */
+Solace::StringView
+messageTypeToString(Solace::byte type) noexcept;
 
 }  // end of namespace _9P2000L
 

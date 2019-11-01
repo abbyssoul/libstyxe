@@ -78,8 +78,17 @@ struct Response : public styxe::Response {
 	struct ShortWrite {
 		size_type  count;  //!< Number of bytes written
 	};
-
 };
+
+
+/**
+ * Get a string representation of the message name given the op-code.
+ * @param messageType Message op-code to convert to a string.
+ * @return A string representation of a given message code.
+ */
+Solace::StringView
+messageTypeToString(Solace::byte type) noexcept;
+
 
 }  // end of namespace _9P2000E
 

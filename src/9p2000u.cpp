@@ -143,4 +143,3 @@ Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, _9P2000U::Response::Stat& dest) {
 	return decode(data, dest.dummySize, dest.data);
 }
-

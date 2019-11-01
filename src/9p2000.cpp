@@ -185,3 +185,41 @@ Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, Request::WStat& dest) {
 	return decode(data, dest.fid, dest.stat);
 }
+
+
+StringView
+styxe::messageTypeToString(byte type) noexcept {
+	auto mType = static_cast<styxe::MessageType>(type);
+	switch (mType) {
+	case MessageType::TVersion: return "TVersion";
+	case MessageType::RVersion: return "RVersion";
+	case MessageType::TAuth:    return "TAuth";
+	case MessageType::RAuth:    return "RAuth";
+	case MessageType::TAttach:  return "TAttach";
+	case MessageType::RAttach:  return "RAttach";
+	case MessageType::TError:   return "TError";
+	case MessageType::RError:   return "RError";
+	case MessageType::TFlush:   return "TFlush";
+	case MessageType::RFlush:   return "RFlush";
+	case MessageType::TWalk:    return "TWalk";
+	case MessageType::RWalk:    return "RWalk";
+	case MessageType::TOpen:    return "TOpen";
+	case MessageType::ROpen:    return "ROpen";
+	case MessageType::TCreate:  return "TCreate";
+	case MessageType::RCreate:  return "RCreate";
+	case MessageType::TRead:    return "TRead";
+	case MessageType::RRead:    return "RRead";
+	case MessageType::TWrite:   return "TWrite";
+	case MessageType::RWrite:   return "RWrite";
+	case MessageType::TClunk:   return "TClunk";
+	case MessageType::RClunk:   return "RClunk";
+	case MessageType::TRemove:  return "TRemove";
+	case MessageType::RRemove:  return "RRemove";
+	case MessageType::TStat:    return "TStat";
+	case MessageType::RStat:    return "RStat";
+	case MessageType::TWStat:   return "TWStat";
+	case MessageType::RWStat:   return "RWStat";
+	}
+
+	return "Unsupported";
+}
