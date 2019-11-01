@@ -46,14 +46,11 @@ Solace::ByteWriter buffer{...};
 // Write TVersion request into the beffer
 styxe::RequestWriter requestWriter{buffer, 1};
 requestWriter << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion}
-requestWriter.build();
-
 ...
 
 // Write TOpen request into the given destination buffer
 styxe::RequestWriter requestWriter{buffer, 1};
 requestWriter << Open{42, styxe::OpenMode::READ)};
-requestWriter.build();
 ```
 
 ### Parsing 9P message from a byte buffer:
