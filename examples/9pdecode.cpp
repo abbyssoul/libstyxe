@@ -48,6 +48,19 @@ template<typename T>
 Quoted<T> quote(T const& t, char q='\"') { return Quoted<T>(t, q); }
 
 
+struct NamedField {
+	const char* name;
+
+	friend std::ostream& operator<< (std::ostream& ostr, NamedField const& q) {
+		return ostr << ' ' << q.name << '=';
+	}
+};
+
+
+/// IO manipulator
+NamedField field(const char* name) {
+	return NamedField{name};
+}
 
 std::ostream& operator<< (std::ostream& ostr, OpenMode mode) {
     byte const op = (mode.mode & 0x03);
@@ -109,6 +122,7 @@ std::ostream& operator<< (std::ostream& ostr, Stat const& stat) {
          << '}';
 }
 
+
 void
 printHeader(std::ostream& ostr, ParserBase const& parser, MessageHeader const& header) {
 	bool const isRequest = ((header.type % 2) == 0);
@@ -125,123 +139,314 @@ printHeader(std::ostream& ostr, ParserBase const& parser, MessageHeader const& h
 struct VisitRequest {
 
     void operator()(Request::Version const& req) {
-		std::cout << ": " << req.msize << ' ' << quote(req.version);
+		std::cout << ':'
+				  << field("msize") << req.msize
+				  << field("version") << req.version;
     }
 
     void operator()(Request::Auth const& req) {
-		std::cout << ": " << req.afid << ' ' << quote(req.uname) << ' ' << quote(req.aname);
+		std::cout << ':'
+				  << field("afid") << req.afid
+				  << field("uname") << req.uname
+				  << field("aname") << req.aname;
     }
 
     void operator()(Request::Attach const& req) {
-		std::cout << ": " << req.fid << ' ' << req.afid << ' ' << quote(req.uname) << ' ' << quote(req.aname);
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("afid") << req.afid
+				  << field("uname") << req.uname
+				  << field("aname") << req.aname;
     }
 
     void operator()(Request::Clunk const& req) {
-		std::cout << ": " << req.fid;
+		std::cout << ':'
+				  << field("fid") << req.fid;
     }
 
     void operator()(Request::Flush const& req) {
-		std::cout << ": " << req.oldtag;
+		std::cout << ':'
+				  << field("oldtag") << req.oldtag;
     }
 
     void operator()(Request::Open const& req) {
-		std::cout << ": " << req.fid << ' ' << req.mode;
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("mode") << req.mode;
     }
 
     void operator()(Request::Create const& req) {
-		std::cout << ": " << req.fid << ' ' << quote(req.name) << ' ' << req.perm << ' ' << req.mode;
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("name") << req.name
+				  << field("perm") << req.perm
+				  << field("mode") << req.mode;
     }
 
 
     void operator()(Request::Read const& req) {
-		std::cout << ": " << req.fid << ' ' << req.offset << ' ' << req.count;
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("offset") << req.offset
+				  << field("count") << req.count;
     }
 
     void operator()(Request::Write const& req) {
-        std::cout << ": " << req.fid << ' '
-                  << req.offset << ' '
-                  << req.data.size()
-				  << " DATA[" << req.data << ']';
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("offset") << req.offset
+				  << field("data") << req.data;
     }
 
     void operator()(Request::Remove const& req) {
-		std::cout << ": " << req.fid;
+		std::cout << ':'
+				  << field("fid") << req.fid;
     }
 
 	void operator()(Request::Stat const& req) {
-		std::cout << ": " << req.fid;
+		std::cout << ':'
+				  << field("fid") << req.fid;
     }
 
     void operator()(Request::WStat const& req) {
-		std::cout << ": " << req.fid << ' ' << req.stat;
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("stat") << req.stat;
     }
 
     void operator()(Request::Walk const& req) {
-        std::cout << ": "
-                  << req.fid << ' '
-                  << req.newfid << ' '
-				  << req.path.size() << ' '
-				  << '[' << req.path << ']';
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("newfid") << req.newfid
+				  << field("path") << req.path;
     }
 
 
 	void operator()(_9P2000U::Request::Auth const& req) {
 		operator() (static_cast<Request::Auth const&>(req));
-		std::cout << ' ' << req.n_uname;
+		std::cout
+				<< field("n_uname") << req.n_uname;
+
 	}
 	void operator()(_9P2000U::Request::Attach const& req) {
 		operator() (static_cast<Request::Attach const&>(req));
-		std::cout << ' ' << req.n_uname;
+		std::cout
+				<< field("n_uname") << req.n_uname;
 	}
 
 	void operator()(_9P2000U::Request::Create const& req) {
-		std::cout << ": " << req.fid << ' ' << quote(req.name) << ' ' << req.perm << ' ' << req.mode
-				  << ' ' << quote(req.extension);
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("name") << req.name
+				  << field("perm") << req.perm
+				  << field("mode") << req.mode
+				  << field("extension") << req.extension;
 	}
 
 	void operator()(_9P2000U::Request::WStat const& req) {
-		std::cout << ": " << req.fid << ' ' << req.stat;
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("stat") << req.stat;
 	}
 
 
 	void operator()(_9P2000E::Request::Session const& req) {
-		std::cout << ": " << wrapMemory(req.key);
+		std::cout << ':' << wrapMemory(req.key);
     }
 
 	void operator()(_9P2000E::Request::ShortRead const& req) {
-        std::cout << ": " << req.fid << ' '
-				  << '\'' << req.path << '\'';
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("path") << req.path;
     }
 
 	void operator()(_9P2000E::Request::ShortWrite const& req) {
-        std::cout << ": " << req.fid << ' '
-				  << '\'' << req.path << '\''
-                  << " DATA[" << req.data << "]";
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("path") << req.path
+				  << field("data") << req.data;
     }
+
+	void operator()(_9P2000L::Request::StatFS const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid;
+	}
+
+	void operator()(_9P2000L::Request::Open const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("flags") << req.flags;
+	}
+
+	void operator()(_9P2000L::Request::Create const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("name") << req.name
+				  << field("flags") << req.flags
+				  << field("mode") << req.mode
+				  << field("gid") << req.gid;
+	}
+
+	void operator()(_9P2000L::Request::Symlink const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("name") << req.name
+				  << field("symtgt") << req.symtgt
+				  << field("gid") << req.gid;
+	}
+
+	void operator()(_9P2000L::Request::MkNode const& req) {
+		std::cout << ':'
+				  << field("dfid") << req.dfid
+				  << field("name") << req.name
+				  << field("mode") << req.mode
+				  << field("major") << req.major
+				  << field("minor") << req.minor
+				  << field("gid") << req.gid;
+	}
+
+	void operator()(_9P2000L::Request::Rename const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("dfid") << req.dfid
+				  << field("name") << req.name;
+	}
+
+	void operator()(_9P2000L::Request::ReadLink const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid;
+	}
+
+	void operator()(_9P2000L::Request::GetAttr const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("request_mask") << req.request_mask;
+	}
+
+	void operator()(_9P2000L::Request::SetAttr const& req) {
+		std::cout << ':'
+					 << field("fid") << req.fid
+					 << field("valid") << req.valid
+					 << field("mode") << req.mode
+					 << field("uid") << req.uid
+					 << field("gid") << req.gid
+					 << field("size") << req.size
+
+					 << field("atime_sec") << req.atime_sec
+					 << field("atime_nsec") << req.atime_nsec
+					 << field("mtime_sec") << req.mtime_sec
+					 << field("mtime_nsec") << req.mtime_nsec;
+	}
+
+	void operator()(_9P2000L::Request::XAttrWalk const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("newfid") << req.newfid
+				  << field("name") << req.name;
+	}
+
+	void operator()(_9P2000L::Request::XAttrCreate const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("name") << req.name
+				  << field("attr_size") << req.attr_size
+				  << field("flags") << req.flags;
+	}
+
+	void operator()(_9P2000L::Request::ReadDir const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("offset") << req.offset
+				  << field("count") << req.count;
+	}
+
+	void operator()(_9P2000L::Request::FSync const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid;
+	}
+
+	void operator()(_9P2000L::Request::Lock const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("type") << req.type
+				  << field("flags") << req.flags
+				  << field("start") << req.start
+				  << field("length") << req.length
+				  << field("proc_id") << req.proc_id
+				  << field("client_id") << req.client_id;
+	}
+
+	void operator()(_9P2000L::Request::GetLock const& req) {
+		std::cout << ':'
+				  << field("fid") << req.fid
+				  << field("type") << req.type
+				  << field("start") << req.start
+				  << field("length") << req.length
+				  << field("proc_id") << req.proc_id
+				  << field("client_id") << req.client_id;
+	}
+
+	void operator()(_9P2000L::Request::Link const& req) {
+		std::cout << ':'
+				  << field("dfid") << req.dfid
+				  << field("fid") << req.fid
+				  << field("name") << req.name;
+	}
+
+	void operator()(_9P2000L::Request::MkDir const& req) {
+		std::cout << ':'
+				  << field("dfid") << req.dfid
+				  << field("name") << req.name
+				  << field("mode") << req.mode
+				  << field("gid") << req.gid;
+	}
+
+	void operator()(_9P2000L::Request::RenameAt const& req) {
+		std::cout << ':'
+				  << field("olddirfid") << req.olddirfid
+				  << field("oldname") << req.oldname
+				  << field("newdirfid") << req.newdirfid
+				  << field("newname") << req.newname;
+	}
+
+	void operator()(_9P2000L::Request::UnlinkAt const& req) {
+		std::cout << ':'
+				  << field("dfid") << req.dfid
+				  << field("name") << req.name
+				  << field("flags") << req.flags;
+	}
+
 };
 
 
 struct VisitResponse {
 
     void operator()(Response::Version const& resp) {
-		std::cout << ": " << resp.msize << ' ' << quote(resp.version);
-    }
-    void operator()(Response::Auth const& resp) {
-		std::cout << ": " << resp.qid;
+		std::cout << ':'
+				  << field("msize") << resp.msize
+				  << field("version") << resp.version;
+	}
+
+	void operator()(Response::Auth const& resp) {
+		std::cout << ':'
+				  << field("qid") << resp.qid;
     }
 
     void operator()(Response::Attach const& resp) {
-		std::cout << ": " << resp.qid;
+		std::cout << ':'
+				  << field("qid") << resp.qid;
     }
 
     void operator()(Response::Error const& resp) {
-		std::cout << ": " << quote(resp.ename);
+		std::cout << ':'
+				  << field("ename") << quote(resp.ename);
     }
 
 	void operator()(Response::Flush const& /*res*/) noexcept { }
 
     void operator()(Response::Walk const& resp) {
-		std::cout << ": " << resp.nqids
+		std::cout << ':'
+				  << resp.nqids
                   << " [";
 
 		const auto nqids = resp.nqids;
@@ -255,49 +460,169 @@ struct VisitResponse {
     }
 
     void operator()(Response::Open const& resp) {
-		std::cout << ": " << resp.qid << " " << resp.iounit;
-    }
+		std::cout << ':'
+				  << field("qid") << resp.qid
+				  << field("iounit") << resp.iounit;
+	}
 
     void operator()(Response::Create const& resp) {
-		std::cout << ": " << resp.qid << " " << resp.iounit;
-    }
+		std::cout << ':'
+				  << field("qid") << resp.qid
+				  << field("iounit") << resp.iounit;
+	}
 
 
     void operator()(Response::Read const& resp) {
-        std::cout << ": " << resp.data.size()
-                  << " DATA[" << resp.data << ']';
+		std::cout << ':'
+				  << field("data") << resp.data;
     }
     void operator()(Response::Write const& resp) {
-		std::cout << ": " << resp.count;
+		std::cout << ':'
+				  << field("count") << resp.count;
     }
 
 	void operator()(Response::Clunk& /*res*/) noexcept {  }
 	void operator()(Response::Remove& /*res*/) noexcept { }
 
 	void operator()(Response::Stat const& resp) {
-		std::cout << ": " << resp.data;
-    }
-
-	void operator()(Response::WStat& /*res*/) noexcept { }
-
-	void operator()(_9P2000U::Response::Error& resp) {
-		std::cout << ": " << quote(resp.ename) << ", code: " << resp.errcode;
+		std::cout << ':'
+				  << field("size") << resp.dummySize
+				  << field("data") << resp.data;
 	}
 
-	void operator()(_9P2000U::Response::Stat& resp) {
-		std::cout << ": " << resp.data;
+	void operator()(Response::WStat const& /*res*/) noexcept { }
+
+	void operator()(_9P2000U::Response::Error const& resp) {
+		std::cout << ':'
+				  << field("ename") << resp.ename
+				  << field("errcode") << resp.errcode;
 	}
 
-	void operator()(_9P2000E::Response::Session& /*res*/) noexcept { }
+	void operator()(_9P2000U::Response::Stat const& resp) {
+		std::cout << ':'
+				  << field("size") << resp.dummySize
+				  << field("data") << resp.data;
 
-	void operator()(_9P2000E::Response::ShortRead& resp) {
-		std::cout << ": " << resp.data.size()
-				  << " DATA[" << resp.data << ']';
 	}
 
-	void operator()(_9P2000E::Response::ShortWrite& resp) {
-		std::cout << ": " << resp.count;
+	void operator()(_9P2000E::Response::Session const& /*res*/) noexcept { }
+
+	void operator()(_9P2000E::Response::ShortRead const& resp) {
+		std::cout << ':'
+				  << resp.data;
 	}
+
+	void operator()(_9P2000E::Response::ShortWrite const& resp) {
+		std::cout << ':'
+				  << field("count") << resp.count;
+	}
+
+	void operator()(_9P2000L::Response::LError const& resp) {
+		std::cout << ':'
+				  << field("ecode") << resp.ecode;
+
+	}
+	void operator()(_9P2000L::Response::StatFS const& resp) {
+		std::cout << ':'
+				  << field("type") << resp.type
+				  << field("bsize") << resp.bsize
+				  << field("blocks") << resp.blocks
+				  << field("bfree") << resp.bfree
+				  << field("bavail") << resp.bavail
+				  << field("files") << resp.files
+				  << field("ffree") << resp.ffree
+				  << field("fsid") << resp.fsid
+				  << field("namelen") << resp.namelen;
+	}
+
+//	void operator()(_9P2000L::Response::Open const& resp);
+//	void operator()(_9P2000L::Response::Create const& resp);
+
+	void operator()(_9P2000L::Response::Symlink const& resp) {
+		std::cout << ':'
+				  << field("qid") << resp.qid;
+	}
+
+	void operator()(_9P2000L::Response::MkNode const& resp) {
+		std::cout << ':'
+				  << field("qid") << resp.qid;
+
+	}
+
+	void operator()(_9P2000L::Response::Rename const&) noexcept {}
+
+	void operator()(_9P2000L::Response::ReadLink const& resp) {
+		std::cout << ':'
+				  << field("target") << resp.target;
+	}
+
+	void operator()(_9P2000L::Response::GetAttr const& resp) {
+		std::cout << ':'
+				  << field("valid") << resp.valid
+				  << field("qid") << resp.qid
+				  << field("mode") << resp.mode
+				  << field("uid") << resp.uid
+				  << field("gid") << resp.gid
+				  << field("nlink") << resp.nlink
+				  << field("rdev") << resp.rdev
+				  << field("size") << resp.size
+				  << field("blksize") << resp.blksize
+				  << field("blocks") << resp.blocks
+				  << field("atime_sec") << resp.atime_sec
+				  << field("atime_nsec") << resp.atime_nsec
+				  << field("mtime_sec") << resp.mtime_sec
+				  << field("mtime_nsec") << resp.mtime_nsec
+				  << field("ctime_sec") << resp.ctime_sec
+				  << field("ctime_nsec") << resp.ctime_nsec
+				  << field("btime_sec") << resp.btime_sec
+				  << field("btime_nsec") << resp.btime_nsec
+				  << field("gen") << resp.gen
+				  << field("data_version") << resp.data_version;
+	}
+
+	void operator()(_9P2000L::Response::SetAttr const&) noexcept {}
+
+	void operator()(_9P2000L::Response::XAttrWalk const& resp) {
+		std::cout << ':'
+				  << field("size") << resp.size;
+	}
+
+	void operator()(_9P2000L::Response::XAttrCreate const&) noexcept { }
+
+	void operator()(_9P2000L::Response::ReadDir const& resp) {
+		std::cout << ':'
+				  << field("count") << resp.count;
+
+//		for (uint i = 0; i < resp.count; ++i) {
+//			// FIXME: Implement dir listing
+//		}
+	}
+
+	void operator()(_9P2000L::Response::FSync const&) noexcept { }
+
+	void operator()(_9P2000L::Response::Lock const& resp) {
+		std::cout << ':'
+				  << field("status") << static_cast<uint32>(resp.status);
+	}
+
+	void operator()(_9P2000L::Response::GetLock const& resp) {
+		std::cout << ':'
+				  << field("type") << static_cast<uint32>(resp.type)
+				  << field("start") << resp.start
+				  << field("length") << resp.length
+				  << field("proc_id") << resp.proc_id
+				  << field("client_id") << quote(resp.client_id);
+	}
+
+	void operator()(_9P2000L::Response::Link const&) noexcept { }
+
+	void operator()(_9P2000L::Response::MkDir const& resp) {
+		std::cout << ':'
+					 << field("qid") << resp.qid;
+	}
+	void operator()(_9P2000L::Response::RenameAt const&) noexcept { }
+	void operator()(_9P2000L::Response::UnlinkAt const&) noexcept { }
+
 };
 
 
