@@ -257,11 +257,11 @@ TEST_F(P92000u_Responses, createStatResponse) {
 TEST_F(P92000u_Responses, parseStatResponse) {
 	_9P2000U::Response::Stat statResponse;
 	statResponse.data = randomStat();
-	statResponse.dummySize = styxe::protocolSize(statResponse.data);
+	statResponse.dummySize = protocolSize(statResponse.data);
 
 	styxe::Encoder encoder{_writer};
 	encoder << makeHeaderWithPayload(asByte(MessageType::RStat), 1,
-									 sizeof(statResponse.dummySize) + styxe::protocolSize(statResponse.data))
+									 sizeof(statResponse.dummySize) + protocolSize(statResponse.data))
 			<< statResponse.dummySize
 			<< statResponse.data;
 

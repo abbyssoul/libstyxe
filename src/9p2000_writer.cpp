@@ -17,38 +17,27 @@
 #include "styxe/9p2000.hpp"
 #include "styxe/encoder.hpp"
 
+#include "write_helper.hpp"
+
 
 using namespace Solace;
 using namespace styxe;
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Version const& response) {
-	writer.messageType(messageCode(response), kNoTag)
-			<< response.msize
-			<< response.version;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Version const& message) {
+	return encode(writer, message, message.msize, message.version);
 }
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Auth const& response) {
-	writer.messageType(messageCode(response))
-			<< response.qid;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Auth const& message) {
+	return encode(writer, message, message.qid);
 }
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Error const& response) {
-	writer.messageType(messageCode(response))
-			<< response.ename;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Error const& message) {
+	return encode(writer, message, message.ename);
 }
 
 ResponseWriter&
@@ -59,12 +48,8 @@ styxe::operator<< (ResponseWriter& writer, Response::Flush const& response) {
 }
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Attach const& response) {
-	writer.messageType(messageCode(response))
-			<< response.qid;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Attach const& message) {
+	return encode(writer, message, message.qid);
 }
 
 ResponseWriter&
@@ -81,44 +66,26 @@ styxe::operator<< (ResponseWriter& writer, Response::Walk const& response) {
 }
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Open const& response) {
-	writer.messageType(messageCode(response))
-			<< response.qid
-			<< response.iounit;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Open const& message) {
+	return encode(writer, message, message.qid, message.iounit);
 }
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Create const& response) {
-	writer.messageType(messageCode(response))
-			<< response.qid
-			<< response.iounit;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Create const& message) {
+	return encode(writer, message, message.qid, message.iounit);
 }
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Read const& response) {
-	writer.messageType(messageCode(response))
-			<< response.data;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Read const& message) {
+	return encode(writer, message, message.data);
 }
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Write const& response) {
-	writer.messageType(messageCode(response))
-			<< response.count;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Write const& message) {
+	return encode(writer, message, message.count);
 }
 
 
@@ -139,13 +106,8 @@ styxe::operator<< (ResponseWriter& writer, Response::Remove const& response) {
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Stat const& response) {
-	writer.messageType(messageCode(response))
-			<< response.dummySize
-			<< response.data;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Stat const& message) {
+	return encode(writer, message, message.dummySize, message.data);
 }
 
 
@@ -159,147 +121,79 @@ styxe::operator<< (ResponseWriter& writer, Response::WStat const& response) {
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Version const& request) {
-	writer.messageType(messageCode(request))
-			<< request.msize
-			<< request.version;
-	writer.updateMessageSize();
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Version const& message) {
+	return encode(writer, message, message.msize, message.version);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Auth const& request) {
-	writer.messageType(messageCode(request))
-			<< request.afid
-			<< request.uname
-			<< request.aname;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Auth const& message) {
+	return encode(writer, message, message.afid, message.uname, message.aname);
 }
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Flush const& request) {
-	writer.messageType(messageCode(request))
-			<< request.oldtag;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Flush const& message) {
+	return encode(writer, message, message.oldtag);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Attach const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.afid
-			<< request.uname
-			<< request.aname;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Attach const& message) {
+	return encode(writer, message, message.fid, message.afid, message.uname, message.aname);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Walk const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.newfid
-			<< request.path;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Walk const& message) {
+	return encode(writer, message, message.fid, message.newfid, message.path);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Open const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.mode.mode;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Open const& message) {
+	return encode(writer, message, message.fid, message.mode.mode);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Create const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.name
-			<< request.perm
-			<< request.mode.mode;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Create const& message) {
+	return encode(writer, message, message.fid, message.name, message.perm, message.mode.mode);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Read const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.offset
-			<< request.count;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Read const& message) {
+	return encode(writer, message, message.fid, message.offset, message.count);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Write const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.offset
-			<< request.data;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Write const& message) {
+	return encode(writer, message, message.fid, message.offset, message.data);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Clunk const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Clunk const& message) {
+	return encode(writer, message, message.fid);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Remove const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Remove const& message) {
+	return encode(writer, message, message.fid);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::Stat const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::Stat const& message) {
+	return encode(writer, message, message.fid);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, Request::WStat const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.stat;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, Request::WStat const& message) {
+	return encode(writer, message, message.fid, message.stat);
 }
 
 

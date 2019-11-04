@@ -48,7 +48,27 @@ using RequestMessage = std::variant<
 							// 9p2000.e exrta messages
 							_9P2000E::Request::Session,
 							_9P2000E::Request::ShortRead,
-							_9P2000E::Request::ShortWrite
+							_9P2000E::Request::ShortWrite,
+							// 9P2000.L extra messages
+							_9P2000L::Request::StatFS,
+							_9P2000L::Request::Open,
+							_9P2000L::Request::Create,
+							_9P2000L::Request::Symlink,
+							_9P2000L::Request::MkNode,
+							_9P2000L::Request::Rename,
+							_9P2000L::Request::ReadLink,
+							_9P2000L::Request::GetAttr,
+							_9P2000L::Request::SetAttr,
+							_9P2000L::Request::XAttrWalk,
+							_9P2000L::Request::XAttrCreate,
+							_9P2000L::Request::ReadDir,
+							_9P2000L::Request::FSync,
+							_9P2000L::Request::Lock,
+							_9P2000L::Request::GetLock,
+							_9P2000L::Request::Link,
+							_9P2000L::Request::MkDir,
+							_9P2000L::Request::RenameAt,
+							_9P2000L::Request::UnlinkAt
 							>;
 
 /// Type representing a response message
@@ -73,7 +93,28 @@ using ResponseMessage = std::variant<
 							// 9p2000.e exrta messages
 							_9P2000E::Response::Session,
 							_9P2000E::Response::ShortRead,
-							_9P2000E::Response::ShortWrite
+							_9P2000E::Response::ShortWrite,
+							// 9P2000.L extra messages
+							_9P2000L::Response::LError,
+							_9P2000L::Response::StatFS,
+							_9P2000L::Response::Open,
+							_9P2000L::Response::Create,
+							_9P2000L::Response::Symlink,
+							_9P2000L::Response::MkNode,
+							_9P2000L::Response::Rename,
+							_9P2000L::Response::ReadLink,
+							_9P2000L::Response::GetAttr,
+							_9P2000L::Response::SetAttr,
+							_9P2000L::Response::XAttrWalk,
+							_9P2000L::Response::XAttrCreate,
+							_9P2000L::Response::ReadDir,
+							_9P2000L::Response::FSync,
+							_9P2000L::Response::Lock,
+							_9P2000L::Response::GetLock,
+							_9P2000L::Response::Link,
+							_9P2000L::Response::MkDir,
+							_9P2000L::Response::RenameAt,
+							_9P2000L::Response::UnlinkAt
 							>;
 
 using RequestParseFunc = Solace::Result<RequestMessage, Error> (*)(Solace::ByteReader& );

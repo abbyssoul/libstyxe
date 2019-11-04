@@ -22,9 +22,9 @@
 #include "styxe/messageWriter.hpp"
 #include "styxe/messageParser.hpp"
 
-#include <solace/output_utils.hpp>
+#include "testHarnes.hpp"
 
-#include <gtest/gtest.h>
+#include <solace/output_utils.hpp>
 
 
 using namespace Solace;
@@ -34,39 +34,31 @@ using namespace styxe;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// 9P2000 Message parsing test suit
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class P9Messages : public ::testing::Test {
+class P9Messages : public TestHarnes {
 protected:
-
-    // cppcheck-suppress unusedFunction
-    void SetUp() override {
-        _memBuf.view().fill(0xFE);
-
-        _writer.rewind();
-        _reader.rewind();
-    }
 
     template<typename RequestType>
     Result<RequestType, Error>
 	getRequestOrFail() {
-		_reader.limit(_writer.position());
+		ByteReader reader{_writer.viewWritten()};
 
 		auto maybeParser = createRequestParser(kProtocolVersion, kMaxMessageSize);
 		if (!maybeParser) {
-			[&maybeParser]() { FAIL() << "Failed to create a parser: " << maybeParser.getError(); } ();
+			logFailure(maybeParser.getError());
 			return maybeParser.moveError();
 		}
 
 		auto& proc = *maybeParser;
 		auto const expectType = messageCode(RequestType{});
 		auto headerParser = UnversionedParser{kMaxMessageSize};
-		return headerParser.parseMessageHeader(_reader)
+		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader header) {
 					return (header.type != expectType)
 							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
 							: Result<MessageHeader, Error>{types::okTag, std::move(header)};
                 })
-				.then([this, &proc](MessageHeader&& header) {
-                    return proc.parseRequest(header, _reader);
+				.then([&reader, &proc](MessageHeader&& header) {
+					return proc.parseRequest(header, reader);
                 })
 				.then([](RequestMessage&& msg) -> Result<RequestType, Error> {
 					bool const isType = std::holds_alternative<RequestType>(msg);
@@ -78,10 +70,8 @@ protected:
 
                     return Ok<RequestType>(std::get<RequestType>(std::move(msg)));
                 })
-                .mapError([](Error&& e) -> Error {
-                    [&e]() {
-                        FAIL() << e.toString();
-                    } ();
+				.mapError([this](Error&& e) -> Error {
+					logFailure(e);
 
                     return e;
                 });
@@ -91,11 +81,11 @@ protected:
     template<typename ResponseType>
     Result<ResponseType, Error>
 	getResponseOrFail() {
-		_reader.limit(_writer.position());
+		ByteReader reader{_writer.viewWritten()};
 
 		auto maybeParser = createResponseParser(kProtocolVersion, kMaxMessageSize);
 		if (!maybeParser) {
-			[&maybeParser]() { FAIL() << "Failed to create a parser: " << maybeParser.getError(); } ();
+			logFailure(maybeParser.getError());
 			return maybeParser.moveError();
 		}
 
@@ -103,14 +93,14 @@ protected:
 
 		auto const expectType = messageCode(ResponseType{});
 		auto headerParser = UnversionedParser{kMaxMessageSize};
-		return headerParser.parseMessageHeader(_reader)
+		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader header) {
 					return (header.type == expectType)
 							? Result<MessageHeader, Error>{types::okTag, std::move(header)}
 							: Result<MessageHeader, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};
                 })
-				.then([this, &proc](MessageHeader&& header) {
-                    return proc.parseResponse(header, _reader);
+				.then([&reader, &proc](MessageHeader&& header) {
+					return proc.parseResponse(header, reader);
                 })
 				.then([](ResponseMessage&& msg) -> Result<ResponseType, Error> {
 					bool const isType = std::holds_alternative<ResponseType>(msg);
@@ -122,19 +112,13 @@ protected:
 
                     return Ok<ResponseType>(std::get<ResponseType>(std::move(msg)));
                 })
-                .mapError([](Error&& e) {
-					[&e]() { FAIL() << e.toString(); } ();
+				.mapError([this](Error&& e) {
+					logFailure(e);
 
                     return e;
                 });
     }
 
-protected:
-
-	MemoryManager   _memManager{kMaxMessageSize};
-	MemoryResource  _memBuf{_memManager.allocate(kMaxMessageSize).unwrap()};
-    ByteWriter      _writer{_memBuf};
-    ByteReader      _reader{_memBuf};
 };
 
 

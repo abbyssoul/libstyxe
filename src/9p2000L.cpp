@@ -17,6 +17,9 @@
 #include "styxe/9p2000L.hpp"
 #include "styxe/decoder.hpp"
 
+#include "parse_helper.hpp"
+#include "write_helper.hpp"
+
 
 using namespace Solace;
 using namespace styxe;
@@ -76,4 +79,537 @@ styxe::_9P2000L::messageTypeToString(byte type) noexcept {
 
 	return styxe::messageTypeToString(type);
 }
+
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::StatFS const& message){
+	return encode(writer, message, message.fid);
+}
+
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Open const& message){
+	return encode(writer, message, message.fid, message.flags);
+}
+
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Create const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.name
+			<< message.flags
+			<< message.mode
+			<< message.gid;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Symlink const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.name
+			<< message.symtgt
+			<< message.gid;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::MkNode const& message){
+	writer.messageType(messageCode(message))
+			<< message.dfid
+			<< message.name
+			<< message.mode
+			<< message.major
+			<< message.minor
+			<< message.gid;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Rename const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.dfid
+			<< message.name;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::ReadLink const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::GetAttr const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.request_mask;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::SetAttr const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.valid
+			<< message.mode
+			<< message.uid
+			<< message.gid
+			<< message.size
+			<< message.atime_sec << message.atime_nsec
+			<< message.mtime_sec << message.mtime_nsec;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::XAttrWalk const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.newfid
+			<< message.name;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::XAttrCreate const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.name
+			<< message.attr_size
+			<< message.flags;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::ReadDir const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.offset
+			<< message.count;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::FSync const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Lock const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.type
+			<< message.flags
+			<< message.start
+			<< message.length
+			<< message.proc_id
+			<< message.client_id;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::GetLock const& message){
+	writer.messageType(messageCode(message))
+			<< message.fid
+			<< message.type
+			<< message.start
+			<< message.length
+			<< message.proc_id
+			<< message.client_id;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Link const& message){
+	writer.messageType(messageCode(message))
+			<< message.dfid
+			<< message.fid
+			<< message.name;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::MkDir const& message){
+	writer.messageType(messageCode(message))
+			<< message.dfid
+			<< message.name
+			<< message.mode
+			<< message.gid;
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::RenameAt const& message){
+	return encode(writer, message, message.olddirfid, message.oldname, message.newdirfid, message.newname);
+}
+
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::UnlinkAt const& message) {
+	return encode(writer, message, message.dfid, message.name, message.flags);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::LError const& message){
+	return encode(writer, message, message.ecode);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::StatFS const& message) {
+	return encode(writer, message,
+				  message.type,
+				  message.bsize,
+				  message.blocks,
+				  message.bfree,
+				  message.bavail,
+				  message.files,
+				  message.ffree,
+				  message.fsid,
+				  message.namelen);
+}
+
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Open const& message){
+	return encode(writer, message, message.qid, message.iounit);
+}
+
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Create const& message){
+	return encode(writer, message, message.qid, message.iounit);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Symlink const& message){
+	return encode(writer, message, message.qid);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::MkNode const& message){
+	return encode(writer, message, message.qid);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Rename const&  message) {
+	return encode(writer, message);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::ReadLink const& message){
+	return encode(writer, message, message.target);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::GetAttr const& m){
+	return encode(writer, m,
+				  m.valid,
+				  m.qid,
+				  m.mode,
+				  m.uid,
+				  m.gid,
+				  m.nlink,
+				  m.rdev,
+				  m.size,
+				  m.blksize,
+				  m.blocks,
+				  m.atime_sec, m.atime_nsec,
+				  m.mtime_sec, m.mtime_nsec,
+				  m.ctime_sec, m.ctime_nsec,
+				  m.btime_sec, m.btime_nsec,
+				  m.gen, m.data_version
+				  );
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::SetAttr const& message) {
+	return encode(writer, message);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::XAttrWalk const& message) {
+	return encode(writer, message, message.size);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::XAttrCreate const& message) {
+	return encode(writer, message);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::ReadDir const& message) {
+	writer.messageType(messageCode(message))
+			<< message.count;
+
+	// FIXME: Write dir data
+
+	writer.updateMessageSize();
+
+	return writer;
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::FSync const& message) {
+	return encode(writer, message);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Lock const& message) {
+	return encode(writer, message, message.status);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::GetLock const& message) {
+	return encode(writer, message, message.type, message.start, message.length, message.proc_id, message.client_id);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Link const& message) {
+	return encode(writer, message);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::MkDir const& message) {
+	return encode(writer, message, message.qid);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::RenameAt const& message) {
+	return encode(writer, message);
+}
+
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::UnlinkAt const& message) {
+	return encode(writer, message);
+}
+
+
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::StatFS& dest) {
+	return decode(data, dest.fid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::Open& dest) {
+	return decode(data, dest.fid, dest.flags);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::Create& dest) {
+	return decode(data, dest.fid, dest.name, dest.flags, dest.mode, dest.gid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::Symlink& dest) {
+	return decode(data, dest.fid, dest.name, dest.symtgt, dest.gid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::MkNode& dest) {
+	return decode(data, dest.dfid, dest.name, dest.mode, dest.major, dest.minor, dest.gid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::Rename& dest) {
+	return decode(data, dest.fid, dest.dfid, dest.name);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::ReadLink& dest) {
+	return decode(data, dest.fid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::GetAttr& dest) {
+	return decode(data, dest.fid, dest.request_mask);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::SetAttr& dest) {
+	return decode(data, dest.fid,
+				  dest.valid,
+				  dest.mode,
+				  dest.uid,
+				  dest.gid,
+				  dest.size,
+				  dest.atime_sec, dest.atime_nsec,
+				  dest.mtime_sec, dest.mtime_nsec
+				  );
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::XAttrWalk& dest) {
+	return decode(data, dest.fid, dest.newfid, dest.name);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::XAttrCreate& dest) {
+	return decode(data, dest.fid, dest.name, dest.attr_size, dest.flags);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::ReadDir& dest) {
+	return decode(data, dest.fid, dest.offset, dest.count);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::FSync& dest) {
+	return decode(data, dest.fid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::Lock& dest) {
+	return decode(data, dest.fid, dest.type, dest.flags, dest.start, dest.length, dest.proc_id, dest.client_id);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::GetLock& dest) {
+	return decode(data, dest.fid, dest.type, dest.start, dest.length, dest.proc_id, dest.client_id);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::Link& dest) {
+	return decode(data, dest.dfid, dest.fid, dest.name);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::MkDir& dest) {
+	return decode(data, dest.dfid, dest.name, dest.mode, dest.gid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::RenameAt& dest) {
+	return decode(data, dest.olddirfid, dest.oldname, dest.newdirfid, dest.newname);
+}
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Request::UnlinkAt& dest) {
+	return decode(data, dest.dfid, dest.name, dest.flags);
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::LError& dest) {
+	return decode(data, dest.ecode);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::StatFS& dest) {
+	return decode(data,
+				  dest.type,
+				  dest.bsize,
+				  dest.blocks,
+				  dest.bfree,
+				  dest.bavail,
+				  dest.files,
+				  dest.ffree,
+				  dest.fsid,
+				  dest.namelen);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::Open& dest) {
+	return decode(data, dest.qid, dest.iounit);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::Create& dest) {
+	return decode(data, dest.qid, dest.iounit);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::Symlink& dest) {
+	return decode(data, dest.qid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::MkNode& dest) {
+	return decode(data, dest.qid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::Rename&) {
+	return data;
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::ReadLink& dest) {
+	return decode(data, dest.target);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::GetAttr& dest) {
+	return decode(data,
+				  dest.valid,
+				  dest.qid,
+				  dest.mode,
+				  dest.uid,
+				  dest.gid,
+				  dest.nlink,
+				  dest.rdev,
+				  dest.size,
+				  dest.blksize,
+				  dest.blocks,
+				  dest.atime_sec, dest.atime_nsec,
+				  dest.mtime_sec, dest.mtime_nsec,
+				  dest.ctime_sec, dest.ctime_nsec,
+				  dest.btime_sec, dest.btime_nsec,
+				  dest.gen, dest.data_version
+				  );
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::SetAttr&) {
+	return data;
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::XAttrWalk& dest) {
+	return decode(data, dest.size);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::XAttrCreate&) {
+	return data;
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::ReadDir& dest) {
+	return decode(data, dest.count, dest.data);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::FSync&) {
+	return data;
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::Lock& dest) {
+	return decode(data, dest.status);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::GetLock& dest) {
+	return decode(data, dest.type, dest.start, dest.length, dest.proc_id, dest.client_id);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::Link&) {
+	return data;
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::MkDir& dest) {
+	return decode(data, dest.qid);
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::RenameAt& ) {
+	return data;
+}
+
+Result<ByteReader&, Error>
+styxe::operator>> (ByteReader& data, _9P2000L::Response::UnlinkAt&) {
+	return data;
+}
+
 

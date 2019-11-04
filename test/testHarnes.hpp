@@ -18,10 +18,15 @@
 #define STYXE_TESTHARNES_HPP
 
 #include "styxe/errorDomain.hpp"
+#include "styxe/9p2000.hpp"
 
 #include <solace/output_utils.hpp>
 
 #include <gtest/gtest.h>
+
+
+styxe::Qid randomQid(styxe::QidType type = styxe::QidType::FILE) noexcept;
+
 
 struct TestHarnes : public ::testing::Test {
 
@@ -41,6 +46,7 @@ struct TestHarnes : public ::testing::Test {
 	Solace::ByteWriter      _writer{_memBuf};
 
 };
+
 
 
 #endif  // STYXE_TESTHARNES_HPP

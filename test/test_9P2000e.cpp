@@ -23,6 +23,7 @@
 
 #include "testHarnes.hpp"
 
+
 using namespace Solace;
 using namespace styxe;
 

@@ -15,7 +15,6 @@
 */
 
 #include "styxe/styxe.hpp"
-#include "styxe/print.hpp"
 
 #include <solace/output_utils.hpp>
 

@@ -17,7 +17,7 @@
 #include "styxe/9p2000u.hpp"
 
 #include "parse_helper.hpp"
-
+#include "write_helper.hpp"
 
 using namespace Solace;
 using namespace styxe;
@@ -28,14 +28,7 @@ const StringLiteral _9P2000U::kProtocolVersion{"9P2000.u"};
 
 RequestWriter&
 styxe::operator<< (RequestWriter& writer, _9P2000U::Request::Auth const& message) {
-	writer.messageType(messageCode(message))
-			<< message.afid
-			<< message.uname
-			<< message.aname
-			<< message.n_uname;
-	writer.updateMessageSize();
-
-	return writer;
+	return encode(writer, message, message.afid, message.uname, message.aname, message.n_uname);
 }
 
 

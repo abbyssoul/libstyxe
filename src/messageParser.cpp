@@ -163,7 +163,9 @@ ResponseParseTable getResponseParserTable() {
 }  // namespace styxe::_9P2000U
 
 
-
+//----------------------------------------------------------------------------------------------------------------------
+// 9p2000.e methods
+//----------------------------------------------------------------------------------------------------------------------
 namespace styxe::_9P2000E {
 
 RequestParseTable getRequestParserTable() {
@@ -188,7 +190,71 @@ ResponseParseTable getResponseParserTable() {
 
 }  // namespace styxe::_9P2000E
 
+//----------------------------------------------------------------------------------------------------------------------
+// 9p2000.L methods
+//----------------------------------------------------------------------------------------------------------------------
+namespace styxe::_9P2000L {
 
+RequestParseTable getRequestParserTable() {
+	auto table = _9P2000U::getRequestParserTable();
+
+table[asByte(MessageType::Tstatfs)] = parseRequest<Request::StatFS>;
+table[asByte(MessageType::Tlopen)] = parseRequest<Request::Open>;
+table[asByte(MessageType::Tlcreate)] = parseRequest<Request::Create>;
+table[asByte(MessageType::Tsymlink)] = parseRequest<Request::Symlink>;
+table[asByte(MessageType::Tmknod)] = parseRequest<Request::MkNode>;
+table[asByte(MessageType::Trename)] = parseRequest<Request::Rename>;
+table[asByte(MessageType::Treadlink)] = parseRequest<Request::ReadLink>;
+table[asByte(MessageType::Tgetattr)] = parseRequest<Request::GetAttr>;
+table[asByte(MessageType::Tsetattr)] = parseRequest<Request::SetAttr>;
+table[asByte(MessageType::Txattrwalk)] = parseRequest<Request::XAttrWalk>;
+table[asByte(MessageType::Txattrcreate)] = parseRequest<Request::XAttrCreate>;
+table[asByte(MessageType::Treaddir)] = parseRequest<Request::ReadDir>;
+table[asByte(MessageType::Tfsync)] = parseRequest<Request::FSync>;
+table[asByte(MessageType::Tlock)] = parseRequest<Request::Lock>;
+table[asByte(MessageType::Tgetlock)] = parseRequest<Request::GetLock>;
+table[asByte(MessageType::Tlink)] = parseRequest<Request::Link>;
+table[asByte(MessageType::Tmkdir)] = parseRequest<Request::MkDir>;
+table[asByte(MessageType::Trenameat)] = parseRequest<Request::RenameAt>;
+table[asByte(MessageType::Tunlinkat)] = parseRequest<Request::UnlinkAt>;
+
+
+	return table;
+}
+
+ResponseParseTable getResponseParserTable() {
+	auto table = _9P2000U::getResponseParserTable();
+
+	table[asByte(MessageType::Rlerror)] = parseResponse<Response::LError>;
+	table[asByte(MessageType::Rstatfs)] = parseResponse<Response::StatFS>;
+	table[asByte(MessageType::Rlopen)] = parseResponse<Response::Open>;
+	table[asByte(MessageType::Rlcreate)] = parseResponse<Response::Create>;
+	table[asByte(MessageType::Rsymlink)] = parseResponse<Response::Symlink>;
+	table[asByte(MessageType::Rmknod)] = parseResponse<Response::MkNode>;
+	table[asByte(MessageType::Rrename)] = parseResponse<Response::Rename>;
+	table[asByte(MessageType::Rreadlink)] = parseResponse<Response::ReadLink>;
+	table[asByte(MessageType::Rgetattr)] = parseResponse<Response::GetAttr>;
+	table[asByte(MessageType::Rsetattr)] = parseResponse<Response::SetAttr>;
+	table[asByte(MessageType::Rxattrwalk)] = parseResponse<Response::XAttrWalk>;
+	table[asByte(MessageType::Rxattrcreate)] = parseResponse<Response::XAttrCreate>;
+	table[asByte(MessageType::Rreaddir)] = parseResponse<Response::ReadDir>;
+	table[asByte(MessageType::Rfsync)] = parseResponse<Response::FSync>;
+	table[asByte(MessageType::Rlock)] = parseResponse<Response::Lock>;
+	table[asByte(MessageType::Rgetlock)] = parseResponse<Response::GetLock>;
+	table[asByte(MessageType::Rlink)] = parseResponse<Response::Link>;
+	table[asByte(MessageType::Rmkdir)] = parseResponse<Response::MkDir>;
+	table[asByte(MessageType::Rrenameat)] = parseResponse<Response::RenameAt>;
+	table[asByte(MessageType::Runlinkat)] = parseResponse<Response::UnlinkAt>;
+
+	return table;
+}
+
+}  // namespace styxe::_9P2000L
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// Parser implementation
+//----------------------------------------------------------------------------------------------------------------------
 
 Solace::Result<void, Error>
 validateHeader(MessageHeader header, ByteReader::size_type dataAvailible, size_type maxMessageSize) {
@@ -294,7 +360,6 @@ ParserBase::messageName(byte messageType) const {
 
 Result<ResponseParser, Error>
 styxe::createResponseParser(Solace::StringView version, size_type maxPayloadSize) noexcept {
-
 	if (version == kProtocolVersion) {
 		return Result<ResponseParser, Error>{types::okTag, in_place,
 					maxPayloadSize,
@@ -310,6 +375,11 @@ styxe::createResponseParser(Solace::StringView version, size_type maxPayloadSize
 					maxPayloadSize,
 					_9P2000E::messageTypeToString,
 					_9P2000E::getResponseParserTable() };
+	} else if (version == _9P2000L::kProtocolVersion) {
+		return Result<ResponseParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000L::messageTypeToString,
+					_9P2000L::getResponseParserTable() };
 	}
 
 	return Result<ResponseParser, Error>{types::errTag, getCannedError(CannedError::UnsupportedProtocolVersion) };
@@ -332,6 +402,11 @@ styxe::createRequestParser(StringView version, size_type maxPayloadSize) noexcep
 					maxPayloadSize,
 					_9P2000E::messageTypeToString,
 					_9P2000E::getRequestParserTable()};
+	} else if (version == _9P2000L::kProtocolVersion) {
+		return Result<RequestParser, Error>{types::okTag, in_place,
+					maxPayloadSize,
+					_9P2000L::messageTypeToString,
+					_9P2000L::getRequestParserTable()};
 	}
 
 	return Result<RequestParser, Error>{types::errTag, getCannedError(CannedError::UnsupportedProtocolVersion) };

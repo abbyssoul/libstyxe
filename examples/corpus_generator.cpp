@@ -17,6 +17,7 @@
 #include "styxe/9p2000.hpp"
 #include "styxe/9p2000u.hpp"
 #include "styxe/9p2000e.hpp"
+#include "styxe/9p2000L.hpp"
 #include "styxe/messageWriter.hpp"
 
 #include <solace/array.hpp>
@@ -244,8 +245,8 @@ int main(int argc, char const **argv) {
 	MessageNameMapper mapper = _9P2000U::messageTypeToString;
 	if (_9P2000E::kProtocolVersion == protocolVersion) {
 		mapper = _9P2000E::messageTypeToString;
-//	} else if (_9P2000L::kProtocolVersion == protocolVersion) {
-//		mapper = _9P2000L::messageTypeToString;
+	} else if (_9P2000L::kProtocolVersion == protocolVersion) {
+		mapper = _9P2000L::messageTypeToString;
 	}
 
 

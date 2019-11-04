@@ -87,5 +87,30 @@ constexpr MessageHeader makeHeaderWithPayload(Solace::byte type, Tag tag, size_t
 }
 
 
+
+/**
+ * The qid represents the server's unique identification for the file being accessed:
+ * two files on the same server hierarchy are the same if and only if their qids are the same.
+ */
+struct Qid {
+	Solace::uint64  path;		  //!< Unique identifier of a file used by the server.
+	Solace::uint32	version;	  //!< Version of the file if FS supports file versioning.
+	Solace::byte	type;		  //!< Type of the file this qid referse to. @see DirMode for details.
+};
+
+
+inline
+bool operator== (Qid const& lhs, Qid const& rhs) noexcept {
+	return (lhs.path == rhs.path &&
+			lhs.version == rhs.version &&
+			lhs.type == rhs.type);
+}
+
+inline
+bool operator!= (Qid const& lhs, Qid const& rhs) noexcept {
+		return !(lhs == rhs);
+}
+
+
 }  // end of namespace styxe
 #endif  // STYXE_9P_HPP
