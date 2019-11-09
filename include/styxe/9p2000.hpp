@@ -874,34 +874,61 @@ inline constexpr Solace::byte asByte(MessageType type) noexcept {
 	return static_cast<Solace::byte>(type);
 }
 
-inline auto messageCode(Request::Version const& ) noexcept { return asByte(MessageType::TVersion); }
-inline auto messageCode(Request::Auth const& ) noexcept { return asByte(MessageType::TAuth); }
-inline auto messageCode(Request::Flush const& ) noexcept { return asByte(MessageType::TFlush); }
-inline auto messageCode(Request::Attach const& ) noexcept { return asByte(MessageType::TAttach); }
-inline auto messageCode(Request::Walk const& ) noexcept { return asByte(MessageType::TWalk); }
-inline auto messageCode(Request::Open const& ) noexcept { return asByte(MessageType::TOpen); }
-inline auto messageCode(Request::Create const& ) noexcept { return asByte(MessageType::TCreate); }
-inline auto messageCode(Request::Read const& ) noexcept { return asByte(MessageType::TRead); }
-inline auto messageCode(Request::Write const& ) noexcept { return asByte(MessageType::TWrite); }
-inline auto messageCode(Request::Clunk const& ) noexcept { return asByte(MessageType::TClunk); }
-inline auto messageCode(Request::Remove const& ) noexcept { return asByte(MessageType::TRemove); }
-inline auto messageCode(Request::Stat const& ) noexcept { return asByte(MessageType::TStat); }
-inline auto messageCode(Request::WStat const& ) noexcept { return asByte(MessageType::TWStat); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Version>() noexcept { return asByte(MessageType::TVersion); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Auth>() noexcept { return asByte(MessageType::TAuth); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Flush>() noexcept { return asByte(MessageType::TFlush); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Attach>() noexcept { return asByte(MessageType::TAttach); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Walk>() noexcept { return asByte(MessageType::TWalk); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Open>() noexcept { return asByte(MessageType::TOpen); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Create>() noexcept { return asByte(MessageType::TCreate); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Read>() noexcept { return asByte(MessageType::TRead); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Write>() noexcept { return asByte(MessageType::TWrite); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Clunk>() noexcept { return asByte(MessageType::TClunk); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Remove>() noexcept { return asByte(MessageType::TRemove); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::Stat>() noexcept { return asByte(MessageType::TStat); }
+template <>
+constexpr Solace::byte messageCodeOf<Request::WStat>() noexcept { return asByte(MessageType::TWStat); }
 
-inline auto messageCode(Response::Version const& ) noexcept { return asByte(MessageType::RVersion); }
-inline auto messageCode(Response::Auth const& ) noexcept { return asByte(MessageType::RAuth); }
-inline auto messageCode(Response::Attach const& ) noexcept { return asByte(MessageType::RAttach); }
-inline auto messageCode(Response::Error const& ) noexcept { return asByte(MessageType::RError); }
-inline auto messageCode(Response::Flush const& ) noexcept { return asByte(MessageType::RFlush); }
-inline auto messageCode(Response::Walk const& ) noexcept { return asByte(MessageType::RWalk); }
-inline auto messageCode(Response::Open const& ) noexcept { return asByte(MessageType::ROpen); }
-inline auto messageCode(Response::Create const& ) noexcept { return asByte(MessageType::RCreate); }
-inline auto messageCode(Response::Read const& ) noexcept { return asByte(MessageType::RRead); }
-inline auto messageCode(Response::Write const& ) noexcept { return asByte(MessageType::RWrite); }
-inline auto messageCode(Response::Clunk const& ) noexcept { return asByte(MessageType::RClunk); }
-inline auto messageCode(Response::Remove const& ) noexcept { return asByte(MessageType::RRemove); }
-inline auto messageCode(Response::Stat const& ) noexcept { return asByte(MessageType::RStat); }
-inline auto messageCode(Response::WStat const& ) noexcept { return asByte(MessageType::RWStat); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Version>() noexcept { return asByte(MessageType::RVersion); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Auth>() noexcept { return asByte(MessageType::RAuth); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Attach>() noexcept { return asByte(MessageType::RAttach); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Error>() noexcept { return asByte(MessageType::RError); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Flush>() noexcept { return asByte(MessageType::RFlush); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Walk>() noexcept { return asByte(MessageType::RWalk); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Open>() noexcept { return asByte(MessageType::ROpen); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Create>() noexcept { return asByte(MessageType::RCreate); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Read>() noexcept { return asByte(MessageType::RRead); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Write>() noexcept { return asByte(MessageType::RWrite); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Clunk>() noexcept { return asByte(MessageType::RClunk); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Remove>() noexcept { return asByte(MessageType::RRemove); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::Stat>() noexcept { return asByte(MessageType::RStat); }
+template <>
+constexpr Solace::byte messageCodeOf<Response::WStat>() noexcept { return asByte(MessageType::RWStat); }
 
 
 /**

@@ -17,6 +17,7 @@
 #include "styxe/9p2000e.hpp"
 
 #include "parse_helper.hpp"
+#include "write_helper.hpp"
 
 
 using namespace Solace;
@@ -70,68 +71,44 @@ styxe::operator>> (ByteReader& data, _9P2000E::Response::ShortWrite& dest) {
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::Session const& response) {
-	writer.messageType(messageCode(response));
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::Session const& message) {
+	return encode(writer, message);
 }
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortRead const& response) {
-	writer.messageType(messageCode(response))
-			<< response.data;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortRead const& message) {
+	return encode(writer, message, message.data);
 }
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortWrite const& response) {
-	writer.messageType(messageCode(response))
-			<< response.count;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (ResponseWriter& writer, _9P2000E::Response::ShortWrite const& message) {
+	return encode(writer, message, message.count);
 }
 
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Session const& response) {
-	writer.messageType(messageCode(response))
-			<< response.key[0]
-			<< response.key[1]
-			<< response.key[2]
-			<< response.key[3]
-			<< response.key[4]
-			<< response.key[5]
-			<< response.key[6]
-			<< response.key[7];
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Session const& message) {
+	return encode(writer,
+				  message,
+				  message.key[0],
+				  message.key[1],
+				  message.key[2],
+				  message.key[3],
+				  message.key[4],
+				  message.key[5],
+				  message.key[6],
+				  message.key[7]);
 }
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortRead const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.path;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortRead const& message) {
+	return encode(writer, message, message.fid, message.path);
 }
 
 RequestWriter&
-styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& request) {
-	writer.messageType(messageCode(request))
-			<< request.fid
-			<< request.path
-			<< request.data;
-	writer.updateMessageSize();
-
-	return writer;
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& message) {
+	return encode(writer, message, message.fid, message.path, message.data);
 }
 
 

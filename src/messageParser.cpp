@@ -313,7 +313,7 @@ Result<Request::Version, Error>
 UnversionedParser::parseVersionRequest(MessageHeader header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
-		return isValid.getError();
+		return isValid.moveError();
 
 	if (header.type != asByte(MessageType::TVersion))
 		return Result<Request::Version, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType) };
@@ -332,7 +332,7 @@ Result<ResponseMessage, Error>
 ResponseParser::parseResponse(MessageHeader const& header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
-		return isValid.getError();
+		return isValid.moveError();
 
 	auto& decoder = _versionedResponseParser[header.type];
 	return decoder(data);
@@ -343,7 +343,7 @@ Result<RequestMessage, Error>
 RequestParser::parseRequest(MessageHeader const& header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
-		return isValid.getError();
+		return isValid.moveError();
 
 	auto& decoder = _versionedRequestParser[header.type];
 	return decoder(data);

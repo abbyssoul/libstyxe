@@ -46,7 +46,7 @@ struct P92000L_Responses : public TestHarnes {
 		}
 		auto& parser = maybeParser.unwrap();
 
-		auto const expectType = messageCode(ResponseType{});
+		auto const expectType = messageCodeOf<ResponseType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader&& header) {
@@ -94,7 +94,7 @@ struct P92000L_Requests : public TestHarnes {
 		}
 		auto& parser = maybeParser.unwrap();
 
-		auto const expectType = messageCode(RequestType{});
+		auto const expectType = messageCodeOf<RequestType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader&& header) {
@@ -613,15 +613,15 @@ TEST_F(P92000L_Responses, xAttrCreate) {
 }
 
 
-//TEST_F(P92000L_Responses, readDir) {
-//	ResponseWriter writer{_writer, 3};
-//	writer << _9P2000L::Response::ReadDir{2};
+TEST_F(P92000L_Responses, readDir) {
+	ResponseWriter writer{_writer, 3};
+	writer << _9P2000L::Response::ReadDir{2};
 
-//	getResponseOrFail<_9P2000L::Response::ReadDir>()
-//			.then([] (_9P2000L::Response::ReadDir const& response) {
-//				ASSERT_EQ(2, response.count);
-//			});
-//}
+	getResponseOrFail<_9P2000L::Response::ReadDir>()
+			.then([] (_9P2000L::Response::ReadDir const& response) {
+				ASSERT_EQ(2, response.count);
+			});
+}
 
 
 TEST_F(P92000L_Responses, fSync) {

@@ -49,7 +49,7 @@ protected:
 		}
 
 		auto& proc = *maybeParser;
-		auto const expectType = messageCode(RequestType{});
+		auto const expectType = messageCodeOf<RequestType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader header) {
@@ -91,7 +91,7 @@ protected:
 
 		auto& proc = *maybeParser;
 
-		auto const expectType = messageCode(ResponseType{});
+		auto const expectType = messageCodeOf<ResponseType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader header) {

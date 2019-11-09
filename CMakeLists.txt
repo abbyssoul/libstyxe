@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.12)
 project(styxe)
 set(PROJECT_DESCRIPTION "9P2000 protocol implementation in modern C++")
 

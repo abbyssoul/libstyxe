@@ -84,15 +84,6 @@ struct DirEntry {
 };
 
 
-//inline
-//size_type protocolSize(DirEntry const& value) noexcept {
-//	return protocolSize(value.qid)
-//			+ protocolSize(value.offset)
-//			+ protocolSize(value.type)
-//			+ protocolSize(value.name);
-//}
-
-
 /// 9P2000.L requests
 struct Request {
 
@@ -321,7 +312,7 @@ struct Response {
 		Solace::uint64 btime_sec;		//!< reserved for future use
 		Solace::uint64 btime_nsec;		//!< reserved for future use
 		Solace::uint64 gen;				//!< reserved for future use
-		Solace::uint64 data_version;	//!< reserved for future use
+		Solace::uint64 data_version;    //!< reserved for future use
 	};
 
 	/// Set file attributes response
@@ -338,7 +329,7 @@ struct Response {
 	/// Read a directory response
 	struct ReadDir {
 		Solace::uint32 count;
-		void* data; // FIXME: Var-sized data
+		Solace::uint32 data;  // FIXME: Var-sized data
 	};
 
 	/// Flush any cached data to disk
@@ -513,51 +504,130 @@ operator>> (Solace::ByteReader& data, _9P2000L::Response::UnlinkAt& dest);
 
 
 
-inline constexpr Solace::byte asByte(_9P2000L::MessageType type) noexcept {
+inline constexpr auto asByte(_9P2000L::MessageType type) noexcept {
 	return static_cast<Solace::byte>(type);
 }
 
-inline auto messageCode(_9P2000L::Request::StatFS const& ) noexcept { return asByte(_9P2000L::MessageType::Tstatfs); }
-inline auto messageCode(_9P2000L::Request::Open const& ) noexcept { return asByte(_9P2000L::MessageType::Tlopen); }
-inline auto messageCode(_9P2000L::Request::Create const& ) noexcept { return asByte(_9P2000L::MessageType::Tlcreate); }
-inline auto messageCode(_9P2000L::Request::Symlink const& ) noexcept { return asByte(_9P2000L::MessageType::Tsymlink); }
-inline auto messageCode(_9P2000L::Request::MkNode const& ) noexcept { return asByte(_9P2000L::MessageType::Tmknod); }
-inline auto messageCode(_9P2000L::Request::Rename const& ) noexcept { return asByte(_9P2000L::MessageType::Trename); }
-inline auto messageCode(_9P2000L::Request::ReadLink const& ) noexcept { return asByte(_9P2000L::MessageType::Treadlink); }
-inline auto messageCode(_9P2000L::Request::GetAttr const& ) noexcept { return asByte(_9P2000L::MessageType::Tgetattr); }
-inline auto messageCode(_9P2000L::Request::SetAttr const& ) noexcept { return asByte(_9P2000L::MessageType::Tsetattr); }
-inline auto messageCode(_9P2000L::Request::XAttrWalk const& ) noexcept { return asByte(_9P2000L::MessageType::Txattrwalk); }
-inline auto messageCode(_9P2000L::Request::XAttrCreate const& ) noexcept { return asByte(_9P2000L::MessageType::Txattrcreate); }
-inline auto messageCode(_9P2000L::Request::ReadDir const& ) noexcept { return asByte(_9P2000L::MessageType::Treaddir); }
-inline auto messageCode(_9P2000L::Request::FSync const& ) noexcept { return asByte(_9P2000L::MessageType::Tfsync ); }
-inline auto messageCode(_9P2000L::Request::Lock const& ) noexcept { return asByte(_9P2000L::MessageType::Tlock); }
-inline auto messageCode(_9P2000L::Request::GetLock const& ) noexcept { return asByte(_9P2000L::MessageType::Tgetlock); }
-inline auto messageCode(_9P2000L::Request::Link const& ) noexcept { return asByte(_9P2000L::MessageType::Tlink); }
-inline auto messageCode(_9P2000L::Request::MkDir const& ) noexcept { return asByte(_9P2000L::MessageType::Tmkdir); }
-inline auto messageCode(_9P2000L::Request::RenameAt const& ) noexcept { return asByte(_9P2000L::MessageType::Trenameat); }
-inline auto messageCode(_9P2000L::Request::UnlinkAt const& ) noexcept { return asByte(_9P2000L::MessageType::Tunlinkat); }
+
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::StatFS>() noexcept { return asByte(_9P2000L::MessageType::Tstatfs); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::Open>() noexcept { return asByte(_9P2000L::MessageType::Tlopen); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::Create>() noexcept { return asByte(_9P2000L::MessageType::Tlcreate); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::Symlink>() noexcept { return asByte(_9P2000L::MessageType::Tsymlink); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::MkNode>() noexcept { return asByte(_9P2000L::MessageType::Tmknod); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::Rename>() noexcept { return asByte(_9P2000L::MessageType::Trename); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::ReadLink>() noexcept { return asByte(_9P2000L::MessageType::Treadlink); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::GetAttr>() noexcept { return asByte(_9P2000L::MessageType::Tgetattr); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::SetAttr>() noexcept { return asByte(_9P2000L::MessageType::Tsetattr); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::XAttrWalk>() noexcept { return asByte(_9P2000L::MessageType::Txattrwalk); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::XAttrCreate>() noexcept { return asByte(_9P2000L::MessageType::Txattrcreate); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::ReadDir>() noexcept { return asByte(_9P2000L::MessageType::Treaddir); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::FSync>() noexcept { return asByte(_9P2000L::MessageType::Tfsync ); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::Lock>() noexcept { return asByte(_9P2000L::MessageType::Tlock); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::GetLock>() noexcept { return asByte(_9P2000L::MessageType::Tgetlock); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::Link>() noexcept { return asByte(_9P2000L::MessageType::Tlink); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::MkDir>() noexcept { return asByte(_9P2000L::MessageType::Tmkdir); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::RenameAt>() noexcept { return asByte(_9P2000L::MessageType::Trenameat); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Request::UnlinkAt>() noexcept { return asByte(_9P2000L::MessageType::Tunlinkat); }
 
 
-inline auto messageCode(_9P2000L::Response::LError const& ) noexcept { return asByte(_9P2000L::MessageType::Rlerror); }
-inline auto messageCode(_9P2000L::Response::StatFS const& ) noexcept { return asByte(_9P2000L::MessageType::Rstatfs); }
-inline auto messageCode(_9P2000L::Response::Open const& ) noexcept { return asByte(_9P2000L::MessageType::Rlopen); }
-inline auto messageCode(_9P2000L::Response::Create const& ) noexcept { return asByte(_9P2000L::MessageType::Rlcreate); }
-inline auto messageCode(_9P2000L::Response::Symlink const& ) noexcept { return asByte(_9P2000L::MessageType::Rsymlink); }
-inline auto messageCode(_9P2000L::Response::MkNode const& ) noexcept { return asByte(_9P2000L::MessageType::Rmknod); }
-inline auto messageCode(_9P2000L::Response::Rename const& ) noexcept { return asByte(_9P2000L::MessageType::Rrename); }
-inline auto messageCode(_9P2000L::Response::ReadLink const& ) noexcept { return asByte(_9P2000L::MessageType::Rreadlink); }
-inline auto messageCode(_9P2000L::Response::GetAttr const& ) noexcept { return asByte(_9P2000L::MessageType::Rgetattr); }
-inline auto messageCode(_9P2000L::Response::SetAttr const& ) noexcept { return asByte(_9P2000L::MessageType::Rsetattr); }
-inline auto messageCode(_9P2000L::Response::XAttrWalk const& ) noexcept { return asByte(_9P2000L::MessageType::Rxattrwalk); }
-inline auto messageCode(_9P2000L::Response::XAttrCreate const& ) noexcept { return asByte(_9P2000L::MessageType::Rxattrcreate); }
-inline auto messageCode(_9P2000L::Response::ReadDir const& ) noexcept { return asByte(_9P2000L::MessageType::Rreaddir); }
-inline auto messageCode(_9P2000L::Response::FSync const& ) noexcept { return asByte(_9P2000L::MessageType::Rfsync ); }
-inline auto messageCode(_9P2000L::Response::Lock const& ) noexcept { return asByte(_9P2000L::MessageType::Rlock); }
-inline auto messageCode(_9P2000L::Response::GetLock const& ) noexcept { return asByte(_9P2000L::MessageType::Rgetlock); }
-inline auto messageCode(_9P2000L::Response::Link const& ) noexcept { return asByte(_9P2000L::MessageType::Rlink); }
-inline auto messageCode(_9P2000L::Response::MkDir const& ) noexcept { return asByte(_9P2000L::MessageType::Rmkdir); }
-inline auto messageCode(_9P2000L::Response::RenameAt const& ) noexcept { return asByte(_9P2000L::MessageType::Rrenameat); }
-inline auto messageCode(_9P2000L::Response::UnlinkAt const& ) noexcept { return asByte(_9P2000L::MessageType::Runlinkat); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::LError>() noexcept { return asByte(_9P2000L::MessageType::Rlerror); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::StatFS>() noexcept { return asByte(_9P2000L::MessageType::Rstatfs); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::Open>() noexcept { return asByte(_9P2000L::MessageType::Rlopen); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::Create>() noexcept { return asByte(_9P2000L::MessageType::Rlcreate); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::Symlink>() noexcept { return asByte(_9P2000L::MessageType::Rsymlink); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::MkNode>() noexcept { return asByte(_9P2000L::MessageType::Rmknod); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::Rename>() noexcept { return asByte(_9P2000L::MessageType::Rrename); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::ReadLink>() noexcept { return asByte(_9P2000L::MessageType::Rreadlink); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::GetAttr>() noexcept { return asByte(_9P2000L::MessageType::Rgetattr); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::SetAttr>() noexcept { return asByte(_9P2000L::MessageType::Rsetattr); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::XAttrWalk>() noexcept { return asByte(_9P2000L::MessageType::Rxattrwalk); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::XAttrCreate>() noexcept { return asByte(_9P2000L::MessageType::Rxattrcreate); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::ReadDir>() noexcept { return asByte(_9P2000L::MessageType::Rreaddir); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::FSync>() noexcept { return asByte(_9P2000L::MessageType::Rfsync ); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::Lock>() noexcept { return asByte(_9P2000L::MessageType::Rlock); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::GetLock>() noexcept { return asByte(_9P2000L::MessageType::Rgetlock); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::Link>() noexcept { return asByte(_9P2000L::MessageType::Rlink); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::MkDir>() noexcept { return asByte(_9P2000L::MessageType::Rmkdir); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::RenameAt>() noexcept { return asByte(_9P2000L::MessageType::Rrenameat); }
+template <>
+constexpr Solace::byte
+messageCodeOf<_9P2000L::Response::UnlinkAt>() noexcept { return asByte(_9P2000L::MessageType::Runlinkat); }
 
 
 }  // end of namespace styxe

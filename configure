@@ -10,6 +10,8 @@ debugsym=true
 sanitizer=true
 coverage=false
 profile=false
+pkgconfig=true
+generator=Ninja
 
 # Figure out project name:
 project_name=$(basename $DIR)
@@ -28,6 +30,9 @@ for arg in "$@"; do
 
     --conan-profile=*)
         conan_profile=`echo $arg | sed 's/--conan-profile=//'`
+        ;;
+    --generator=*)
+        generator=`echo $arg | sed 's/--generator=//'`
         ;;
 
     --enable-debug )
@@ -58,10 +63,18 @@ for arg in "$@"; do
         profile=true
         ;;
 
+    --enable-pkgconfig )
+        pkgconfig=true
+        ;;
+    --disable-pkgconfig )
+        pkgconfig=true
+        ;;
+
     --help)
         echo 'usage: ./configure [options]'
         echo 'options:'
         echo '  --prefix=<path>: installation prefix'
+        echo '  --generator=<generator>: CMake generator'
         echo '  --conan-profile=<profile>: Use custom conan profil'
         echo '  --enable-debug include debug symbols'
         echo '  --disable-debug do not include debug symbols'
@@ -71,6 +84,8 @@ for arg in "$@"; do
         echo '  --disable-coverage To disable compiler coverage option'
         echo '  --enable-profile To enable compiler profiler info generation'
         echo '  --disable-profile To disable compiler profiler info generation'
+        echo '  --enable-pkgconfig To include generated .PC library descriptor when installing'
+        echo '  --disable-pkgconfig To exclude generated .PC library descriptor when installing'
         echo ''
         echo 'all invalid options are silently ignored'
         exit 0
@@ -87,6 +102,8 @@ echo "Generating Makefile for ${project_name}..."
 echo "# Generated Makefile for ${project_name}: $(date)" > $TMP_TARGET_FILE_NAME
 echo "PREFIX ?= ${prefix}" >> $TMP_TARGET_FILE_NAME
 echo "PROJECT ?= ${project_name}" >> $TMP_TARGET_FILE_NAME
+echo "PROJECT ?= ${project_name}" >> $TMP_TARGET_FILE_NAME
+echo "GENERATOR ?= ${generator}" >> $TMP_TARGET_FILE_NAME
 
 
 if $debugsym; then
@@ -105,9 +122,14 @@ if $profile; then
     echo 'profile = -pg' >> $TMP_TARGET_FILE_NAME
 fi
 
+if $pkgconfig; then
+  echo 'PKG_CONFIG = ON' >> $TMP_TARGET_FILE_NAME
+fi
+
 if [ ! -z "$conan_profile" ] ; then
     echo "CONAN_PROFILE ?= ${conan_profile}" >> $TMP_TARGET_FILE_NAME
 fi
+
 
 if [ ! -z "${CXX}" ] || [ ! -z "${CC}" ] ; then
     echo "Using custom copiler: CXX=$CXX CC=$CC"

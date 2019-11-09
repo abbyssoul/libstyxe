@@ -97,23 +97,31 @@ inline constexpr Solace::byte asByte(_9P2000E::MessageType type) noexcept {
 	return static_cast<Solace::byte>(type);
 }
 
-inline
-auto messageCode(_9P2000E::Request::Session const&) noexcept { return asByte(_9P2000E::MessageType::TSession); }
 
-inline
-auto messageCode(_9P2000E::Request::ShortRead const&) noexcept { return asByte(_9P2000E::MessageType::TShortRead); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000E::Request::Session>() noexcept
+{ return asByte(_9P2000E::MessageType::TSession); }
 
-inline
-auto messageCode(_9P2000E::Request::ShortWrite const&) noexcept { return asByte(_9P2000E::MessageType::TShortWrite); }
 
-inline
-auto messageCode(_9P2000E::Response::Session const&) noexcept { return asByte(_9P2000E::MessageType::RSession); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000E::Request::ShortRead>() noexcept
+{ return asByte(_9P2000E::MessageType::TShortRead); }
 
-inline
-auto messageCode(_9P2000E::Response::ShortRead const&) noexcept { return asByte(_9P2000E::MessageType::RShortRead); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000E::Request::ShortWrite>() noexcept
+{ return asByte(_9P2000E::MessageType::TShortWrite); }
 
-inline
-auto messageCode(_9P2000E::Response::ShortWrite const&) noexcept { return asByte(_9P2000E::MessageType::RShortWrite); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000E::Response::Session>() noexcept
+{ return asByte(_9P2000E::MessageType::RSession); }
+
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000E::Response::ShortRead>() noexcept
+{ return asByte(_9P2000E::MessageType::RShortRead); }
+
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000E::Response::ShortWrite>() noexcept
+{ return asByte(_9P2000E::MessageType::RShortWrite); }
 
 
 Solace::Result<Solace::ByteReader&, Error>

@@ -201,8 +201,19 @@ Solace::Result<Solace::ByteReader&, Error>
 operator>> (Solace::ByteReader& data, _9P2000U::Response::Stat& dest);
 
 
-inline auto messageCode(_9P2000U::Request::WStat const&) noexcept { return asByte(MessageType::TWStat); }
-inline auto messageCode(_9P2000U::Response::Stat const&) noexcept { return asByte(MessageType::RStat); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000U::Request::Auth>() noexcept { return asByte(MessageType::TAuth); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000U::Request::Attach>() noexcept { return asByte(MessageType::TAttach); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000U::Request::Create>() noexcept { return asByte(MessageType::TCreate); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000U::Request::WStat>() noexcept { return asByte(MessageType::TWStat); }
+
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000U::Response::Stat>() noexcept { return asByte(MessageType::RStat); }
+template <>
+constexpr Solace::byte messageCodeOf<_9P2000U::Response::Error>() noexcept { return asByte(MessageType::RError); }
 
 
 }  // end of namespace styxe

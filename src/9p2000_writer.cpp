@@ -41,10 +41,8 @@ styxe::operator<< (ResponseWriter& writer, Response::Error const& message) {
 }
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Flush const& response) {
-	writer.messageType(messageCode(response));
-	writer.updateMessageSize();
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Flush const& message) {
+	return encode(writer, message);
 }
 
 ResponseWriter&
@@ -54,7 +52,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Attach const& message) {
 
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Walk const& response) {
-	auto& e = writer.messageType(messageCode(response));
+	auto& e = writer.messageType(messageCodeOf<std::decay_t<decltype(response)>>());
 	e << response.nqids;
 
 	for (size_t i = 0; i < response.nqids; ++i) {
@@ -90,18 +88,14 @@ styxe::operator<< (ResponseWriter& writer, Response::Write const& message) {
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Clunk const& response) {
-	writer.messageType(messageCode(response));
-	writer.updateMessageSize();
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Clunk const& message) {
+	return encode(writer, message);
 }
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::Remove const& response) {
-	writer.messageType(messageCode(response));
-	writer.updateMessageSize();
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::Remove const& message) {
+	return encode(writer, message);
 }
 
 
@@ -112,10 +106,8 @@ styxe::operator<< (ResponseWriter& writer, Response::Stat const& message) {
 
 
 ResponseWriter&
-styxe::operator<< (ResponseWriter& writer, Response::WStat const& response) {
-	writer.messageType(messageCode(response));
-	writer.updateMessageSize();
-	return writer;
+styxe::operator<< (ResponseWriter& writer, Response::WStat const& message) {
+	return encode(writer, message);
 }
 
 

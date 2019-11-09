@@ -75,7 +75,7 @@ struct P92000u_Responses : public TestHarnes {
 		}
 		auto& parser = maybeParser.unwrap();
 
-		auto const expectType = messageCode(ResponseType{});
+		auto const expectType = messageCodeOf<ResponseType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader&& header) {
@@ -123,7 +123,7 @@ struct P92000u_Requests : public TestHarnes {
 		}
 		auto& parser = maybeParser.unwrap();
 
-		auto const expectType = messageCode(RequestType{});
+		auto const expectType = messageCodeOf<RequestType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader&& header) {

@@ -111,6 +111,12 @@ bool operator!= (Qid const& lhs, Qid const& rhs) noexcept {
 		return !(lhs == rhs);
 }
 
+/**
+ * Helper function to convert message type to byte-code.
+ */
+template <typename T>
+constexpr Solace::byte messageCodeOf() noexcept = delete;
+
 
 }  // end of namespace styxe
 #endif  // STYXE_9P_HPP

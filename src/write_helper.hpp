@@ -24,8 +24,8 @@ namespace styxe {
 
 template<typename MsgType, typename...Args>
 RequestWriter&
-encode(RequestWriter& writer, MsgType const& m, Args&& ...args) {
-	(writer.messageType(messageCode(m))
+encode(RequestWriter& writer, MsgType const&, Args&& ...args) {
+	(writer.messageType(messageCodeOf<MsgType>())
 			<< ... << args);
 	writer.updateMessageSize();
 
@@ -35,8 +35,8 @@ encode(RequestWriter& writer, MsgType const& m, Args&& ...args) {
 
 template<typename MsgType, typename...Args>
 ResponseWriter&
-encode(ResponseWriter& writer, MsgType const& m, Args&& ...args) {
-	(writer.messageType(messageCode(m))
+encode(ResponseWriter& writer, MsgType const&, Args&& ...args) {
+	(writer.messageType(messageCodeOf<MsgType>())
 			<< ... << args);
 	writer.updateMessageSize();
 

@@ -45,7 +45,7 @@ struct P92000e_Responses : public TestHarnes {
 		}
 		auto& parser = maybeParser.unwrap();
 
-		auto const expectType = messageCode(ResponseType{});
+		auto const expectType = messageCodeOf<ResponseType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
                 .then([expectType](MessageHeader&& header) {
@@ -94,7 +94,7 @@ struct P92000e_Requests : public TestHarnes {
 		}
 		auto& parser = maybeParser.unwrap();
 
-		auto const expectType = messageCode(RequestType{});
+		auto const expectType = messageCodeOf<RequestType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
 				.then([expectType](MessageHeader&& header) {
@@ -145,7 +145,7 @@ TEST_F(P92000e_Requests, parseSessionRequest_NotEnoughData) {
     auto keyData = wrapMemory(sessionKey);
 
     // Set declared message size to be more then negotiated message size
-	_requestWriter.encoder() << makeHeaderWithPayload(messageCode(_9P2000E::Response::Session{}), 1, keyData.size());
+	_requestWriter.encoder() << makeHeaderWithPayload(messageCodeOf<_9P2000E::Response::Session>(), 1, keyData.size());
     _writer.write(keyData);
 
 	ByteReader reader{_writer.viewWritten()};
@@ -154,7 +154,7 @@ TEST_F(P92000e_Requests, parseSessionRequest_NotEnoughData) {
     ASSERT_TRUE(headerResult.isOk());
 
     auto header = headerResult.unwrap();
-	ASSERT_EQ(messageCode(_9P2000E::Response::Session{}), header.type);
+	ASSERT_EQ(messageCodeOf<_9P2000E::Response::Session>(), header.type);
 
     // Make sure we can parse the message back.
 	auto message = parser.parseVersionRequest(header, reader);
@@ -171,7 +171,7 @@ TEST_F(P92000e_Responses, createSessionResponse) {
 
 TEST_F(P92000e_Responses, parseSessionResponse) {
     // Set declared message size to be more then negotiated message size
-	_responseWriter.encoder() << makeHeaderWithPayload(messageCode(_9P2000E::Response::Session{}), 1, 0);
+	_responseWriter.encoder() << makeHeaderWithPayload(messageCodeOf<_9P2000E::Response::Session>(), 1, 0);
 
 	getResponseOrFail<_9P2000E::Response::Session>();
 }
@@ -215,7 +215,7 @@ TEST_F(P92000e_Responses, parseShortReadResponse) {
     auto const dataView = messageData.view();
 
 
-	_responseWriter.encoder() << makeHeaderWithPayload(messageCode(_9P2000E::Response::ShortRead{}),
+	_responseWriter.encoder() << makeHeaderWithPayload(messageCodeOf<_9P2000E::Response::ShortRead>(),
 													   1,
 													   narrow_cast<size_type>(sizeof(size_type) + dataView.size()))
 							  << dataView;
@@ -262,7 +262,7 @@ TEST_F(P92000e_Responses, createShortWriteResponse) {
 
 
 TEST_F(P92000e_Responses, parseShortWriteResponse) {
-	_responseWriter.encoder() << makeHeaderWithPayload(messageCode(_9P2000E::Response::ShortWrite{}), 1, sizeof(uint32))
+	_responseWriter.encoder() << makeHeaderWithPayload(messageCodeOf<_9P2000E::Response::ShortWrite>(), 1, sizeof(uint32))
 							  << (static_cast<uint32>(81177));
 
 	getResponseOrFail<_9P2000E::Response::ShortWrite>()

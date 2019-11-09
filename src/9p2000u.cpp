@@ -34,61 +34,40 @@ styxe::operator<< (RequestWriter& writer, _9P2000U::Request::Auth const& message
 
 RequestWriter&
 styxe::operator<< (RequestWriter& writer, _9P2000U::Request::Attach const& message) {
-	writer.messageType(messageCode(message))
-			<< message.fid
-			<< message.afid
-			<< message.uname
-			<< message.aname
-			<< message.n_uname;
-	writer.updateMessageSize();
-
-	return writer;
+	return encode(writer, message,
+				  message.fid,
+				  message.afid,
+				  message.uname,
+				  message.aname,
+				  message.n_uname);
 }
 
 
 RequestWriter&
 styxe::operator<< (RequestWriter& writer, _9P2000U::Request::Create const& message) {
-	writer.messageType(messageCode(message))
-			<< message.fid
-			<< message.name
-			<< message.perm
-			<< message.mode.mode
-			<< message.extension;
-	writer.updateMessageSize();
-
-	return writer;
+	return encode(writer, message,
+				  message.fid,
+				  message.name,
+				  message.perm,
+				  message.mode.mode,
+				  message.extension);
 }
 
 RequestWriter&
 styxe::operator<< (RequestWriter& writer, _9P2000U::Request::WStat const& message) {
-	writer.messageType(messageCode(message))
-			<< message.fid
-			<< message.stat;
-	writer.updateMessageSize();
-
-	return writer;
+	return encode(writer, message, message.fid, message.stat);
 }
 
 
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, _9P2000U::Response::Error const& message) {
-	writer.messageType(messageCode(message))
-			<< message.ename
-			<< message.errcode;
-	writer.updateMessageSize();
-
-	return writer;
+	return encode(writer, message, message.ename, message.errcode);
 }
 
 
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, _9P2000U::Response::Stat const& message) {
-	writer.messageType(messageCode(message))
-			<< message.dummySize
-			<< message.data;
-	writer.updateMessageSize();
-
-	return writer;
+	return encode(writer, message, message.dummySize, message.data);
 }
 
 

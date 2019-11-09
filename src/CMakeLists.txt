@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.12)
 
 set(SOURCE_FILES
     encoder.cpp

@@ -25,6 +25,11 @@
 
 namespace styxe {
 
+Solace::Result<Solace::ByteReader&, Error>
+inline decode(Solace::ByteReader& data) noexcept {
+	return Solace::Result<Solace::ByteReader&, Error>{Solace::types::okTag, data};
+}
+
 template<typename...Args>
 Solace::Result<Solace::ByteReader&, Error>
 decode(Solace::ByteReader& data, Args&& ...args) {
