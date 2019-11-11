@@ -48,3 +48,43 @@ MessageWriterBase::build() {
 
 	return _encoder.buffer().flip();
 }
+
+void PathWriter::segment(Solace::StringView value) {
+	auto& buffer = _writer.encoder().buffer();
+	auto const finalPos = buffer.position();
+	buffer.position(_segmentsPos);  // Reset output stream to the start position
+
+	_nSegments += 1;
+	_writer.encoder() << _nSegments;
+
+	buffer.position(finalPos);  // Reset output stream to the final position
+	_writer.encoder() << value;
+	_writer.updateMessageSize();
+}
+
+
+RequestWriter&
+DataWriter::data(MemoryView value) {
+	auto& buffer = _writer.encoder().buffer();
+	buffer.position(_segmentsPos);  // Reset output stream to the start position
+	_writer.encoder() << value;
+	_writer.updateMessageSize();
+
+	return _writer;
+}
+
+RequestWriter&
+PathDataWriter::data(Solace::MemoryView value) {
+	_writer.encoder() << value;
+	_writer.updateMessageSize();
+
+	return _writer;
+}
+
+
+
+PathWriter&&
+styxe::operator<< (PathWriter&& writer, StringView segment) {
+	writer.segment(segment);
+	return mv(writer);
+}

@@ -119,5 +119,88 @@ using RequestWriter = MessageWriter<RequestTag>;
 using ResponseWriter = MessageWriter<ResponseTag>;
 
 
+/// Message writer for messages that include repeated path segments.
+struct PathWriter {
+	/**
+	 * Construct a new PathWriter.
+	 * @param writer A byte stream to write the resulting message to.
+	 */
+	PathWriter(RequestWriter& writer) noexcept
+		: _writer{writer}
+		, _segmentsPos{writer.encoder().buffer().position()}
+	{
+		_writer.encoder() << _nSegments;
+	}
+
+	constexpr RequestWriter& writer() noexcept { return  _writer; }
+
+	void segment(Solace::StringView value);
+
+protected:
+	RequestWriter&					_writer;
+
+private:
+	Solace::ByteWriter::size_type const	_segmentsPos;   //!< A position in the output stream where path segments start.
+	WalkPath::size_type					_nSegments{0};  //!< Number of path segments written
+};
+
+
+PathWriter&& operator<< (PathWriter&& writer, Solace::StringView segment);
+
+
+
+/// Message writer partial for messages that include trailing data segment.s
+struct DataWriter {
+
+	/**
+	 * Construct a new DataWriter.
+	 * @param writer A byte stream to write the resulting message to.
+	 */
+	DataWriter(RequestWriter& writer) noexcept
+		: _writer{writer}
+		, _segmentsPos{writer.encoder().buffer().position()}
+	{
+		_writer.encoder() << Solace::MemoryView{};
+	}
+
+	RequestWriter& data(Solace::MemoryView value);
+
+private:
+	RequestWriter&						_writer;
+	Solace::ByteWriter::size_type const _segmentsPos;   //!< A position in the output stream where path segments start.
+};
+
+
+inline
+RequestWriter& operator<< (DataWriter& writer, Solace::MemoryView segment) {
+	return writer.data(segment);
+}
+
+
+struct PathDataWriter: public PathWriter {
+	/**
+	 * Construct a new PathDataWriter.
+	 * @param writer A byte stream to write the resulting message to.
+	 */
+	PathDataWriter(RequestWriter& writer) noexcept
+		: PathWriter{writer}
+	{}
+
+	RequestWriter& data(Solace::MemoryView value);
+};
+
+
+inline
+PathDataWriter&& operator<< (PathDataWriter&& writer, Solace::StringView segment) {
+	writer.segment(segment);
+	return Solace::mv(writer);
+}
+
+inline
+RequestWriter& operator<< (PathDataWriter&& writer, Solace::MemoryView segment) {
+	return writer.data(segment);
+}
+
+
 }  // end of namespace styxe
 #endif  // STYXE_MESSAGEWRITER_HPP

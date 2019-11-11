@@ -94,6 +94,10 @@ struct MessageDump {
 		return *this;
 	}
 
+	MessageDump& operator() (PathWriter&& pw) {
+		return operator() (pw.writer());
+	}
+
 
 	void dumpMessage(StringView messageType, MemoryView buffer) {
 		std::stringstream sb;
@@ -115,7 +119,8 @@ struct MessageDump {
 
 
 /// Dump request messages
-void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, MessageNameMapper messageCodeToName, MemoryView payload) {
+void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, StringView version,
+					 MessageNameMapper messageCodeToName, MemoryView payload) {
 	auto userName = StringView{getenv("USER")};
 	auto dummyStat = genStats(userName, userName);
 
@@ -123,21 +128,15 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Mess
 	RequestWriter requestWriter{buffer, 1};
 	MessageDump dump{messageCodeToName, corpusDir};
 
-	dump(requestWriter << Request::Version{kMaxMessageSize, _9P2000E::kProtocolVersion});
+	dump(requestWriter << Request::Version{kMaxMessageSize, version});
 	dump(requestWriter << Request::Auth{1, userName, "attachPoint"});
 	dump(requestWriter << Request::Flush{3});
 	dump(requestWriter << Request::Attach{3, 18, userName, "someFile"});
 
-	{
-		byte pathBuffer[3 + 3 + 4 + 2*3];
-		ByteWriter pathWriter{wrapMemory(pathBuffer)};
-		styxe::Encoder encoder{pathWriter};
-		encoder << StringView{"one"}
-				<< StringView{"two"}
-				<< StringView{"file"};
-
-		dump(requestWriter << Request::Walk{18, 42, WalkPath{3, wrapMemory(pathBuffer)}});
-	}
+	dump(requestWriter << Request::Partial::Walk{18, 42}
+		 << StringView{"one"}
+		 << StringView{"two"}
+		 << StringView{"file"});
 
 	dump(requestWriter << Request::Open{42, OpenMode::READ});
 	dump(requestWriter << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
@@ -148,37 +147,28 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Mess
 	dump(requestWriter << Request::Stat{17});
 	dump(requestWriter << Request::WStat{17, dummyStat});
 
-	dump(requestWriter << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
-	{
-		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
-		ByteWriter pathWriter{wrapMemory(pathBuffer)};
-		styxe::Encoder encoder{pathWriter};
-		encoder << StringView{"some"}
-				<< StringView{"location"}
-				<< StringView{"where"}
-				<< StringView{"file"};
+	if (version == _9P2000U::kProtocolVersion) {
+		dump(requestWriter << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
 
-		dump(requestWriter << _9P2000E::Request::ShortRead{3, WalkPath{4, wrapMemory(pathBuffer)}});
-	}
-	{
-		byte pathBuffer[4 + 8 + 5 + 4 + 2*4];
-		ByteWriter pathWriter{wrapMemory(pathBuffer)};
-		styxe::Encoder encoder{pathWriter};
-		encoder << StringView{"some"}
-				<< StringView{"location"}
-				<< StringView{"where"}
-				<< StringView{"file"};
+		dump(requestWriter << _9P2000E::Request::Partial::ShortRead{3}
+			 << StringView{"some"}
+			 << StringView{"location"}
+			 << StringView{"where"}
+			 << StringView{"file"});
 
-		dump(requestWriter << _9P2000E::Request::ShortWrite{
-				 3,
-				 WalkPath{4, wrapMemory(pathBuffer)},
-				 payload});
+		dump(requestWriter << _9P2000E::Request::Partial::ShortWrite{3}
+			 << StringView{"some"}
+			 << StringView{"location"}
+			 << StringView{"where"}
+			 << StringView{"file"}
+			 << payload);
 	}
 }
 
 
 /// Dump response messages
-void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, MessageNameMapper messageCodeToName, MemoryView payload) {
+void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, StringView version,
+					  MessageNameMapper messageCodeToName, MemoryView payload) {
 	auto userName = StringView{getenv("USER")};
 	auto dummyStat = genStats(userName, userName);
 
@@ -186,7 +176,7 @@ void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, Mes
 	ResponseWriter responseWriter{buffer, 1};
 	MessageDump dump{messageCodeToName, corpusDir};
 
-	dump(responseWriter << Response::Version{kMaxMessageSize, _9P2000E::kProtocolVersion});
+	dump(responseWriter << Response::Version{kMaxMessageSize, version});
 	dump(responseWriter << Response::Auth{randomQid(QidType::AUTH)});
 	dump(responseWriter << Response::Error{"This is a test error. Please move on."});
 	dump(responseWriter << Response::Flush{});
@@ -205,9 +195,11 @@ void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, Mes
 	dump(responseWriter << Response::Stat{narrow_cast<var_datum_size_type>(protocolSize(dummyStat)), dummyStat});
 	dump(responseWriter << Response::WStat{});
 
-	dump(responseWriter << _9P2000E::Response::Session{});
-	dump(responseWriter << _9P2000E::Response::ShortRead{payload});
-	dump(responseWriter << _9P2000E::Response::ShortWrite{32});
+	if (version == _9P2000E::kProtocolVersion) {
+		dump(responseWriter << _9P2000E::Response::Session{});
+		dump(responseWriter << _9P2000E::Response::ShortRead{payload});
+		dump(responseWriter << _9P2000E::Response::ShortWrite{32});
+	}
 }
 
 
@@ -234,7 +226,7 @@ int main(int argc, char const **argv) {
 	MemoryManager memManager{kMaxMessageSize};
 	auto memoryResource = memManager.allocate(kMaxMessageSize);
 	if (!memoryResource) {
-		std::cerr << "Feiled to allocate memory for a buffer: " << memoryResource.getError() << std::endl;
+		std::cerr << "Failed to allocate memory for a buffer: " << memoryResource.getError() << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -242,16 +234,18 @@ int main(int argc, char const **argv) {
 	auto payload = wrapMemory(data);
 	payload.fill(0xf1);
 
-	MessageNameMapper mapper = _9P2000U::messageTypeToString;
+	MessageNameMapper mapper = messageTypeToString;
 	if (_9P2000E::kProtocolVersion == protocolVersion) {
 		mapper = _9P2000E::messageTypeToString;
+	} else if (_9P2000U::kProtocolVersion == protocolVersion) {
+		mapper = _9P2000U::messageTypeToString;
 	} else if (_9P2000L::kProtocolVersion == protocolVersion) {
 		mapper = _9P2000L::messageTypeToString;
 	}
 
 
-	dumpAllRequests(*memoryResource, corpusDir, mapper, payload);
-	dumpAllResponses(*memoryResource, corpusDir, mapper, payload);
+	dumpAllRequests(*memoryResource, corpusDir, protocolVersion, mapper, payload);
+	dumpAllResponses(*memoryResource, corpusDir, protocolVersion, mapper, payload);
 
     return EXIT_SUCCESS;
 }

@@ -112,6 +112,24 @@ styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& m
 }
 
 
+PathWriter
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortRead const& message) {
+	writer.messageType(messageCodeOf<_9P2000E::Request::ShortRead>())
+			<< message.fid;
+
+	return PathWriter{writer};
+}
+
+
+PathDataWriter
+styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortWrite const& message) {
+	writer.messageType(messageCodeOf<_9P2000E::Request::ShortWrite>())
+			<< message.fid;
+
+	return PathDataWriter{writer};
+}
+
+
 StringView
 styxe::_9P2000E::messageTypeToString(byte type) noexcept {
 	auto mType = static_cast<_9P2000E::MessageType>(type);

@@ -43,23 +43,32 @@ enum class MessageType : Solace::byte {
 /// 9P2000 protocol Erlang extension new messages
 struct Request : public styxe::Request {
 
+	struct Partial {
+		struct ShortRead {
+			Fid             fid;    //!< Fid of the root directory to walk the path from.
+		};
+
+		struct ShortWrite {
+			Fid			        fid;    //!< Fid of the root directory to walk the path from.
+		};
+	};
+
 	/// A request to re-establish a session.
 	struct Session {
 		Solace::byte key[8];    //!< A key of the previously established session.
 	};
 
 	/// A request to read entire file contents.
-	struct ShortRead {
-		Fid             fid;    //!< Fid of the root directory to walk the path from.
+	struct ShortRead: public Partial::ShortRead {
 		WalkPath		path;   //!< A path to the file to be read.
 	};
 
 	/// A request to overwrite file contents.
-	struct ShortWrite {
-		Fid			        fid;    //!< Fid of the root directory to walk the path from.
+	struct ShortWrite: public Partial::ShortWrite {
 		WalkPath			path;   //!< A path to the file to be read.
 		Solace::MemoryView	data;   //!< A data to be written into the file.
 	};
+
 };
 
 
@@ -77,6 +86,10 @@ struct Response : public styxe::Response {
 	/// Write response
 	struct ShortWrite {
 		size_type  count;  //!< Number of bytes written
+	};
+
+	struct Partial {
+		struct ShortRead {};
 	};
 };
 
@@ -160,6 +173,10 @@ ResponseWriter& operator<< (ResponseWriter& writer, _9P2000E::Response::ShortRea
 
 /** Create ShortWriteresponse. */
 ResponseWriter& operator<< (ResponseWriter& writer, _9P2000E::Response::ShortWrite const& response);
+
+
+PathWriter operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortRead const& request);
+PathDataWriter operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortWrite const& request);
 
 
 }  // end of namespace styxe

@@ -223,6 +223,14 @@ enum class MessageType : Solace::byte {
  */
 struct Request {
 
+	struct Partial {
+		struct Walk {
+			Fid             fid;            //!< Fid of the directory where to start walk from.
+			Fid             newfid;         //!< A client provided new fid representing resulting file.
+		};
+	};
+
+
 	/**
 	 * The version request. Must be the first message sent on the connection.
 	 * It negotiates the protocol version and message size to be used on the connection and
@@ -263,9 +271,7 @@ struct Request {
 	 * A message to causes the server to change the current file
 	 * associated with a fid to be a file in the directory that is identified by following a given path.
 	 */
-	struct Walk {
-		Fid             fid;            //!< Fid of the directory where to start walk from.
-		Fid             newfid;         //!< A client provided new fid representing resulting file.
+	struct Walk: public Partial::Walk {
 		WalkPath		path;           //!< A path to walk from the fid.
 	};
 
@@ -811,6 +817,15 @@ RequestWriter& operator<< (RequestWriter& writer, Request::WStat const& response
  * @return Message builder.
  */
 RequestWriter& operator<< (RequestWriter& writer, Request::Walk const& response);
+
+
+/**
+ * @brief Create Walk request.
+ * @param fid User provided fid assosiated with a file to start the walk from.
+ * @param nfid User provided fid to be assosiated with the file resulting from the walk.
+ * @return Message builder.
+ */
+PathWriter operator<< (RequestWriter& writer, Request::Partial::Walk const& response);
 
 
 Solace::Result<Solace::ByteReader&, Error>

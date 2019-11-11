@@ -665,6 +665,22 @@ TEST_F(P9Messages, createWalkRequest) {
 			});
 }
 
+
+TEST_F(P9Messages, createPartialWalkRequest) {
+	RequestWriter writer{_writer};
+	writer << Request::Partial::Walk{213, 124}
+		   << StringView{"space"}
+		   << StringView{"knowhere"};
+
+	getRequestOrFail<Request::Walk>()
+			.then([](Request::Walk&& request) {
+				EXPECT_EQ(213, request.fid);
+				EXPECT_EQ(124, request.newfid);
+				EXPECT_EQ(2, request.path.size());
+				EXPECT_EQ("space", *request.path.begin());
+			});
+}
+
 TEST_F(P9Messages, createWalkEmptyPathRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Walk{7374, 542, WalkPath(0, MemoryView{})};

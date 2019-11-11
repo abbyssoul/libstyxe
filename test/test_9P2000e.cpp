@@ -186,12 +186,27 @@ TEST_F(P92000e_Requests, createShortReadRequest) {
 			<< StringView{"wierd"}
 			<< StringView{"place"};
 
-	WalkPath path{3, wrapMemory(buffer)};
-	_requestWriter << _9P2000E::Request::ShortRead{32, path};
+	_requestWriter << _9P2000E::Request::ShortRead{32, WalkPath{3, wrapMemory(buffer)}};
 
 	getRequestOrFail<_9P2000E::Request::ShortRead>()
 		.then([](_9P2000E::Request::ShortRead&& request) {
             ASSERT_EQ(32, request.fid);
+			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ("some", *request.path.begin());
+		});
+}
+
+
+
+TEST_F(P92000e_Requests, createPartialShortReadRequest) {
+	_requestWriter << _9P2000E::Request::Partial::ShortRead{32}
+				   << StringView{"some"}
+				   << StringView{"wierd"}
+				   << StringView{"place"};
+
+	getRequestOrFail<_9P2000E::Request::ShortRead>()
+		.then([](_9P2000E::Request::ShortRead&& request) {
+			ASSERT_EQ(32, request.fid);
 			ASSERT_EQ(3, request.path.size());
 			ASSERT_EQ("some", *request.path.begin());
 		});
@@ -240,7 +255,6 @@ TEST_F(P92000e_Requests, createShortWriteRequest) {
 			<< StringView{"place"};
 
 	_requestWriter << _9P2000E::Request::ShortWrite{32, WalkPath{3, wrapMemory(buffer)}, data};
-
 	getRequestOrFail<_9P2000E::Request::ShortWrite>()
 		.then([data](_9P2000E::Request::ShortWrite&& request) {
             ASSERT_EQ(32, request.fid);
@@ -249,6 +263,28 @@ TEST_F(P92000e_Requests, createShortWriteRequest) {
 			ASSERT_EQ("some", *request.path.begin());
 		});
 }
+
+
+TEST_F(P92000e_Requests, createPartialShortWriteRequest) {
+	char const messageData[] = "This is a very important data d-_^b";
+	auto data = wrapMemory(messageData);
+
+	_requestWriter << _9P2000E::Request::Partial::ShortWrite{32}
+				   << StringView{"some"}
+				   << StringView{"wierd"}
+				   << StringView{"place"}
+				   << data;
+
+
+	getRequestOrFail<_9P2000E::Request::ShortWrite>()
+		.then([data](_9P2000E::Request::ShortWrite&& request) {
+			ASSERT_EQ(32, request.fid);
+			ASSERT_EQ(data, request.data);
+			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ("some", *request.path.begin());
+		});
+}
+
 
 
 TEST_F(P92000e_Responses, createShortWriteResponse) {

@@ -106,7 +106,7 @@ struct Request {
 /// 9P2000.u messages
 struct Response {
 	/// Error resoponse from a server
-	struct Error : public ::styxe::Response::Error {
+	struct Error: public ::styxe::Response::Error {
 		Solace::uint32		errcode;  /// Error code
 	};
 

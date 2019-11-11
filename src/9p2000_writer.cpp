@@ -189,6 +189,15 @@ styxe::operator<< (RequestWriter& writer, Request::WStat const& message) {
 }
 
 
+PathWriter
+styxe::operator<< (RequestWriter& writer, Request::Partial::Walk const& response) {
+	writer.messageType(messageCodeOf<Request::Walk>())
+			<< response.fid
+			<< response.newfid;
+
+	return PathWriter{writer};
+}
+
 
 
 size_type
