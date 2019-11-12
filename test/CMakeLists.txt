@@ -8,11 +8,14 @@ set(TEST_SOURCE_FILES
         testHarnes.cpp
 
         test_messageParser.cpp
-        test_9PDirListingWriter.cpp
+
         test_9P2000.cpp
         test_9P2000e.cpp
         test_9P2000u.cpp
         test_9P2000L.cpp
+
+        test_9PDirListingWriter.cpp
+        test_9P2000L_dirReader.cpp
     )
 
 

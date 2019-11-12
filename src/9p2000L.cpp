@@ -298,13 +298,7 @@ ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::X
 }
 
 ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::ReadDir const& message) {
-	writer.messageType(messageCodeOf<std::decay_t<decltype(message)>>())
-			<< message.count
-			<< message.data;
-
-	writer.updateMessageSize();
-
-	return writer;
+	return encode(writer, message, message.data);
 }
 
 ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::FSync const& message) {
@@ -527,7 +521,7 @@ styxe::operator>> (ByteReader& data, _9P2000L::Response::XAttrCreate&) {
 
 Result<ByteReader&, Error>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::ReadDir& dest) {
-	return decode(data, dest.count, dest.data);
+	return decode(data, dest.data);
 }
 
 Result<ByteReader&, Error>
@@ -566,3 +560,15 @@ styxe::operator>> (ByteReader& data, _9P2000L::Response::UnlinkAt&) {
 }
 
 
+_9P2000L::DirEntryReader::Iterator::value_type
+_9P2000L::DirEntryReader::Iterator::operator* () {
+	if (_reader.position() != _readPosition) {
+		_reader.position(_readPosition);
+	}
+
+	Decoder decoder{_reader};
+	DirEntry entry;
+	decoder >> entry;
+
+	return entry;
+}

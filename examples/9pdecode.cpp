@@ -31,7 +31,7 @@ using namespace styxe;
 
 template<typename T>
 struct Quoted {
-    Quoted(T const& t, char quote)
+	constexpr Quoted(T const& t, char quote) noexcept
         : _quote(quote)
         , _t(t)
     {}
@@ -45,7 +45,7 @@ struct Quoted {
 };
 
 template<typename T>
-Quoted<T> quote(T const& t, char q='\"') { return Quoted<T>(t, q); }
+constexpr Quoted<T> quote(T const& t, char q='\"') noexcept { return Quoted<T>(t, q); }
 
 
 struct NamedField {
@@ -58,9 +58,10 @@ struct NamedField {
 
 
 /// IO manipulator
-NamedField field(const char* name) {
+constexpr NamedField field(const char* name) noexcept {
 	return NamedField{name};
 }
+
 
 std::ostream& operator<< (std::ostream& ostr, OpenMode mode) {
     byte const op = (mode.mode & 0x03);

@@ -614,12 +614,25 @@ TEST_F(P92000L_Responses, xAttrCreate) {
 
 
 TEST_F(P92000L_Responses, readDir) {
+	char buffer[127];
+	MutableMemoryView data = wrapMemory(buffer);
+	ByteWriter dirStream{data};
+	_9P2000L::DirEntry entry{
+		randomQid(),
+				0,
+				31,
+				StringView{"Awesome file"}
+	};
+
+	styxe::Encoder encoder{dirStream};
+	encoder << entry;
+
 	ResponseWriter writer{_writer, 3};
-	writer << _9P2000L::Response::ReadDir{2};
+	writer << _9P2000L::Response::ReadDir{data};
 
 	getResponseOrFail<_9P2000L::Response::ReadDir>()
-			.then([] (_9P2000L::Response::ReadDir const& response) {
-				ASSERT_EQ(2, response.count);
+			.then([data] (_9P2000L::Response::ReadDir const& response) {
+				ASSERT_EQ(data, response.data);
 			});
 }
 

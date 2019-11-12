@@ -76,12 +76,25 @@ enum class MessageType : Solace::byte {
 };
 
 
+
+/// Server directory entry as returned by ReadDir
 struct DirEntry {
-	Qid qid;
-	Solace::uint64 offset;
-	Solace::byte type;
-	Solace::StringView name;
+	Qid qid;						//!< Qid of the file
+	Solace::uint64 offset;			//!< Offset of this entry in the stream
+	Solace::byte type;				//!< type of the file
+	Solace::StringView name;		//!< File entry name
 };
+
+
+inline
+bool operator== (DirEntry const& lhs, DirEntry const& rhs) noexcept {
+	return lhs.qid == rhs.qid && lhs.offset == rhs.offset && lhs.type == rhs.type && lhs.name == rhs.name;
+}
+
+inline
+bool operator!= (DirEntry const& lhs, DirEntry const& rhs) noexcept {
+	return !operator==(lhs, rhs);
+}
 
 
 /// 9P2000.L requests
@@ -328,8 +341,7 @@ struct Response {
 
 	/// Read a directory response
 	struct ReadDir {
-		Solace::uint32 count;
-		Solace::uint32 data;  // FIXME: Var-sized data
+		Solace::MemoryView data;  //!< Data buffer encoding directory entries. @see DirEntry
 	};
 
 	/// Flush any cached data to disk
@@ -375,8 +387,83 @@ struct Response {
 Solace::StringView
 messageTypeToString(Solace::byte type) noexcept;
 
+
+struct DirEntryReader {
+
+	struct Iterator {
+
+		using value_type = DirEntry;
+
+		Iterator(Solace::MemoryView buffer, Solace::ByteReader::size_type position) noexcept
+			: _reader{buffer}
+			, _readPosition{position}
+		{}
+
+
+		value_type operator* ();
+
+		Iterator& operator++ () {
+			value_type v = operator*();
+			(void)v;
+
+			_readPosition = _reader.position();
+			return *this;
+		}
+
+		Iterator& swap(Iterator& rhs) noexcept {
+			std::swap(_reader, rhs._reader);
+			std::swap(_readPosition, rhs._readPosition);
+
+			return *this;
+		}
+
+		Iterator& operator= (Iterator&& rhs) noexcept {
+			return swap(rhs);
+		}
+
+		constexpr bool operator!= (Iterator const& other) const noexcept {
+			return (_readPosition != other._readPosition);
+		}
+
+		constexpr bool operator== (Iterator const& other) const noexcept {
+			return (_readPosition == other._readPosition);
+		}
+
+	  private:
+		Solace::ByteReader				_reader;
+		Solace::ByteReader::size_type	_readPosition;
+	};
+
+	constexpr DirEntryReader(Solace::MemoryView buffer) noexcept
+		: _buffer{buffer}
+	{}
+
+	Iterator being() noexcept { return {_buffer, 0}; }
+	Iterator end() noexcept { return {_buffer, _buffer.size()}; }
+
+private:
+	Solace::MemoryView _buffer;
+};
+
+
 }  // end of namespace _9P2000L
 
+
+inline
+Encoder& operator<< (Encoder& encoder, _9P2000L::DirEntry const& value) {
+	return encoder << value.qid
+				   << value.offset
+				   << value.type
+				   << value.name;
+}
+
+inline
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, _9P2000L::DirEntry& value) {
+	return decoder >> value.qid
+				   >> value.offset
+				   >> value.type
+				   >> value.name;
+}
 
 
 RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::StatFS const& dest);
