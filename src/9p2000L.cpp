@@ -560,18 +560,13 @@ styxe::operator>> (ByteReader& data, _9P2000L::Response::UnlinkAt&) {
 }
 
 
-Result<_9P2000L::DirEntry, Error>
+Result<void, Error>
 _9P2000L::DirEntryReader::Iterator::read() {
-	if (_reader.position() != _offset) {
-		_reader.position(_offset);
-	}
-
 	Decoder decoder{_reader};
-	DirEntry entry;
-	auto readResult = decoder >> entry;
+	auto readResult = decoder >> _value;
 	if(!readResult) {
 		return readResult.moveError();
 	}
 
-	return mv(entry);
+	return Ok();
 }

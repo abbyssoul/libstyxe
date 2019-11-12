@@ -123,6 +123,15 @@ std::ostream& operator<< (std::ostream& ostr, Stat const& stat) {
          << '}';
 }
 
+std::ostream& operator<< (std::ostream& ostr, _9P2000L::DirEntry const& ent) {
+	return ostr << '{'
+				<< "qid: " << ent.qid << ", "
+				<< "offset: " << ent.offset << ", "
+				<< "type: " << static_cast<int>(ent.type) << ", "
+				<< "name: \"" << ent.name << "\""
+				<< '}';
+}
+
 
 void
 printHeader(std::ostream& ostr, ParserBase const& parser, MessageHeader const& header) {
@@ -592,11 +601,15 @@ struct VisitResponse {
 
 	void operator()(_9P2000L::Response::ReadDir const& resp) {
 		std::cout << ':'
-				  << field("count") << resp.count;
+				  << '[';
+//				  << field("data") << resp.data;
 
-//		for (uint i = 0; i < resp.count; ++i) {
-//			// FIXME: Implement dir listing
-//		}
+		_9P2000L::DirEntryReader dirReader{resp.data};
+		for (auto const& ent : dirReader) {
+			std::cout << ent;
+		}
+
+		std::cout << ']';
 	}
 
 	void operator()(_9P2000L::Response::FSync const&) noexcept { }

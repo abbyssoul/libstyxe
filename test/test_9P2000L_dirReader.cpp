@@ -83,15 +83,39 @@ TEST(P92000L, dirReader_multiple_enties) {
 
 	_9P2000L::DirEntryReader reader{dirStream.viewWritten()};
 	size_t index = 0;
-	for (auto ent : reader) {
+	for (auto const& ent : reader) {
 		ASSERT_EQ(entries[index], ent);
 		index += 1;
 	}
 }
 
 
-/*
-TEST(P92000L, dirReader_incomplete_buffer) {
+TEST(P92000L, dirReader_incomplete_buffer_1) {
+	char buffer[127];
+	MutableMemoryView data = wrapMemory(buffer);
+	ByteWriter dirStream{data};
+
+	_9P2000L::DirEntry entries[] = {
+		{randomQid(), 0, 31, StringView{"data"}},
+	};
+
+	styxe::Encoder encoder{dirStream};
+	for (auto const& e : entries) {
+		encoder << e;
+	}
+
+	_9P2000L::DirEntryReader reader{dirStream.viewWritten() .slice(0, dirStream.position() - 10)};
+	size_t index = 0;
+	for (auto ent : reader) {
+		ASSERT_EQ(entries[index], ent);
+		index += 1;
+	}
+
+	ASSERT_EQ(0, index);
+}
+
+
+TEST(P92000L, dirReader_incomplete_buffer_2) {
 	char buffer[127];
 	MutableMemoryView data = wrapMemory(buffer);
 	ByteWriter dirStream{data};
@@ -116,4 +140,3 @@ TEST(P92000L, dirReader_incomplete_buffer) {
 
 	ASSERT_EQ(2, index);
 }
-*/

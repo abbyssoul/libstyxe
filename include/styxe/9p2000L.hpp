@@ -401,23 +401,36 @@ struct DirEntryReader {
 		Iterator(Solace::MemoryView buffer, Solace::ByteReader::size_type offset) noexcept
 			: _reader{buffer}
 			, _offset{offset}
-		{}
+		{
+			_reader.position(_offset);
+			if (!_reader.hasRemaining())
+				return;
 
-		Solace::Result<DirEntry, Error> read();
+			if (!read()) {
+				_offset = _reader.limit();
+				_reader.position(buffer.size());
+			}
+		}
 
-		value_type operator* () { return read().unwrap(); }
+		Solace::Result<void, Error> read();
+
+		reference operator* () { return _value; }
+		const_reference operator* () const { return _value; }
 
 		Iterator& operator++ () {
-			auto v = read();
-			(void)v;
-
 			_offset = _reader.position();
+			if (!read()) {
+				_offset = _reader.limit();
+				_reader.position(_reader.limit());
+			}
+
 			return *this;
 		}
 
 		Iterator& swap(Iterator& rhs) noexcept {
 			std::swap(_reader, rhs._reader);
 			std::swap(_offset, rhs._offset);
+			std::swap(_value, rhs._value);
 
 			return *this;
 		}
@@ -427,16 +440,18 @@ struct DirEntryReader {
 		}
 
 		constexpr bool operator!= (Iterator const& other) const noexcept {
-			return (_offset != other._offset);
+			return ((_offset != other._offset) ||
+					(_reader.position() != other._reader.position()));
 		}
 
 		constexpr bool operator== (Iterator const& other) const noexcept {
-			return (_offset == other._offset);
+			return !(operator!= (other));
 		}
 
 	  private:
 		Solace::ByteReader				_reader;
 		Solace::ByteReader::size_type	_offset;
+		DirEntry						_value;
 	};
 
 	/**
