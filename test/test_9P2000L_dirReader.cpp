@@ -64,27 +64,56 @@ TEST(P92000L, dirReader) {
 
 
 
-TEST(P92000L, dirReader_shortBuffer) {
+TEST(P92000L, dirReader_multiple_enties) {
 	char buffer[127];
 	MutableMemoryView data = wrapMemory(buffer);
 	ByteWriter dirStream{data};
 
 	_9P2000L::DirEntry entries[] = {
-		{randomQid(), 0, 31, StringView{"Awesome file"}},
+		{randomQid(), 0, 31, StringView{"data"}},
+		{randomQid(), 4, 31, StringView{"Awesome file"}},
 		{randomQid(), 1, 32, StringView{"other file"}}
 	};
 
 	styxe::Encoder encoder{dirStream};
-	encoder << entries[0] << entries[1];
+	for (auto const& e : entries) {
+		encoder << e;
+	}
 
 
-	_9P2000L::DirEntryReader reader{dirStream.viewWritten()};  // .slice(0, dirStream.position() - 10)};
-
-	auto i = reader.being();
-	ASSERT_NE(i, reader.end());
-	ASSERT_EQ(entries[0], *i);
-	ASSERT_NE(i, reader.end());
-	ASSERT_NE(++i, reader.end());
-	ASSERT_EQ(entries[1], *i);
-	ASSERT_EQ(++i, reader.end());
+	_9P2000L::DirEntryReader reader{dirStream.viewWritten()};
+	size_t index = 0;
+	for (auto ent : reader) {
+		ASSERT_EQ(entries[index], ent);
+		index += 1;
+	}
 }
+
+
+/*
+TEST(P92000L, dirReader_incomplete_buffer) {
+	char buffer[127];
+	MutableMemoryView data = wrapMemory(buffer);
+	ByteWriter dirStream{data};
+
+	_9P2000L::DirEntry entries[] = {
+		{randomQid(), 0, 31, StringView{"data"}},
+		{randomQid(), 4, 31, StringView{"Awesome file"}},
+		{randomQid(), 1, 32, StringView{"other file"}}
+	};
+
+	styxe::Encoder encoder{dirStream};
+	for (auto const& e : entries) {
+		encoder << e;
+	}
+
+	_9P2000L::DirEntryReader reader{dirStream.viewWritten() .slice(0, dirStream.position() - 10)};
+	size_t index = 0;
+	for (auto ent : reader) {
+		ASSERT_EQ(entries[index], ent);
+		index += 1;
+	}
+
+	ASSERT_EQ(2, index);
+}
+*/

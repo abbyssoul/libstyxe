@@ -387,32 +387,37 @@ struct Response {
 Solace::StringView
 messageTypeToString(Solace::byte type) noexcept;
 
-
+/**
+ * DirEntryReader - helper class to read @see DirEntry.
+ * @see _9P2000L::Response::ReadDir
+ */
 struct DirEntryReader {
+	using value_type = DirEntry;
+	using reference = DirEntry&;
+	using const_reference = DirEntry const&;
 
 	struct Iterator {
 
-		using value_type = DirEntry;
-
-		Iterator(Solace::MemoryView buffer, Solace::ByteReader::size_type position) noexcept
+		Iterator(Solace::MemoryView buffer, Solace::ByteReader::size_type offset) noexcept
 			: _reader{buffer}
-			, _readPosition{position}
+			, _offset{offset}
 		{}
 
+		Solace::Result<DirEntry, Error> read();
 
-		value_type operator* ();
+		value_type operator* () { return read().unwrap(); }
 
 		Iterator& operator++ () {
-			value_type v = operator*();
+			auto v = read();
 			(void)v;
 
-			_readPosition = _reader.position();
+			_offset = _reader.position();
 			return *this;
 		}
 
 		Iterator& swap(Iterator& rhs) noexcept {
 			std::swap(_reader, rhs._reader);
-			std::swap(_readPosition, rhs._readPosition);
+			std::swap(_offset, rhs._offset);
 
 			return *this;
 		}
@@ -422,29 +427,38 @@ struct DirEntryReader {
 		}
 
 		constexpr bool operator!= (Iterator const& other) const noexcept {
-			return (_readPosition != other._readPosition);
+			return (_offset != other._offset);
 		}
 
 		constexpr bool operator== (Iterator const& other) const noexcept {
-			return (_readPosition == other._readPosition);
+			return (_offset == other._offset);
 		}
 
 	  private:
 		Solace::ByteReader				_reader;
-		Solace::ByteReader::size_type	_readPosition;
+		Solace::ByteReader::size_type	_offset;
 	};
 
+	/**
+	 * Construct a new DirEntryReader
+	 * @param buffer A buffer to read entries from.
+	 */
 	constexpr DirEntryReader(Solace::MemoryView buffer) noexcept
 		: _buffer{buffer}
 	{}
 
+	//!< Get begin iterator
 	Iterator being() noexcept { return {_buffer, 0}; }
+
+	//!< Get end iterator
 	Iterator end() noexcept { return {_buffer, _buffer.size()}; }
 
 private:
-	Solace::MemoryView _buffer;
+	Solace::MemoryView _buffer;  //!< Memory buffer to read DirEntries from
 };
 
+inline auto begin(DirEntryReader& reader) noexcept { return reader.being(); }
+inline auto end(DirEntryReader& reader) noexcept { return reader.end(); }
 
 }  // end of namespace _9P2000L
 
