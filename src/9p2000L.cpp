@@ -31,7 +31,7 @@ const StringLiteral _9P2000L::kProtocolVersion{"9P2000.L"};
 StringView
 styxe::_9P2000L::messageTypeToString(byte type) noexcept {
 
-#define TYPE_STR(msg) case _9P2000L::MessageType::msg: return StringLiteral{"#msg"}
+#define TYPE_STR(msg) case _9P2000L::MessageType::msg: return StringLiteral{#msg}
 
 	auto mType = static_cast<_9P2000L::MessageType>(type);
 	switch (mType) {

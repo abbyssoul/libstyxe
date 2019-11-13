@@ -88,7 +88,7 @@ struct DirEntry {
 
 inline
 bool operator== (DirEntry const& lhs, DirEntry const& rhs) noexcept {
-	return lhs.qid == rhs.qid && lhs.offset == rhs.offset && lhs.type == rhs.type && lhs.name == rhs.name;
+	return (lhs.qid == rhs.qid && lhs.offset == rhs.offset && lhs.type == rhs.type && lhs.name == rhs.name);
 }
 
 inline

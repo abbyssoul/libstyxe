@@ -33,10 +33,10 @@ enum class MessageType : Solace::byte {
 
 struct v9fs_stat : public Stat {
 /* 9p2000.u extensions */
-		Solace::StringView extension;
-		Solace::uint32 n_uid;
-		Solace::uint32 n_gid;
-		Solace::uint32 n_muid;
+	Solace::StringView extension;
+	Solace::uint32 n_uid;
+	Solace::uint32 n_gid;
+	Solace::uint32 n_muid;
 };
 
 

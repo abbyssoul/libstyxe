@@ -118,14 +118,14 @@ TEST(P92000L, dirReader_incomplete_buffer_1) {
 TEST(P92000L, dirReader_incomplete_buffer_2) {
 	char buffer[127];
 	MutableMemoryView data = wrapMemory(buffer);
-	ByteWriter dirStream{data};
 
-	_9P2000L::DirEntry entries[] = {
+	_9P2000L::DirEntry const entries[] = {
 		{randomQid(), 0, 31, StringView{"data"}},
 		{randomQid(), 4, 31, StringView{"Awesome file"}},
 		{randomQid(), 1, 32, StringView{"other file"}}
 	};
 
+	ByteWriter dirStream{data};
 	styxe::Encoder encoder{dirStream};
 	for (auto const& e : entries) {
 		encoder << e;
