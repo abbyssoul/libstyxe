@@ -41,11 +41,11 @@ Note that the size of the target buffer should be no more then negotiated messag
 #include <styxe/styxe.hpp>
 
 ...
-Solace::ByteWriter buffer{...};
+Solace::ByteWriter byteWriter{...};
 
-// Write TVersion request into the beffer
-styxe::RequestWriter requestWriter{buffer, 1};
-requestWriter << Request::Version{parser.maxMessageSize(), _9P2000E::kProtocolVersion}
+// Write TVersion request message into the output buffer
+styxe::RequestWriter requestWriter{byteWriter, 1};
+requestWriter << Request::Version{parser.maxMessageSize(), _9P2000U::kProtocolVersion}
 ...
 
 // Write TOpen request into the given destination buffer
@@ -60,14 +60,14 @@ Parsing of 9P protocol messages differ slightly depending on if you are implemen
 ```C++
 styxe::Parser parser{...};
 ...
-Solace::ByteReader buffer{...};
-auto maybeHeader = parser.parseMessageHeader{buffer};
+Solace::ByteReader byteReader{...};
+auto maybeHeader = parser.parseMessageHeader{byteReader};
 if (!maybeHeader) {
     LOG() << "Failed to parse message header";
     return maybeHeader.getError();
 }
 
-auto maybeMessage = parser.parseRequest(*maybeHeader, buffer);
+auto maybeMessage = parser.parseRequest(*maybeHeader, byteReader);
 if (!maybeMessage) {
     LOG() << "Failed to parse message";
     return maybeMessage.getError();
@@ -81,10 +81,10 @@ Alternatively you can prefer fluent interface:
 ```c++
 styxe::Parser parser{...};
 ...
-Solace::ByteReader buffer{...};
-parser.parseMessageHeader{buffer}
-    .then([&](styxe::MessageHeader&& header) {
-        return parser.parseRequest(header, buffer)
+Solace::ByteReader byteReader{...};
+parser.parseMessageHeader(byteReader)
+    .then([&](styxe::MessageHeader header) {
+        return parser.parseRequest(header, byteReader)
             .then(handleRequest);
     })
     .orElse([](Error&& err) {
@@ -92,13 +92,13 @@ parser.parseMessageHeader{buffer}
     });
 ```
 
-### Parsing response (client side):
-```C++
+### Client side: parsing responses from a server
+```c++
 styxe::Parser parser{...};
 ...
-parser.parseMessageHeader(buffer)
-    .then([&](styxe::MessageHeader&& header) {
-        return parser.parseResponse(header, buffer)
+parser.parseMessageHeader(byteReader)
+    .then([&](styxe::MessageHeader header) {
+        return parser.parseResponse(header, byteReader)
             .then(handleRequest);
     })
     .orElse([](Error&& err) {
@@ -107,6 +107,21 @@ parser.parseMessageHeader(buffer)
 ```
 
 See [examples](docs/examples.md) for other example usage of this library.
+
+# Using the library from your project.
+This library needs to be installed on your system in order to be used. There are a few ways this can be done:
+ - You can install the pre-built version via [Conan](https://conan.io/) package manager. (Recommended)
+ - You can build it from sources and install it locally.
+ - You can install a pre-built version via your system package manager such as deb/apt if it is available in your system repository.
+
+## Consuming library with Conan
+The library is available via [Conan](https://conan.io/) package manager. Add this to your project `conanfile.txt`:
+```
+[requires]
+libstyxe/0.6
+```
+
+Please check the latest available [binary version][conan-central-latest].
 
 
 ## Dependencies
@@ -125,10 +140,12 @@ Don't forget to do `git submodule update --init --recursive` on a new checkout t
 ### Build tool dependencies
 In order to build this project following tools must be present in the system:
 * git (to check out project and it’s external modules, see dependencies section)
-* doxygen (for documentation)
-* cppcheck (static code analysis, latest version from git is used as part of the 'codecheck' step)
-* cpplint (for static code analysis in addition to cppcheck)
-* valgrind (for runtime code quality verification)
+* cmake - user for build script generation
+* ninja (opional, used by default)
+* doxygen (opional, for documentation generation)
+* cppcheck (opional, but recommended for static code analysis, latest version from git is used as part of the 'codecheck' step)
+* cpplint (opional, for static code analysis in addition to cppcheck)
+* valgrind (opional, for runtime code quality verification)
 
 This project is using C++17 features extensively. The minimal tested/required version of gcc is gcc-7.
 [CI](https://travis-ci.org/abbyssoul/libstyxe) is using clang-6 and gcc-7.
