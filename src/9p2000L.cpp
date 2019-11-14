@@ -86,12 +86,12 @@ RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Stat
 }
 
 
-RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Open const& message) {
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::LOpen const& message) {
 	return encode(writer, message, message.fid, message.flags);
 }
 
 
-RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::Create const& message) {
+RequestWriter& styxe::operator<< (RequestWriter& writer, _9P2000L::Request::LCreate const& message) {
 	return encode(writer, message,
 				  message.fid,
 				  message.name,
@@ -241,12 +241,12 @@ ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::S
 }
 
 
-ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Open const& message){
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::LOpen const& message){
 	return encode(writer, message, message.qid, message.iounit);
 }
 
 
-ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::Create const& message){
+ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::LCreate const& message){
 	return encode(writer, message, message.qid, message.iounit);
 }
 
@@ -337,12 +337,12 @@ styxe::operator>> (ByteReader& data, _9P2000L::Request::StatFS& dest) {
 }
 
 Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, _9P2000L::Request::Open& dest) {
+styxe::operator>> (ByteReader& data, _9P2000L::Request::LOpen& dest) {
 	return decode(data, dest.fid, dest.flags);
 }
 
 Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, _9P2000L::Request::Create& dest) {
+styxe::operator>> (ByteReader& data, _9P2000L::Request::LCreate& dest) {
 	return decode(data, dest.fid, dest.name, dest.flags, dest.mode, dest.gid);
 }
 
@@ -455,12 +455,12 @@ styxe::operator>> (ByteReader& data, _9P2000L::Response::StatFS& dest) {
 }
 
 Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, _9P2000L::Response::Open& dest) {
+styxe::operator>> (ByteReader& data, _9P2000L::Response::LOpen& dest) {
 	return decode(data, dest.qid, dest.iounit);
 }
 
 Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, _9P2000L::Response::Create& dest) {
+styxe::operator>> (ByteReader& data, _9P2000L::Response::LCreate& dest) {
 	return decode(data, dest.qid, dest.iounit);
 }
 

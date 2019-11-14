@@ -282,13 +282,13 @@ struct VisitRequest {
 				  << field("fid") << req.fid;
 	}
 
-	void operator()(_9P2000L::Request::Open const& req) {
+	void operator()(_9P2000L::Request::LOpen const& req) {
 		std::cout << ':'
 				  << field("fid") << req.fid
 				  << field("flags") << req.flags;
 	}
 
-	void operator()(_9P2000L::Request::Create const& req) {
+	void operator()(_9P2000L::Request::LCreate const& req) {
 		std::cout << ':'
 				  << field("fid") << req.fid
 				  << field("name") << req.name
@@ -545,8 +545,9 @@ struct VisitResponse {
 				  << field("namelen") << resp.namelen;
 	}
 
-//	void operator()(_9P2000L::Response::Open const& resp);
-//	void operator()(_9P2000L::Response::Create const& resp);
+	// Following two methods are not required as the content of Response::Open and Response::LOpen are the same
+//	void operator()(_9P2000L::Response::LOpen const& resp);
+//	void operator()(_9P2000L::Response::LCreate const& resp);
 
 	void operator()(_9P2000L::Response::Symlink const& resp) {
 		std::cout << ':'

@@ -44,10 +44,12 @@ enum class MessageType : Solace::byte {
 struct Request : public styxe::Request {
 
 	struct Partial {
+		/// Partial Short read message. @see Request::ShortRead for details.
 		struct ShortRead {
 			Fid             fid;    //!< Fid of the root directory to walk the path from.
 		};
 
+		/// Partial Short Write message. @see Request::ShortRead for details.
 		struct ShortWrite {
 			Fid			        fid;    //!< Fid of the root directory to walk the path from.
 		};

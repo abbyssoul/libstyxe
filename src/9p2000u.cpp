@@ -24,6 +24,7 @@ using namespace styxe;
 
 
 const StringLiteral _9P2000U::kProtocolVersion{"9P2000.u"};
+const uint32		_9P2000U::kNonUid{static_cast<uint32>(~0)};
 
 
 RequestWriter&

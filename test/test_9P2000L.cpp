@@ -140,10 +140,10 @@ TEST_F(P92000L_Requests, statFS) {
 
 TEST_F(P92000L_Requests, open) {
 	RequestWriter writer{_writer};
-	writer << _9P2000L::Request::Open{3310, 1841};
+	writer << _9P2000L::Request::LOpen{3310, 1841};
 
-	getRequestOrFail<_9P2000L::Request::Open>()
-			.then([](_9P2000L::Request::Open&& request) {
+	getRequestOrFail<_9P2000L::Request::LOpen>()
+			.then([](_9P2000L::Request::LOpen&& request) {
 				ASSERT_EQ(3310, request.fid);
 				ASSERT_EQ(1841, request.flags);
 			});
@@ -152,10 +152,10 @@ TEST_F(P92000L_Requests, open) {
 
 TEST_F(P92000L_Requests, create) {
 	RequestWriter writer{_writer};
-	writer << _9P2000L::Request::Create{1734, "mcFance", 11, 8881919, 999888};
+	writer << _9P2000L::Request::LCreate{1734, "mcFance", 11, 8881919, 999888};
 
-	getRequestOrFail<_9P2000L::Request::Create>()
-			.then([](_9P2000L::Request::Create&& request) {
+	getRequestOrFail<_9P2000L::Request::LCreate>()
+			.then([](_9P2000L::Request::LCreate&& request) {
 				ASSERT_EQ(1734, request.fid);
 				ASSERT_EQ("mcFance", request.name);
 				ASSERT_EQ(11, request.flags);
@@ -460,10 +460,10 @@ TEST_F(P92000L_Responses, StatFS) {
 TEST_F(P92000L_Responses, open) {
 	auto qid = randomQid();
 	ResponseWriter writer{_writer, 3};
-	writer << _9P2000L::Response::Open{{qid, 8732874}};
+	writer << _9P2000L::Response::LOpen{{qid, 8732874}};
 
-	getResponseOrFail<_9P2000L::Response::Open>()
-			.then([qid] (_9P2000L::Response::Open const& response) {
+	getResponseOrFail<_9P2000L::Response::LOpen>()
+			.then([qid] (_9P2000L::Response::LOpen const& response) {
 				ASSERT_EQ(qid, response.qid);
 				ASSERT_EQ(8732874, response.iounit);
 			});
@@ -472,10 +472,10 @@ TEST_F(P92000L_Responses, open) {
 TEST_F(P92000L_Responses, create) {
 	auto qid = randomQid();
 	ResponseWriter writer{_writer, 3};
-	writer << _9P2000L::Response::Create{{qid, 3123}};
+	writer << _9P2000L::Response::LCreate{{qid, 3123}};
 
-	getResponseOrFail<_9P2000L::Response::Create>()
-			.then([qid] (_9P2000L::Response::Create const& response) {
+	getResponseOrFail<_9P2000L::Response::LCreate>()
+			.then([qid] (_9P2000L::Response::LCreate const& response) {
 				ASSERT_EQ(qid, response.qid);
 				ASSERT_EQ(3123, response.iounit);
 			});

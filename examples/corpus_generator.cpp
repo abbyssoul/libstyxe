@@ -60,9 +60,9 @@ Stat genStats(StringView uid, StringView gid) {
 }
 
 
-_9P2000U::v9fs_stat
+_9P2000U::StatEx
 genStatsExt(StringView uid, StringView gid) {
-	_9P2000U::v9fs_stat result;
+	_9P2000U::StatEx result;
 
 	genStats(result, uid, gid);
 
@@ -197,8 +197,8 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Stri
 		Solace::uint32 gid{45345};
 
 		dump(requestWriter << _9P2000L::Request::StatFS{3213});
-		dump(requestWriter << _9P2000L::Request::Open{1234, 1348763});
-		dump(requestWriter << _9P2000L::Request::Create{});
+		dump(requestWriter << _9P2000L::Request::LOpen{1234, 1348763});
+		dump(requestWriter << _9P2000L::Request::LCreate{});
 		dump(requestWriter << _9P2000L::Request::Symlink{3123, "xfile", "yfile", gid});
 		dump(requestWriter << _9P2000L::Request::MkNode{21132, "nnode", 23432, 123, 3212, gid});
 		dump(requestWriter << _9P2000L::Request::Rename{123, 213, "xname"});
@@ -265,8 +265,8 @@ void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, Str
 	} else if (version == _9P2000L::kProtocolVersion) {
 		dump(responseWriter << _9P2000L::Response::LError{});
 		dump(responseWriter << _9P2000L::Response::StatFS{});
-		dump(responseWriter << _9P2000L::Response::Open{randomQid(QidType::FILE), 4096});
-		dump(responseWriter << _9P2000L::Response::Create{randomQid(QidType::FILE), 4096});
+		dump(responseWriter << _9P2000L::Response::LOpen{randomQid(QidType::FILE), 4096});
+		dump(responseWriter << _9P2000L::Response::LCreate{randomQid(QidType::FILE), 4096});
 		dump(responseWriter << _9P2000L::Response::Symlink{randomQid(QidType::LINK)});
 		dump(responseWriter << _9P2000L::Response::MkNode{randomQid(QidType::MOUNT)});
 		dump(responseWriter << _9P2000L::Response::Rename{});

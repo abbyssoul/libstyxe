@@ -27,7 +27,6 @@ namespace _9P2000L {
 /// Protocol version literal
 extern const Solace::StringLiteral kProtocolVersion;
 
-extern const Solace::uint32 kNonUNAME;
 
 /**
  * 9P2000.L messages
@@ -96,76 +95,131 @@ bool operator!= (DirEntry const& lhs, DirEntry const& rhs) noexcept {
 	return !operator==(lhs, rhs);
 }
 
+/// Bitmask values to be used for GetAttr request and response. @see Response::GetAttr
+struct AttributesMask {
+	static constexpr Solace::uint64 const MODE = 0x00000001ULL;  //!< Bitmask for `mode`. @see Response::GetAttr::mode
+	static constexpr Solace::uint64 const NLINK = 0x00000002ULL;  //!<  Bitmask for `nlinks` attribute.
+	static constexpr Solace::uint64 const UID = 0x00000004ULL;  //!< Bitmask for `uid` attribute.
+	static constexpr Solace::uint64 const GID = 0x00000008ULL;  //!< Bitmask for `gid` attribute.
+	static constexpr Solace::uint64 const RDEV = 0x00000010ULL;  //!< Bitmask for `rdev` attribute.
+	static constexpr Solace::uint64 const ATIME = 0x00000020ULL;  //!< Bitmask for `atime` attribute.
+	static constexpr Solace::uint64 const MTIME = 0x00000040ULL;  //!< Bitmask for `mtime` attribute.
+	static constexpr Solace::uint64 const CTIME = 0x00000080ULL;  //!< Bitmask for `ctime` attribute.
+	static constexpr Solace::uint64 const INO = 0x00000100ULL;  //!< Bitmask for `ino` attribute.
+	static constexpr Solace::uint64 const SIZE = 0x00000200ULL;  //!< Bitmask for `size` attribute.
+	static constexpr Solace::uint64 const BLOCKS = 0x00000400ULL;  //!< Bitmask for `blocks` attribute.
+
+	static constexpr Solace::uint64 const BTIME = 0x00000800ULL;  //!< Bitmask for `btime` attribute.
+	static constexpr Solace::uint64 const GEN = 0x00001000ULL;  //!< Bitmask for `gen` attribute.
+	static constexpr Solace::uint64 const DATA_VERSION = 0x00002000ULL;  //!< Bitmask for `data_verison` attribute.
+
+	static constexpr Solace::uint64 const BASIC = 0x000007ffULL;  //!< Mask for fields up to BLOCKS
+	static constexpr Solace::uint64 const ALL = 0x00003fffULL;  //!< Mask for All fields above
+};
+
+/// Bit mask of attributes to be used for SetAttr message request
+struct SetAttributesMaks {
+	static constexpr Solace::uint32 const MODE = 0x00000001UL;  //!< Bitmask for `mode`. @see Request::SetAttr::mode
+	static constexpr Solace::uint32 const UID = 0x00000002UL;   //!< Bitmask for `uid`. @see Request::SetAttr::uid
+	static constexpr Solace::uint32 const GID = 0x00000004UL;   //!< Bitmask for `gid`. @see Request::SetAttr::gid
+	static constexpr Solace::uint32 const SIZE = 0x00000008UL;  //!< Bitmask for `size`. @see Request::SetAttr::size
+	static constexpr Solace::uint32 const ATIME = 0x00000010UL;  //!< Bitmask for `atime`. @see Request::SetAttr::atime
+	static constexpr Solace::uint32 const MTIME = 0x00000020UL;  //!< Bitmask for `mtime`. @see Request::SetAttr::mtime
+	static constexpr Solace::uint32 const CTIME = 0x00000040UL;  //!< Bitmask for `ctime`. @see Request::SetAttr::ctime
+	static constexpr Solace::uint32 const ATIME_SET = 0x00000080UL;  //!< Bitmask for `atime`. Use provided. value.
+	static constexpr Solace::uint32 const MTIME_SET = 0x00000100UL;  //!< Bitmask for `mtime`. Use provided. value.
+};
+
+
+/// Type of lock operation for Lock request.
+struct LockType {
+	static constexpr Solace::byte const ReadLock = 0;		//!< Aquire Read-lock
+	static constexpr Solace::byte const WriteLock = 1;		//!< Aquire Write-lock
+	static constexpr Solace::byte const Unlock = 2;			//!< Unlock existing lock
+};
+
+/// Lock flag bits
+struct LockFlags {
+	static constexpr Solace::uint32 const BLOCK = 1;		//!< blocking request
+	static constexpr Solace::uint32 const RECLAIM = 2;		//!< reserved for future use
+};
+
+/// Lock status types:
+struct LockStatus {
+	static constexpr Solace::byte const SUCCESS = 0;		//!< Lock operation has been successful
+	static constexpr Solace::byte const BLOCKED = 1;		//!< Lock operaiton has been blocked
+	static constexpr Solace::byte const ERROR = 2;			//!< Lock operation has failed
+	static constexpr Solace::byte const GRACE = 3;			//!< ????
+};
 
 /// 9P2000.L requests
 struct Request {
 
-	/// Get file system information request
+	/// Get file system information
 	struct StatFS {
-		Fid fid;
+		Fid fid;  //!< Fid contained be the FS the stats are qeeried for.
 	};
 
 	/// Open a file
-	struct Open /*: public ::styxe::Request::Open*/ {
+	struct LOpen {
 		Fid				fid;     //!< Client provided Fid to represent the newly opened file.
 		Solace::uint32	flags;   //!< File open-flags
 	};
 
 
 	/// Create regular file
-	struct Create /*: public ::styxe::Request::Create*/ {
-		Fid                 fid;    //!< Fid of the directory where the file should be created.
-		Solace::StringView  name;   //!< Name of the file to be created.
-		Solace::uint32      flags;   //!< Permissions to the newly created file.
-		Solace::uint32      mode;   //!< The mode the file will be opened in.
-		Solace::uint32      gid;
+	struct LCreate {
+		Fid                 fid;		//!< Fid of the directory where the file should be created.
+		Solace::StringView  name;		//!< Name of the file to be created.
+		Solace::uint32      flags;		//!< Permissions to the newly created file.
+		Solace::uint32      mode;		//!< Linux creat(2) mode bits.
+		Solace::uint32      gid;		//!< effective gid of the caller.
 	};
 
 	/// Create symbolic link response
 	struct Symlink {
-		Fid                 fid;    //!< Fid of the directory where the file should be created.
-		Solace::StringView  name;   //!< Name of the file to be created.
-		Solace::StringView  symtgt;
-		Solace::uint32      gid;
+		Fid                 fid;		//!< Fid of the directory where the file should be created.
+		Solace::StringView  name;		//!< Name of the file to be created.
+		Solace::StringView  symtgt;		//!< Name of the symlink target
+		Solace::uint32      gid;		//!< effective gid of the caller.
 	};
 
 	/// Create a device node
 	struct MkNode {
-		Fid                 dfid;    //!< Fid of the directory where the file should be created.
-		Solace::StringView  name;   //!< Name of the file to be created.
-		Solace::uint32      mode;   //!< The mode the file will be opened in.
-		Solace::uint32      major;
-		Solace::uint32      minor;
-		Solace::uint32      gid;
+		Fid                 dfid;		//!< Fid of the directory where the file should be created.
+		Solace::StringView  name;		//!< Name of the file to be created.
+		Solace::uint32      mode;		//!< The mode the file will be opened in.
+		Solace::uint32      major;		//!< Node's major number
+		Solace::uint32      minor;		//!< Node's minor number
+		Solace::uint32      gid;		//!< Effective gid of the caller.
 	};
 
 	/// Rename a file
 	struct Rename {
-		Fid fid;
-		Fid dfid;
-		Solace::StringView name;
+		Fid fid;						//!< Fid of the file to rename
+		Fid dfid;						//!< Fid of the directory where the new file will reside.
+		Solace::StringView name;		//!< New name for the file
 	};
 
 	/// Read value of symbolic link
 	struct ReadLink {
-		Fid fid;
+		Fid fid;		//!< Fid of the link file to read value of.
 	};
 
 	/// Get file attributes
 	struct GetAttr {
-		Fid fid;
-		Solace::uint64 request_mask;
+		Fid fid;					  //!< Fid of the file system object to get attributes of.
+		Solace::uint64 request_mask;  //!< Bitmask indicating which fields are requested. @see AttributesMask
 	};
 
 	/// Set file attributes
 	struct SetAttr {
-		Fid fid;
-		Solace::uint32 valid;		// FIXME 32 / 64?
+		Fid fid;						//!< Fid of the file system object to set attributes for.
+		Solace::uint32 valid;			//!< Bit mask of the attributes to set. @see SetAttributesMaks
 		Solace::uint32 mode;			//!< protection
 		Solace::uint32 uid;				//!< user ID of owner
 		Solace::uint32 gid;				//!< group ID of owner
 		Solace::uint64 size;			//!< total size, in bytes
-
 		Solace::uint64 atime_sec;		//!< time of last access
 		Solace::uint64 atime_nsec;		//!< time of last access - nano-second portion
 		Solace::uint64 mtime_sec;		//!< time of last modification
@@ -174,81 +228,81 @@ struct Request {
 
 	/// Prepare to read/list extended attributes
 	struct XAttrWalk {
-		Fid fid;
-		Fid newfid;
-		Solace::StringView name;
+		Fid fid;						//!< Fid of a file system object to read attributes of.
+		Fid newfid;						//!< Fid pointing to xattr name used to read the xattr value.
+		Solace::StringView name;		//!< Name of the attribute or null to get a list of attributes.
 	};
 
 	/// Prepare to set extended attribute
 	struct XAttrCreate {
-		Fid fid;
-		Solace::StringView name;
-		Solace::uint64 attr_size;
-		Solace::uint32 flags;
+		Fid fid;						//!< Fid pointing to the xattr name to be used to set the xattr value.
+		Solace::StringView name;		//!< Name of the attribute.
+		Solace::uint64 attr_size;		//!< Data size of the attribute.
+		Solace::uint32 flags;			//!< derived from set Linux setxattr.
 	};
 
-	/// Read a directory
+	/// Read a list of directory entries
 	struct ReadDir {
-		Fid fid;
-		Solace::uint64 offset;
-		Solace::uint32 count;
+		Fid fid;					//!< Fid of the directory, previously opened with lopen, to read list from
+		Solace::uint64 offset;		//!< Offset in to the directory stream. Opaqu value, zero on the first call.
+		Solace::uint32 count;		//!< Most number of bytes to be returned in data.
 	};
 
-	/// Flush any cached data to disk
+	/// Tell the server to flush any cached data associated with a fid, previously opened with lopen.
 	struct FSync {
-		Fid fid;
+		Fid fid;  //!< Fid of the file, previously opened with lopen, to flush IO operations for.
 	};
 
 	/// Acquire or release a POSIX record lock
 	struct Lock {
-		Fid fid;
-		Solace::byte type;  //<! Type of lock: F_RDLCK, F_WRLCK, F_UNLCK
-		Solace::uint32 flags;
+		Fid fid;						//!< Fid of a filesystem object to aquire / release lock on.
+		Solace::byte type;				//!< Type of the lock. @see LockType
+		Solace::uint32 flags;			//!< Extra flags. @see LockFlags
 		Solace::uint64 start;			//!< Starting offset for lock
 		Solace::uint64 length;			//!< Number of bytes to lock
 		Solace::uint32 proc_id;			//!< PID of process blocking our lock (F_GETLK only)
-		Solace::StringView client_id;
+		Solace::StringView client_id;   //!< Id uniquely identifying the lock requester
 	};
 
 	/// Test for the existence of a POSIX record lock
 	struct GetLock {
-		Fid fid;
-		Solace::byte type;
-		Solace::uint64 start;
-		Solace::uint64 length;
-		Solace::uint32 proc_id;
-		Solace::StringView client_id;
+		Fid fid;							//!< Fid of a filesystem object to test for lock.
+		Solace::byte type;					//!< Type of the lock. @see LockType
+		Solace::uint64 start;				//!< Starting offset for lock
+		Solace::uint64 length;				//!< Number of bytes to lock
+		Solace::uint32 proc_id;				//!< PID of process blocking our lock (F_GETLK only)
+		Solace::StringView client_id;		//!< Id uniquely identifying the lock requester
 	};
 
 	/// create hard link
 	struct Link {
-		Fid dfid;	  //!< Directory Fid to create link at.
-		Fid fid;	 //!< link target
-		Solace::StringView name;  //!< Name of the target link
+		Fid dfid;						//!< Directory Fid to create link at.
+		Fid fid;						//!< link target
+		Solace::StringView name;		//!< Name of the target link
 	};
 
 	/// Create directory
 	struct MkDir {
-		Fid dfid;
-		Solace::StringView name;
-		Solace::uint32 mode;  //!< Linux mkdir(2) mode bits.
-		Solace::uint32 gid;	  //!< Effective group ID of the caller.
+		Fid dfid;						//!< Fid of a directory to create a new directory in.
+		Solace::StringView name;		//!< Name of a new directory.
+		Solace::uint32 mode;			//!< Linux mkdir(2) mode bits.
+		Solace::uint32 gid;				//!< Effective group ID of the caller.
 	};
 
 	/// Rename a file or directory
 	struct RenameAt {
-		Fid olddirfid;
-		Solace::StringView oldname;
+		Fid olddirfid;					//!< Fid of a directory where file to be renamed, resides
+		Solace::StringView oldname;		//!< Old name of the file to be renamed.
 
-		Fid newdirfid;
-		Solace::StringView newname;
+		Fid newdirfid;					//!< Fid of a directory where the file should reside after renaming.
+		Solace::StringView newname;		//!< New name of the file.
 	};
 
 	/// Unlink a file or directory
 	struct UnlinkAt {
-		Fid dfid;
-		Solace::StringView name;
-		Solace::uint32 flags;
+		Fid dfid;						//!< Fid of a directory to unlink a new from.
+		Solace::StringView name;		//!< Name to be unlinked from a directory
+		Solace::uint32 flags;			//!< Extra flags
 	};
 
 };
@@ -258,7 +312,7 @@ struct Request {
 struct Response {
 	/// Error resoponse from a server
 	struct LError {
-		Solace::uint32		ecode;  /// Error code
+		Solace::uint32		ecode;  //!< Error code
 	};
 
 	/// Get file system information response
@@ -275,11 +329,11 @@ struct Response {
 	};
 
 	/// Open file response
-	struct Open : public ::styxe::Response::Open {
+	struct LOpen : public ::styxe::Response::Open {
 	};
 
 	/// Create file response
-	struct Create : public ::styxe::Response::Create {
+	struct LCreate : public ::styxe::Response::Create {
 	};
 
 	/// Create symbolic link response
@@ -297,13 +351,13 @@ struct Response {
 
 	/// Read value of symbolic link response
 	struct ReadLink {
-		Solace::StringView target;
+		Solace::StringView target;		//!< Contents of the symbolic link requested
 	};
 
 	/// Get file attributes response
 	struct GetAttr {
-		Qid qid;
-		Solace::uint64 valid;
+		Qid qid;						//!< qid of the attributes object
+		Solace::uint64 valid;			//!< Bitmask indicating which fields are valid. @see AttributesMask
 		Solace::uint32 mode;			//!< protection
 		Solace::uint32 uid;				//!< user ID of owner
 		Solace::uint32 gid;				//!< group ID of owner
@@ -333,7 +387,7 @@ struct Response {
 
 	/// prepare to read/list extended attributes response
 	struct XAttrWalk {
-		Solace::uint64 size;
+		Solace::uint64 size;  //!< A field of undocumented utility
 	};
 
 	/// Prepare to set extended attribute response
@@ -349,16 +403,16 @@ struct Response {
 
 	/// Acquire or release a POSIX record lock response
 	struct Lock {
-		Solace::byte status;
+		Solace::byte status;  //!< Status code of the lock operation. @see LockStatus for the list of valid codes
 	};
 
 	/// Test for the existence of a POSIX record lock response
 	struct GetLock {
-		Solace::byte type;
-		Solace::uint64 start;
-		Solace::uint64 length;
-		Solace::uint32 proc_id;
-		Solace::StringView client_id;
+		Solace::byte type;					//!< Type of the lock. @see LockType
+		Solace::uint64 start;				//!< Starting offset for lock
+		Solace::uint64 length;				//!< Number of bytes to lock
+		Solace::uint32 proc_id;				//!< PID of process blocking our lock (F_GETLK only)
+		Solace::StringView client_id;		//!< Id uniquely identifying the lock requester
 	};
 
 	/// create hard link response
@@ -366,7 +420,7 @@ struct Response {
 
 	/// Create directory
 	struct MkDir {
-		Qid qid;
+		Qid qid;		//!< Qid of the new directory
 	};
 
 	/// Rename a file or directory response
@@ -392,12 +446,20 @@ messageTypeToString(Solace::byte type) noexcept;
  * @see _9P2000L::Response::ReadDir
  */
 struct DirEntryReader {
-	using value_type = DirEntry;
-	using reference = DirEntry&;
-	using const_reference = DirEntry const&;
+	using value_type = DirEntry;  //!< Type alias for iterator valu_type.
+	using reference = DirEntry&;  //!< Type alias for iterator value reference type.
+	using const_reference = DirEntry const&;  //!< Type alias for iterator const_reference type.
 
+	/**
+	 * Iterator that reads DirEntry from a byte buffer..
+	 */
 	struct Iterator {
 
+		/**
+		 * Construct a new DirEntry reading interator.
+		 * @param buffer Memory buffer to read entries from.
+		 * @param offset Offset into the buffer to start reading from.
+		 */
 		Iterator(Solace::MemoryView buffer, Solace::ByteReader::size_type offset) noexcept
 			: _reader{buffer}
 			, _offset{offset}
@@ -412,6 +474,10 @@ struct DirEntryReader {
 			}
 		}
 
+		/**
+		 * Try to read an entry from the buffer at the current read position.
+		 * @return Result of the read attempt: Nothing on success or an error.
+		 */
 		Solace::Result<void, Error> read();
 
 		reference operator* () { return _value; }
@@ -462,10 +528,16 @@ struct DirEntryReader {
 		: _buffer{buffer}
 	{}
 
-	//!< Get begin iterator
+	/**
+	 * Get begin iterator
+	 * @return Iterator pointing to the firs element in the sequence, if any.
+	 */
 	Iterator being() noexcept { return {_buffer, 0}; }
 
-	//!< Get end iterator
+	/**
+	 * Get an end iterator
+	 * @return Iterator pointing to the one value after the sequence.
+	 */
 	Iterator end() noexcept { return {_buffer, _buffer.size()}; }
 
 private:
@@ -496,8 +568,8 @@ Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, _9P2000L::DirEntry
 
 
 RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::StatFS const& dest);
-RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::Open const& dest);
-RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::Create const& dest);
+RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::LOpen const& dest);
+RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::LCreate const& dest);
 RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::Symlink const& dest);
 RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::MkNode const& dest);
 RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::Rename const& dest);
@@ -517,8 +589,8 @@ RequestWriter& operator<< (RequestWriter& writer, _9P2000L::Request::UnlinkAt co
 
 ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::LError const& dest);
 ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::StatFS const& dest);
-ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::Open const& dest);
-ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::Create const& dest);
+ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::LOpen const& dest);
+ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::LCreate const& dest);
 ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::Symlink const& dest);
 ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::MkNode const& dest);
 ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::Rename const& dest);
@@ -541,9 +613,9 @@ ResponseWriter& operator<< (ResponseWriter& writer, _9P2000L::Response::UnlinkAt
 Solace::Result<Solace::ByteReader&, Error>
 operator>> (Solace::ByteReader& data, _9P2000L::Request::StatFS& dest);
 Solace::Result<Solace::ByteReader&, Error>
-operator>> (Solace::ByteReader& data, _9P2000L::Request::Open& dest);
+operator>> (Solace::ByteReader& data, _9P2000L::Request::LOpen& dest);
 Solace::Result<Solace::ByteReader&, Error>
-operator>> (Solace::ByteReader& data, _9P2000L::Request::Create& dest);
+operator>> (Solace::ByteReader& data, _9P2000L::Request::LCreate& dest);
 Solace::Result<Solace::ByteReader&, Error>
 operator>> (Solace::ByteReader& data, _9P2000L::Request::Symlink& dest);
 Solace::Result<Solace::ByteReader&, Error>
@@ -582,9 +654,9 @@ operator>> (Solace::ByteReader& data, _9P2000L::Response::LError& dest);
 Solace::Result<Solace::ByteReader&, Error>
 operator>> (Solace::ByteReader& data, _9P2000L::Response::StatFS& dest);
 Solace::Result<Solace::ByteReader&, Error>
-operator>> (Solace::ByteReader& data, _9P2000L::Response::Open& dest);
+operator>> (Solace::ByteReader& data, _9P2000L::Response::LOpen& dest);
 Solace::Result<Solace::ByteReader&, Error>
-operator>> (Solace::ByteReader& data, _9P2000L::Response::Create& dest);
+operator>> (Solace::ByteReader& data, _9P2000L::Response::LCreate& dest);
 Solace::Result<Solace::ByteReader&, Error>
 operator>> (Solace::ByteReader& data, _9P2000L::Response::Symlink& dest);
 Solace::Result<Solace::ByteReader&, Error>
@@ -630,10 +702,10 @@ constexpr Solace::byte
 messageCodeOf<_9P2000L::Request::StatFS>() noexcept { return asByte(_9P2000L::MessageType::Tstatfs); }
 template <>
 constexpr Solace::byte
-messageCodeOf<_9P2000L::Request::Open>() noexcept { return asByte(_9P2000L::MessageType::Tlopen); }
+messageCodeOf<_9P2000L::Request::LOpen>() noexcept { return asByte(_9P2000L::MessageType::Tlopen); }
 template <>
 constexpr Solace::byte
-messageCodeOf<_9P2000L::Request::Create>() noexcept { return asByte(_9P2000L::MessageType::Tlcreate); }
+messageCodeOf<_9P2000L::Request::LCreate>() noexcept { return asByte(_9P2000L::MessageType::Tlcreate); }
 template <>
 constexpr Solace::byte
 messageCodeOf<_9P2000L::Request::Symlink>() noexcept { return asByte(_9P2000L::MessageType::Tsymlink); }
@@ -692,10 +764,10 @@ constexpr Solace::byte
 messageCodeOf<_9P2000L::Response::StatFS>() noexcept { return asByte(_9P2000L::MessageType::Rstatfs); }
 template <>
 constexpr Solace::byte
-messageCodeOf<_9P2000L::Response::Open>() noexcept { return asByte(_9P2000L::MessageType::Rlopen); }
+messageCodeOf<_9P2000L::Response::LOpen>() noexcept { return asByte(_9P2000L::MessageType::Rlopen); }
 template <>
 constexpr Solace::byte
-messageCodeOf<_9P2000L::Response::Create>() noexcept { return asByte(_9P2000L::MessageType::Rlcreate); }
+messageCodeOf<_9P2000L::Response::LCreate>() noexcept { return asByte(_9P2000L::MessageType::Rlcreate); }
 template <>
 constexpr Solace::byte
 messageCodeOf<_9P2000L::Response::Symlink>() noexcept { return asByte(_9P2000L::MessageType::Rsymlink); }

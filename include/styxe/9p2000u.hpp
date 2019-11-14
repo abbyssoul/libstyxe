@@ -26,17 +26,24 @@ namespace _9P2000U {
 /// Protocol version literal
 extern const Solace::StringLiteral kProtocolVersion;
 
+/// "Magic value" to indicate no valid uid.
+extern const Solace::uint32 kNonUid;
+
 
 enum class MessageType : Solace::byte {
 	/// 9p2000.u adds no new messages but extand existing
 };
 
-struct v9fs_stat : public Stat {
+/**
+ * 9p2000.U extented version of Stat struct.
+ * @see Stat.
+ */
+struct StatEx: public Stat {
 /* 9p2000.u extensions */
-	Solace::StringView extension;
-	Solace::uint32 n_uid;
-	Solace::uint32 n_gid;
-	Solace::uint32 n_muid;
+	Solace::StringView extension;   //!< UNIX extension to store data about special files (links, devices, pipes, etc.)
+	Solace::uint32 n_uid;			//!< numeric id of the user who owns the file
+	Solace::uint32 n_gid;			//!< numeric id of the group associated with the file
+	Solace::uint32 n_muid;			//!< numeric id of the user who last modified the file
 };
 
 
@@ -46,7 +53,7 @@ struct v9fs_stat : public Stat {
  * @return Ref to the encoder for fluency.
  */
 inline
-Encoder& operator<< (Encoder& encoder, v9fs_stat const& value) {
+Encoder& operator<< (Encoder& encoder, StatEx const& value) {
 	return encoder << static_cast<Stat const&>(value)
 				   << value.extension
 				   << value.n_uid
@@ -61,7 +68,7 @@ Encoder& operator<< (Encoder& encoder, v9fs_stat const& value) {
  * @return Ref to the decoder or Error if operation has failed.
  */
 inline
-Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, v9fs_stat& dest) {
+Solace::Result<Decoder&, Error> operator>> (Decoder& decoder, StatEx& dest) {
 	return decoder >> static_cast<Stat&>(dest)
 				   >> dest.extension
 				   >> dest.n_uid
@@ -75,12 +82,12 @@ struct Request {
 
 	/// Messages to establish a connection.
 	struct Auth : public ::styxe::Request::Auth {
-		Solace::uint32		n_uname;
+		Solace::uint32		n_uname;  //!< A numeric uname to map a string to a numeric id.
 	};
 
 	/// A fresh introduction from a user on the client machine to the server.
 	struct Attach : public ::styxe::Request::Attach {
-		Solace::uint32		n_uname;
+		Solace::uint32		n_uname;  //!< A numeric uname to map a string to a numeric id.
 	};
 
 	/**
@@ -96,8 +103,8 @@ struct Request {
 	 * A request to update file stat fields.
 	 */
 	struct WStat {
-		Fid				fid;    //!< Fid of the file to update stats on.
-		v9fs_stat		stat;   //!< New stats to update file info to.
+		Fid			fid;    //!< Fid of the file to update stats on.
+		StatEx		stat;   //!< New stats to update file info to.
 	};
 
 };
@@ -105,15 +112,16 @@ struct Request {
 
 /// 9P2000.u messages
 struct Response {
+
 	/// Error resoponse from a server
 	struct Error: public ::styxe::Response::Error {
-		Solace::uint32		errcode;  /// Error code
+		Solace::uint32		errcode;  //!< Error code
 	};
 
 	/// Stat response
 	struct Stat {
 		var_datum_size_type dummySize;  //!< Dummy variable size of data.
-		v9fs_stat			data;       //!< File stat data
+		StatEx			data;			//!< File stat data
 	};
 };
 
@@ -134,7 +142,7 @@ messageTypeToString(Solace::byte type) noexcept {
 
 
 inline
-size_type protocolSize(_9P2000U::v9fs_stat const& value) noexcept {
+size_type protocolSize(_9P2000U::StatEx const& value) noexcept {
 	return protocolSize(static_cast<Stat const&>(value))
 			+ protocolSize(value.extension)
 			+ protocolSize(value.n_uid)

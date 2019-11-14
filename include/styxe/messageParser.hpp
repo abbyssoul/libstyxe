@@ -51,8 +51,8 @@ using RequestMessage = std::variant<
 							_9P2000E::Request::ShortWrite,
 							// 9P2000.L extra messages
 							_9P2000L::Request::StatFS,
-							_9P2000L::Request::Open,
-							_9P2000L::Request::Create,
+							_9P2000L::Request::LOpen,
+							_9P2000L::Request::LCreate,
 							_9P2000L::Request::Symlink,
 							_9P2000L::Request::MkNode,
 							_9P2000L::Request::Rename,
@@ -97,8 +97,8 @@ using ResponseMessage = std::variant<
 							// 9P2000.L extra messages
 							_9P2000L::Response::LError,
 							_9P2000L::Response::StatFS,
-							_9P2000L::Response::Open,
-							_9P2000L::Response::Create,
+							_9P2000L::Response::LOpen,
+							_9P2000L::Response::LCreate,
 							_9P2000L::Response::Symlink,
 							_9P2000L::Response::MkNode,
 							_9P2000L::Response::Rename,
@@ -137,7 +137,7 @@ struct UnversionedParser {
 
 	/**
 	 * Parse 9P message header from a byte buffer.
-	 * @param buffer Byte buffer to read message header from.
+	 * @param byteStream Byte buffer to read message header from.
 	 * @return Resulting message header if parsed successfully or an error otherwise.
 	 */
 	Solace::Result<MessageHeader, Error>
@@ -158,14 +158,23 @@ struct UnversionedParser {
 	 */
 	size_type maxMessageSize() const noexcept { return headerSize() + maxPayloadSize; }
 
-	size_type const         maxPayloadSize;		/// Initial value of the maximum message payload size in bytes.
+	size_type const         maxPayloadSize;		//!< Initial value of the maximum message payload size in bytes.
 };
 
 
-
+/**
+ * Base class for 9p message parsers.
+ * This class incapsulate common parts between request and response parser.
+ */
 struct ParserBase {
-	using VersionedNameMapper = Solace::StringView	(*)(Solace::byte);
+	/// Type alias for messge code -> StringView mapping.
+	using VersionedNameMapper = Solace::StringView (*)(Solace::byte);
 
+	/**
+	 * Construct a new ParserBase
+	 * @param payloadSize Maximum negoriated payload size in bytes. Note: message size is payload + header..
+	 * @param nameMapper A function to convert message code to strings. It depends on selected protocol version.
+	 */
 	ParserBase(size_type payloadSize, VersionedNameMapper nameMapper) noexcept
 		: _maxPayloadSize{payloadSize}
 		, _nameMapper{nameMapper}
@@ -180,7 +189,7 @@ struct ParserBase {
 
 	/**
 	 * Get maximum message size in bytes. That includes size of a message header and the payload.
-	 * @return
+	 * @return Negotiated maximum size of a message in bytes.
 	 */
 	size_type maxMessageSize() const noexcept { return headerSize() + _maxPayloadSize; }
 
@@ -191,7 +200,7 @@ private:
 };
 
 /**
- * An implementation of 9p message parser.
+ * An implementation of 9p response message parser.
  *
  * The protocol is state-full as version, supported extentions and messages size are negotiated.
  * Thus this info must be preserved during communication. Instance of this class serves this purpose as well as
@@ -204,7 +213,7 @@ private:
  * (That is not technically correct as current implementation does allocate memory when dealing with Solace::Path
  * objects as there is no currently availiable PathView version)
  *
- * In order to create 9P2000 messages please @see RequestWriter.
+ * In order to create 9P2000 messages please @see MessageWriter.
  */
 struct ResponseParser :
 		public ParserBase {
@@ -238,7 +247,7 @@ private:
 
 
 /**
- * An implementation of 9p message parser.
+ * An implementation of 9p request message parser.
  *
  * The protocol is state-full as version, supported extentions and messages size are negotiated.
  * Thus this info must be preserved during communication. Instance of this class serves this purpose as well as

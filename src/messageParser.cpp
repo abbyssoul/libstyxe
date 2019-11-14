@@ -199,8 +199,8 @@ RequestParseTable getRequestParserTable() {
 	auto table = _9P2000U::getRequestParserTable();
 
 table[asByte(MessageType::Tstatfs)] = parseRequest<Request::StatFS>;
-table[asByte(MessageType::Tlopen)] = parseRequest<Request::Open>;
-table[asByte(MessageType::Tlcreate)] = parseRequest<Request::Create>;
+table[asByte(MessageType::Tlopen)] = parseRequest<Request::LOpen>;
+table[asByte(MessageType::Tlcreate)] = parseRequest<Request::LCreate>;
 table[asByte(MessageType::Tsymlink)] = parseRequest<Request::Symlink>;
 table[asByte(MessageType::Tmknod)] = parseRequest<Request::MkNode>;
 table[asByte(MessageType::Trename)] = parseRequest<Request::Rename>;
@@ -227,8 +227,8 @@ ResponseParseTable getResponseParserTable() {
 
 	table[asByte(MessageType::Rlerror)] = parseResponse<Response::LError>;
 	table[asByte(MessageType::Rstatfs)] = parseResponse<Response::StatFS>;
-	table[asByte(MessageType::Rlopen)] = parseResponse<Response::Open>;
-	table[asByte(MessageType::Rlcreate)] = parseResponse<Response::Create>;
+	table[asByte(MessageType::Rlopen)] = parseResponse<Response::LOpen>;
+	table[asByte(MessageType::Rlcreate)] = parseResponse<Response::LCreate>;
 	table[asByte(MessageType::Rsymlink)] = parseResponse<Response::Symlink>;
 	table[asByte(MessageType::Rmknod)] = parseResponse<Response::MkNode>;
 	table[asByte(MessageType::Rrename)] = parseResponse<Response::Rename>;

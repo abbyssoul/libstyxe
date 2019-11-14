@@ -224,6 +224,9 @@ enum class MessageType : Solace::byte {
 struct Request {
 
 	struct Partial {
+		/**
+		 * Parial Walk message. @see Request::Walk for message details.
+		 */
 		struct Walk {
 			Fid             fid;            //!< Fid of the directory where to start walk from.
 			Fid             newfid;         //!< A client provided new fid representing resulting file.
@@ -470,10 +473,10 @@ struct DirListingWriter {
 	}
 
 	/**
-	 * @brief Create an instance of Dir listing writer that encodes no more then 'inCount' bytes after the offset.
-	 * @param inCount Maximum number of bytes that can be written into dest.
-	 * @param inOffset Number of bytes to skip.
-	 * @param dest Output buffer where resuling data is written.
+	 * @brief Create an instance of Dir listing writer that encodes no more then 'maxBytes' bytes after the offset.
+	 * @param writer Output stream where resuling data is written.
+	 * @param maxBytes Maximum number of bytes that can be written into dest.
+	 * @param offset Number of bytes to skip.
 	 */
 	DirListingWriter(ResponseWriter& writer, Solace::uint32 maxBytes, Solace::uint64 offset = 0) noexcept;
 
@@ -484,6 +487,7 @@ struct DirListingWriter {
 	 */
 	bool encode(Stat const& stat);
 
+	/// Update response writer with the current payload size.
 	void updateDataSize();
 
 	/** Get number of bytes travesed.

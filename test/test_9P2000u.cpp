@@ -32,12 +32,12 @@ auto const kTestedVestion = _9P2000U::kProtocolVersion;
 
 
 
-_9P2000U::v9fs_stat randomStat() {
+_9P2000U::StatEx randomStat() {
 	std::random_device rd;
 	std::default_random_engine randomGen{rd()};
 
 
-	_9P2000U::v9fs_stat stat;
+	_9P2000U::StatEx stat;
 	stat.atime = randomGen();
 	stat.dev = randomGen();
 	stat.gid = "Other user";
@@ -201,7 +201,7 @@ TEST_F(P92000u_Requests, createCreateRequest) {
 
 
 TEST_F(P92000u_Requests, createWStatRequest) {
-	_9P2000U::v9fs_stat stat = randomStat();
+	_9P2000U::StatEx stat = randomStat();
 
 	RequestWriter writer{_writer};
 	writer << _9P2000U::Request::WStat{8193, stat};
@@ -243,7 +243,7 @@ TEST_F(P92000u_Responses, parseErrorResponse) {
 
 
 TEST_F(P92000u_Responses, createStatResponse) {
-	_9P2000U::v9fs_stat stat = randomStat();
+	_9P2000U::StatEx stat = randomStat();
 
 	ResponseWriter writer{_writer, 1};
 	writer << _9P2000U::Response::Stat{stat.size, stat};
