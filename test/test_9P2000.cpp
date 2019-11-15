@@ -49,10 +49,10 @@ protected:
 		}
 
 		auto& proc = *maybeParser;
-		auto const expectType = messageCodeOf<RequestType>();
+		auto constexpr expectType = messageCodeOf<RequestType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
-				.then([expectType](MessageHeader header) {
+				.then([](MessageHeader header) {
 					return (header.type != expectType)
 							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
 							: Result<MessageHeader, Error>{types::okTag, std::move(header)};
@@ -91,10 +91,10 @@ protected:
 
 		auto& proc = *maybeParser;
 
-		auto const expectType = messageCodeOf<ResponseType>();
+		auto constexpr expectType = messageCodeOf<ResponseType>();
 		auto headerParser = UnversionedParser{kMaxMessageSize};
 		return headerParser.parseMessageHeader(reader)
-				.then([expectType](MessageHeader header) {
+				.then([](MessageHeader header) {
 					return (header.type == expectType)
 							? Result<MessageHeader, Error>{types::okTag, std::move(header)}
 							: Result<MessageHeader, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};

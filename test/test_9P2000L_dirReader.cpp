@@ -31,7 +31,7 @@ TEST(P92000L, emptyDirReader) {
 
 	_9P2000L::DirEntryReader reader{data};
 
-	ASSERT_EQ(reader.being(), reader.end());
+	ASSERT_EQ(begin(reader), end(reader));
 }
 
 
@@ -53,13 +53,13 @@ TEST(P92000L, dirReader) {
 
 	_9P2000L::DirEntryReader reader{dirStream.viewWritten()};
 
-	auto i = reader.being();
-	ASSERT_NE(i, reader.end());
+	auto i = begin(reader);
+	ASSERT_NE(i, end(reader));
 	ASSERT_EQ(entry, *i);
-	ASSERT_NE(i, reader.end());
+	ASSERT_NE(i, end(reader));
 
 
-	ASSERT_EQ(++i, reader.end());
+	ASSERT_EQ(++i, end(reader));
 }
 
 

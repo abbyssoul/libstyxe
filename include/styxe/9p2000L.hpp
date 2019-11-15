@@ -528,24 +528,28 @@ struct DirEntryReader {
 		: _buffer{buffer}
 	{}
 
-	/**
-	 * Get begin iterator
-	 * @return Iterator pointing to the firs element in the sequence, if any.
-	 */
-	Iterator being() noexcept { return {_buffer, 0}; }
-
-	/**
-	 * Get an end iterator
-	 * @return Iterator pointing to the one value after the sequence.
-	 */
-	Iterator end() noexcept { return {_buffer, _buffer.size()}; }
+	auto constexpr buffer() noexcept { return _buffer; }
 
 private:
+
 	Solace::MemoryView _buffer;  //!< Memory buffer to read DirEntries from
 };
 
-inline auto begin(DirEntryReader& reader) noexcept { return reader.being(); }
-inline auto end(DirEntryReader& reader) noexcept { return reader.end(); }
+/**
+ * Get begin iterator
+ * @param reader Reader to get being interator from
+ * @return Iterator pointing to the firs element in the sequence, if any.
+ */
+inline DirEntryReader::Iterator
+begin(DirEntryReader& reader) noexcept { return {reader.buffer(), 0}; }
+
+/**
+ * Get an end iterator
+ * @param reader Reader to get end interator from
+ * @return Iterator pointing to the one value after the sequence.
+ */
+inline DirEntryReader::Iterator
+end(DirEntryReader& reader) noexcept { return {reader.buffer(), reader.buffer().size()}; }
 
 }  // end of namespace _9P2000L
 
