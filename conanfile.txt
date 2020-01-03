@@ -1,5 +1,5 @@
 [requires]
-libsolace/0.3.8
+libsolace/0.3.9
 
 [options]
 libsolace:shared=False
