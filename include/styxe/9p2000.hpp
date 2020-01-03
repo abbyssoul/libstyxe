@@ -231,6 +231,11 @@ struct Request {
 			Fid             fid;            //!< Fid of the directory where to start walk from.
 			Fid             newfid;         //!< A client provided new fid representing resulting file.
 		};
+
+		struct Write {
+			Fid					fid;        //!< The file to write into.
+			Solace::uint64		offset;     //!< Starting offset bytes after the beginning of the file.
+		};
 	};
 
 
@@ -274,7 +279,7 @@ struct Request {
 	 * A message to causes the server to change the current file
 	 * associated with a fid to be a file in the directory that is identified by following a given path.
 	 */
-	struct Walk: public Partial::Walk {
+	struct Walk : public Partial::Walk {
 		WalkPath		path;           //!< A path to walk from the fid.
 	};
 
@@ -313,9 +318,7 @@ struct Request {
 	 * The write request asks that count bytes of data be recorded in the file.
 	 * The file must be opened for writing.
 	 */
-	struct Write {
-		Fid					fid;        //!< The file to write into.
-		Solace::uint64		offset;     //!< Starting offset bytes after the beginning of the file.
+	struct Write: public Partial::Write {
 		Solace::MemoryView	data;       //!< A data to be written into the file.
 	};
 
@@ -356,6 +359,12 @@ struct Request {
 * Response message as decoded from a buffer.
  */
 struct Response {
+
+	struct Partial {
+		struct Read {};
+		struct Error {};
+	};
+
 	/// Version response
 	struct Version {
 		/// Maximum message size that server accepts and can receive
@@ -405,9 +414,8 @@ struct Response {
 	};
 
 	/// Read resopose
-	struct Read {
-		/// View in to the response buffer where raw read data is.
-		Solace::MemoryView data;
+	struct Read : public Partial::Read {
+		Solace::MemoryView data;  /// View in to the response buffer where raw read data is.
 	};
 
 	/// Write response
@@ -722,7 +730,7 @@ ResponseWriter& operator<< (ResponseWriter& writer, Response::WStat const& respo
  * @param maxMessageSize Suggest maximum size of the protocol message, including mandatory message header.
  * @return Ref to this for fluent interface.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Version const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Version const& request);
 
 /**
  * @brief Create Auth request.
@@ -731,14 +739,14 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Version const& respon
  * @param attachName Name of the filesystem to attach / authenticate to.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Auth const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Auth const& request);
 
 /**
  * @brief Create a Flush request.
  * @param oldTransation ID of the transaction to flush.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Flush const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Flush const& request);
 
 /**
  * @brief Create Attach request
@@ -748,7 +756,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Flush const& response
  * @param attachName Name of the attachment / fs a user has authenticated to.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Attach const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Attach const& request);
 
 /**
  * @brief Create Open file request.
@@ -756,7 +764,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Attach const& respons
  * @param mode File open mode. @see OpenMode for details.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Open const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Open const& request);
 
 /** Create file Create request.
  * @param fid User provided fid assosiated with the directory where file to be created.
@@ -765,7 +773,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Open const& response)
  * @param mode File open mode. @see OpenMode for details.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Create const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Create const& request);
 
 /**
  * @brief Create Read request
@@ -774,7 +782,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Create const& respons
  * @param count Number of bytes to read from the file.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Read const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Read const& request);
 
 /**
  * @brief Create Write request.
@@ -782,7 +790,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Read const& response)
  * @param offset Offset from the start of the file to read from.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Write const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Write const& request);
 
 
 /**
@@ -790,7 +798,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Write const& response
  * @param fid User provided fid to be forgotten by the server.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Clunk const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Clunk const& request);
 
 /**
  * @brief Create Remove file request.
@@ -804,7 +812,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Remove const& respons
  * @param fid User provided fid assosiated with a file to query stats for.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Stat const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Stat const& request);
 
 /**
  * @brief Cretea WriteStat request.
@@ -812,7 +820,7 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Stat const& response)
  * @param stat File stats to be written.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::WStat const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::WStat const& request);
 
 /**
  * @brief Create Walk request.
@@ -820,16 +828,29 @@ RequestWriter& operator<< (RequestWriter& writer, Request::WStat const& response
  * @param nfid User provided fid to be assosiated with the file resulting from the walk.
  * @return Message builder.
  */
-RequestWriter& operator<< (RequestWriter& writer, Request::Walk const& response);
+RequestWriter& operator<< (RequestWriter& writer, Request::Walk const& request);
 
 
 /**
- * @brief Create Walk request.
- * @param fid User provided fid assosiated with a file to start the walk from.
- * @param nfid User provided fid to be assosiated with the file resulting from the walk.
+ * Create partial Walk request.
+ * @return partial writer.
+ */
+PathWriter operator<< (RequestWriter& writer, Request::Partial::Walk const& request);
+
+/**
+ * Create partial Write request.
+ * @return partial writer.
+ */
+DataWriter operator<< (RequestWriter& writer, Request::Partial::Write const& request);
+
+
+/**
+ * Create partial Read response.
  * @return Message builder.
  */
-PathWriter operator<< (RequestWriter& writer, Request::Partial::Walk const& response);
+DataWriter operator<< (ResponseWriter& writer, Response::Partial::Read const& response);
+
+PartialStringWriter operator<< (ResponseWriter& writer, Response::Partial::Error const& response);
 
 
 Solace::Result<Solace::ByteReader&, Error>

@@ -189,6 +189,12 @@ styxe::operator<< (RequestWriter& writer, Request::WStat const& message) {
 }
 
 
+
+
+
+
+
+
 PathWriter
 styxe::operator<< (RequestWriter& writer, Request::Partial::Walk const& response) {
 	writer.messageType(messageCodeOf<Request::Walk>())
@@ -196,6 +202,31 @@ styxe::operator<< (RequestWriter& writer, Request::Partial::Walk const& response
 			<< response.newfid;
 
 	return PathWriter{writer};
+}
+
+DataWriter
+styxe::operator<< (RequestWriter& writer, Request::Partial::Write const& message) {
+	writer.messageType(messageCodeOf<Request::Write>())
+			<< message.fid
+			<< message.offset;
+
+	return DataWriter{writer};
+}
+
+
+DataWriter
+styxe::operator<< (ResponseWriter& writer, Response::Partial::Read const&) {
+	writer.messageType(messageCodeOf<Response::Read>());
+
+	return DataWriter{writer};
+}
+
+
+PartialStringWriter
+styxe::operator<< (ResponseWriter& writer, Response::Partial::Error const&) {
+	writer.messageType(messageCodeOf<Response::Error>());
+
+	return PartialStringWriter{writer};
 }
 
 

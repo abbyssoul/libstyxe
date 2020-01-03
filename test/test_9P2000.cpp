@@ -221,6 +221,21 @@ TEST_F(P9Messages, createErrorResponse) {
             });
 }
 
+TEST_F(P9Messages, createPartialErrorResponse) {
+	auto const testError = StringLiteral{"Something went right :)"};
+	ResponseWriter writer{_writer, 3};
+	writer << Response::Partial::Error{}
+		   << "Something "
+		   << "went "
+		   << "right :)";
+
+	getResponseOrFail<Response::Error>()
+			.then([testError](Response::Error&& response) {
+				ASSERT_EQ(testError, response.ename);
+			});
+}
+
+
 TEST_F(P9Messages, parseErrorResponse) {
 	auto const expectedErrorMessage = StringLiteral{"All good!"};
 
@@ -417,17 +432,36 @@ TEST_F(P9Messages, createReadRequest) {
             });
 }
 
+
 TEST_F(P9Messages, createReadResponse) {
 	char const content[] = "Good news everyone!";
     auto data = wrapMemory(content);
 	ResponseWriter writer{_writer, 1};
-	writer << Response::Read{data};
+
+	Response::Read resp{};
+	resp.data = data;
+	writer << resp;
 
 	getResponseOrFail<Response::Read>()
             .then([data](Response::Read&& response) {
                 ASSERT_EQ(data, response.data);
             });
 }
+
+
+TEST_F(P9Messages, createPartialReadResponse) {
+	char const content[] = "Good news no-one :)";
+	auto data = wrapMemory(content);
+	ResponseWriter writer{_writer, 1};
+	writer << Response::Partial::Read{}
+		   << data;
+
+	getResponseOrFail<Response::Read>()
+			.then([data](Response::Read&& response) {
+				ASSERT_EQ(data, response.data);
+			});
+}
+
 
 TEST_F(P9Messages, parseReadResponse) {
 	auto const messageText = StringLiteral{"This is a very important data d-_^b"};
@@ -460,6 +494,23 @@ TEST_F(P9Messages, createWriteRequest) {
                 ASSERT_EQ(data, request.data);
             });
 }
+
+TEST_F(P9Messages, createPartialWriteRequest) {
+	char const messageData[] = "This is a very important data BLAH! d-_^b";
+	auto data = wrapMemory(messageData);
+
+	RequestWriter writer{_writer};
+	writer << Request::Partial::Write{76927, 9898}
+		   << data;
+
+	getRequestOrFail<Request::Write>()
+			.then([data](Request::Write&& request) {
+				ASSERT_EQ(76927, request.fid);
+				ASSERT_EQ(9898, request.offset);
+				ASSERT_EQ(data, request.data);
+			});
+}
+
 
 TEST_F(P9Messages, createWriteResponse) {
 	ResponseWriter writer{_writer, 1};
@@ -681,6 +732,7 @@ TEST_F(P9Messages, createPartialWalkRequest) {
 			});
 }
 
+
 TEST_F(P9Messages, createWalkEmptyPathRequest) {
 	RequestWriter writer{_writer};
 	writer << Request::Walk{7374, 542, WalkPath(0, MemoryView{})};
@@ -732,3 +784,4 @@ TEST_F(P9Messages, parseWalkResponse) {
 				EXPECT_EQ(87, response.qids[0].path);
             });
 }
+

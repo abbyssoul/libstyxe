@@ -193,11 +193,11 @@ struct DataWriter {
 	 * Construct a new DataWriter.
 	 * @param writer A byte stream to write the resulting message to.
 	 */
-	DataWriter(RequestWriter& writer) noexcept
-		: _writer{writer}
-		, _segmentsPos{writer.encoder().buffer().position()}
+	DataWriter(MessageWriterBase& writer) noexcept
+		: _writer{writer}  // Store a writer object
+		, _segmentsPos{writer.encoder().buffer().position()}  // Save postion in the output stream
 	{
-		_writer.encoder() << Solace::MemoryView{};
+		_writer.encoder() << Solace::MemoryView{};  // Write empty data segment (to be overwritten later)
 	}
 
 	/**
@@ -205,18 +205,19 @@ struct DataWriter {
 	 * @param value Data buffer to write
 	 * @return Ref to request original request writer.
 	 */
-	RequestWriter& data(Solace::MemoryView value);
+	MessageWriterBase& data(Solace::MemoryView value);
 
 private:
-	RequestWriter&						_writer;
+	MessageWriterBase&						_writer;
 	Solace::ByteWriter::size_type const _segmentsPos;   //!< A position in the output stream where path segments start.
 };
 
 
 inline
-RequestWriter& operator<< (DataWriter& writer, Solace::MemoryView segment) {
+MessageWriterBase& operator<< (DataWriter&& writer, Solace::MemoryView segment) {
 	return writer.data(segment);
 }
+
 
 /**
  *  Message writer specialization to create partial messages that include repeated path segments followed by data.
@@ -248,6 +249,41 @@ PathDataWriter&& operator<< (PathDataWriter&& writer, Solace::StringView segment
 inline
 RequestWriter& operator<< (PathDataWriter&& writer, Solace::MemoryView segment) {
 	return writer.data(segment);
+}
+
+
+
+/// Message writer partial for messages that include trailing string segments
+struct PartialStringWriter {
+
+	/**
+	 * Construct a new DataWriter.
+	 * @param writer A byte stream to write the resulting message to.
+	 */
+	PartialStringWriter(MessageWriterBase& writer) noexcept
+		: _writer{writer}  // Store a writer object
+		, _segmentsPos{writer.encoder().buffer().position()}  // Save postion in the output stream
+	{
+		_writer.encoder() << Solace::StringView{};  // Write empty data segment (to be overwritten later)
+	}
+
+	/**
+	 * Write data field to the output writer.
+	 * @param value Data buffer to write
+	 * @return Ref to request original request writer.
+	 */
+	MessageWriterBase& string(Solace::StringView value);
+
+private:
+	MessageWriterBase&						_writer;
+	Solace::ByteWriter::size_type const		_segmentsPos;   //!< A position in the output stream where path segments start.
+	Solace::StringView::size_type			_dataSize{0};   //!< A position in the output stream where path segments start.
+};
+
+inline
+PartialStringWriter&& operator<< (PartialStringWriter&& writer, Solace::StringView segment) {
+	writer.string(segment);
+	return Solace::mv(writer);
 }
 
 

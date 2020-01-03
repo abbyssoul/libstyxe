@@ -63,7 +63,7 @@ void PathWriter::segment(Solace::StringView value) {
 }
 
 
-RequestWriter&
+MessageWriterBase&
 DataWriter::data(MemoryView value) {
 	auto& buffer = _writer.encoder().buffer();
 	buffer.position(_segmentsPos);  // Reset output stream to the start position
@@ -72,6 +72,26 @@ DataWriter::data(MemoryView value) {
 
 	return _writer;
 }
+
+
+MessageWriterBase&
+PartialStringWriter::string(Solace::StringView value) {
+	auto& buffer = _writer.encoder().buffer();
+
+	_dataSize += value.size();
+	buffer.write(value.view());
+	auto const finalPos = buffer.position();
+
+	buffer.position(_segmentsPos);  // Reset output stream to the start position
+	_writer.encoder() << _dataSize;
+	buffer.position(finalPos);
+
+	_writer.updateMessageSize();
+
+	return _writer;
+}
+
+
 
 RequestWriter&
 PathDataWriter::data(Solace::MemoryView value) {
