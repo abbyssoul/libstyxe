@@ -3,7 +3,6 @@ project(styxe)
 set(PROJECT_DESCRIPTION "9P2000 protocol implementation in modern C++")
 
 
-option(STYXE_GTEST_SUPPORT "Build without GTEST" ON)
 option(COVERAGE "Generate coverage data" OFF)
 option(SANITIZE "Enable 'sanitize' compiler flag" OFF)
 option(PROFILE "Enable profile information" OFF)
@@ -20,9 +19,6 @@ configure_file(lib${PROJECT_NAME}.pc.in lib${PROJECT_NAME}.pc @ONLY)
 # ---------------------------------
 # Build project dependencies
 # ---------------------------------
-set(STYXE_EXTERNAL_DEP_GTEST_DIR "external/gtest/googletest"
-    CACHE PATH "The path to the Google Test framework.")
-
 include_directories(include)
 
 add_subdirectory(src)
