@@ -87,6 +87,7 @@ TEST(P92000L, dirReader_multiple_enties) {
 		ASSERT_EQ(entries[index], ent);
 		index += 1;
 	}
+	ASSERT_EQ(3U, index);
 }
 
 
@@ -111,7 +112,7 @@ TEST(P92000L, dirReader_incomplete_buffer_1) {
 		index += 1;
 	}
 
-	ASSERT_EQ(0, index);
+	ASSERT_EQ(0U, index);
 }
 
 
@@ -138,5 +139,5 @@ TEST(P92000L, dirReader_incomplete_buffer_2) {
 		index += 1;
 	}
 
-	ASSERT_EQ(2, index);
+	ASSERT_EQ(2U, index);
 }

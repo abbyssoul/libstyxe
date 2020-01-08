@@ -143,7 +143,7 @@ TEST_F(P9Messages, createVersionResponse) {
 
 	getResponseOrFail<Response::Version>()
             .then([](Response::Version const& response) {
-                ASSERT_EQ(718, response.msize);
+				ASSERT_EQ(718U, response.msize);
                 ASSERT_EQ("9Pe", response.version);
             });
 }
@@ -157,7 +157,7 @@ TEST_F(P9Messages, parseVersionResponse) {
 
 	getResponseOrFail<Response::Version>()
             .then([](Response::Version const& response) {
-                ASSERT_EQ(512, response.msize);
+				ASSERT_EQ(512U, response.msize);
                 ASSERT_EQ("9P", response.version);
             });
 }
@@ -169,7 +169,7 @@ TEST_F(P9Messages, createAuthRequest) {
 
 	getRequestOrFail<Request::Auth>()
             .then([](Request::Auth&& request) {
-                ASSERT_EQ(312, request.afid);
+				ASSERT_EQ(312U, request.afid);
                 ASSERT_EQ("User mcUsers", request.uname);
                 ASSERT_EQ("Somewhere near", request.aname);
             });
@@ -203,8 +203,8 @@ TEST_F(P9Messages, parseAuthResponse) {
 	getResponseOrFail<Response::Auth>()
             .then([](Response::Auth&& response) {
                 EXPECT_EQ(13, response.qid.type);
-                EXPECT_EQ(91, response.qid.version);
-				EXPECT_EQ(4451, response.qid.path);
+				EXPECT_EQ(91U, response.qid.version);
+				EXPECT_EQ(4451U, response.qid.path);
             });
 }
 
@@ -256,7 +256,7 @@ TEST_F(P9Messages, createFlushRequest) {
 
 	getRequestOrFail<Request::Flush>()
             .then([](Request::Flush&& request) {
-                ASSERT_EQ(7711, request.oldtag);
+				ASSERT_EQ(7711U, request.oldtag);
             });
 }
 
@@ -283,8 +283,8 @@ TEST_F(P9Messages, createAttachRequest) {
 
 	getRequestOrFail<Request::Attach>()
             .then([](Request::Attach&& request) {
-                ASSERT_EQ(3310, request.fid);
-                ASSERT_EQ(1841, request.afid);
+				ASSERT_EQ(3310U, request.fid);
+				ASSERT_EQ(1841U, request.afid);
                 ASSERT_EQ("McFace", request.uname);
                 ASSERT_EQ("close to u", request.aname);
             });
@@ -316,8 +316,8 @@ TEST_F(P9Messages, parseAttachResponse) {
 	getResponseOrFail<Response::Attach>()
             .then([](Response::Attach&& response) {
                 EXPECT_EQ(81, response.qid.type);
-                EXPECT_EQ(3, response.qid.version);
-                EXPECT_EQ(1049, response.qid.path);
+				EXPECT_EQ(3U, response.qid.version);
+				EXPECT_EQ(1049U, response.qid.path);
             });
 }
 
@@ -328,7 +328,7 @@ TEST_F(P9Messages, createOpenRequest) {
 
 	getRequestOrFail<Request::Open>()
             .then([](Request::Open&& request) {
-                ASSERT_EQ(517, request.fid);
+				ASSERT_EQ(517U, request.fid);
                 ASSERT_EQ(OpenMode::RDWR, request.mode);
             });
 }
@@ -343,7 +343,7 @@ TEST_F(P9Messages, createOpenResponse) {
 	getResponseOrFail<Response::Open>()
             .then([qid](Response::Open&& response) {
                 ASSERT_EQ(qid, response.qid);
-                ASSERT_EQ(817, response.iounit);
+				ASSERT_EQ(817U, response.iounit);
             });
 }
 
@@ -373,9 +373,9 @@ TEST_F(P9Messages, createCreateRequest) {
 
 	getRequestOrFail<Request::Create>()
             .then([](Request::Create&& request) {
-                ASSERT_EQ(1734, request.fid);
+				ASSERT_EQ(1734U, request.fid);
                 ASSERT_EQ("mcFance", request.name);
-                ASSERT_EQ(11, request.perm);
+				ASSERT_EQ(11U, request.perm);
                 ASSERT_EQ(OpenMode::EXEC, request.mode);
             });
 }
@@ -393,7 +393,7 @@ TEST_F(P9Messages, createCreateResponse) {
 	getResponseOrFail<Response::Create>()
             .then([qid](Response::Create&& response) {
                 ASSERT_EQ(qid, response.qid);
-                ASSERT_EQ(718, response.iounit);
+				ASSERT_EQ(718U, response.iounit);
             });
 }
 
@@ -415,7 +415,7 @@ TEST_F(P9Messages, parseCreateResponse) {
 	getResponseOrFail<Response::Create>()
             .then([qid](Response::Create&& response) {
                 EXPECT_EQ(qid, response.qid);
-                EXPECT_EQ(778, response.iounit);
+				EXPECT_EQ(778U, response.iounit);
             });
 }
 
@@ -426,9 +426,9 @@ TEST_F(P9Messages, createReadRequest) {
 
 	getRequestOrFail<Request::Read>()
             .then([](Request::Read&& request) {
-                ASSERT_EQ(7234, request.fid);
-                ASSERT_EQ(18, request.offset);
-                ASSERT_EQ(772, request.count);
+				ASSERT_EQ(7234U, request.fid);
+				ASSERT_EQ(18U, request.offset);
+				ASSERT_EQ(772U, request.count);
             });
 }
 
@@ -489,8 +489,8 @@ TEST_F(P9Messages, createWriteRequest) {
 
 	getRequestOrFail<Request::Write>()
             .then([data](Request::Write&& request) {
-                ASSERT_EQ(15927, request.fid);
-                ASSERT_EQ(98, request.offset);
+				ASSERT_EQ(15927U, request.fid);
+				ASSERT_EQ(98U, request.offset);
                 ASSERT_EQ(data, request.data);
             });
 }
@@ -505,8 +505,8 @@ TEST_F(P9Messages, createPartialWriteRequest) {
 
 	getRequestOrFail<Request::Write>()
 			.then([data](Request::Write&& request) {
-				ASSERT_EQ(76927, request.fid);
-				ASSERT_EQ(9898, request.offset);
+				ASSERT_EQ(76927U, request.fid);
+				ASSERT_EQ(9898U, request.offset);
 				ASSERT_EQ(data, request.data);
 			});
 }
@@ -518,7 +518,7 @@ TEST_F(P9Messages, createWriteResponse) {
 
 	getResponseOrFail<Response::Write>()
             .then([](Response::Write&& response) {
-                ASSERT_EQ(71717, response.count);
+				ASSERT_EQ(71717U, response.count);
             });
 }
 
@@ -542,7 +542,7 @@ TEST_F(P9Messages, createClunkRequest) {
 
 	getRequestOrFail<Request::Clunk>()
             .then([](Request::Clunk&& request) {
-                ASSERT_EQ(37509, request.fid);
+				ASSERT_EQ(37509U, request.fid);
             });
 }
 
@@ -568,7 +568,7 @@ TEST_F(P9Messages, createRemoveRequest) {
 
 	getRequestOrFail<Request::Remove>()
             .then([](Request::Remove&& request) {
-                ASSERT_EQ(54329, request.fid);
+				ASSERT_EQ(54329U, request.fid);
             });
 }
 
@@ -594,7 +594,7 @@ TEST_F(P9Messages, createStatRequest) {
 
 	getRequestOrFail<Request::Stat>()
 			.then([](Request::Stat&& request) {
-                ASSERT_EQ(7872, request.fid);
+				ASSERT_EQ(7872U, request.fid);
             });
 }
 
@@ -676,7 +676,7 @@ TEST_F(P9Messages, createWStatRequest) {
 
 	getRequestOrFail<Request::WStat>()
             .then([stat](Request::WStat&& request) {
-                ASSERT_EQ(8193, request.fid);
+				ASSERT_EQ(8193U, request.fid);
                 ASSERT_EQ(stat, request.stat);
             });
 }
@@ -709,9 +709,9 @@ TEST_F(P9Messages, createWalkRequest) {
 
 	getRequestOrFail<Request::Walk>()
 			.then([](Request::Walk&& request) {
-                EXPECT_EQ(213, request.fid);
-                EXPECT_EQ(124, request.newfid);
-				EXPECT_EQ(2, request.path.size());
+				EXPECT_EQ(213U, request.fid);
+				EXPECT_EQ(124U, request.newfid);
+				EXPECT_EQ(2U, request.path.size());
 				EXPECT_EQ("space", *request.path.begin());
 			});
 }
@@ -725,9 +725,9 @@ TEST_F(P9Messages, createPartialWalkRequest) {
 
 	getRequestOrFail<Request::Walk>()
 			.then([](Request::Walk&& request) {
-				EXPECT_EQ(213, request.fid);
-				EXPECT_EQ(124, request.newfid);
-				EXPECT_EQ(2, request.path.size());
+				EXPECT_EQ(213U, request.fid);
+				EXPECT_EQ(124U, request.newfid);
+				EXPECT_EQ(2U, request.path.size());
 				EXPECT_EQ("space", *request.path.begin());
 			});
 }
@@ -739,8 +739,8 @@ TEST_F(P9Messages, createWalkEmptyPathRequest) {
 
 	getRequestOrFail<Request::Walk>()
             .then([](Request::Walk&& request) {
-                ASSERT_EQ(7374, request.fid);
-                ASSERT_EQ(542, request.newfid);
+				ASSERT_EQ(7374U, request.fid);
+				ASSERT_EQ(542U, request.newfid);
                 ASSERT_TRUE(request.path.empty());
             });
 }
@@ -778,10 +778,10 @@ TEST_F(P9Messages, parseWalkResponse) {
 
 	getResponseOrFail<Response::Walk>()
             .then([](Response::Walk&& response) {
-				EXPECT_EQ(1, response.nqids);
+				EXPECT_EQ(1U, response.nqids);
 				EXPECT_EQ(17, response.qids[0].type);
-                EXPECT_EQ(5481, response.qids[0].version);
-				EXPECT_EQ(87, response.qids[0].path);
+				EXPECT_EQ(5481U, response.qids[0].version);
+				EXPECT_EQ(87U, response.qids[0].path);
             });
 }
 

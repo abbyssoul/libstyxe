@@ -134,7 +134,7 @@ TEST_F(P92000L_Requests, statFS) {
 
 	getRequestOrFail<_9P2000L::Request::StatFS>()
 			.then([](_9P2000L::Request::StatFS&& request) {
-				ASSERT_EQ(727, request.fid);
+				ASSERT_EQ(727U, request.fid);
 			});
 }
 
@@ -144,8 +144,8 @@ TEST_F(P92000L_Requests, open) {
 
 	getRequestOrFail<_9P2000L::Request::LOpen>()
 			.then([](_9P2000L::Request::LOpen&& request) {
-				ASSERT_EQ(3310, request.fid);
-				ASSERT_EQ(1841, request.flags);
+				ASSERT_EQ(3310U, request.fid);
+				ASSERT_EQ(1841U, request.flags);
 			});
 }
 
@@ -156,11 +156,11 @@ TEST_F(P92000L_Requests, create) {
 
 	getRequestOrFail<_9P2000L::Request::LCreate>()
 			.then([](_9P2000L::Request::LCreate&& request) {
-				ASSERT_EQ(1734, request.fid);
+				ASSERT_EQ(1734U, request.fid);
 				ASSERT_EQ("mcFance", request.name);
-				ASSERT_EQ(11, request.flags);
-				ASSERT_EQ(8881919, request.mode);
-				ASSERT_EQ(999888, request.gid);
+				ASSERT_EQ(11U, request.flags);
+				ASSERT_EQ(8881919U, request.mode);
+				ASSERT_EQ(999888U, request.gid);
 			});
 }
 
@@ -171,10 +171,10 @@ TEST_F(P92000L_Requests, symlink) {
 
 	getRequestOrFail<_9P2000L::Request::Symlink>()
 			.then([](_9P2000L::Request::Symlink&& request) {
-				ASSERT_EQ(8193, request.fid);
+				ASSERT_EQ(8193U, request.fid);
 				ASSERT_EQ("one-file", request.name);
 				ASSERT_EQ("other-name", request.symtgt);
-				ASSERT_EQ(3319, request.gid);
+				ASSERT_EQ(3319U, request.gid);
 			});
 }
 
@@ -185,12 +185,12 @@ TEST_F(P92000L_Requests, mkNode) {
 
 	getRequestOrFail<_9P2000L::Request::MkNode>()
 			.then([](_9P2000L::Request::MkNode&& request) {
-				ASSERT_EQ(6523, request.dfid);
+				ASSERT_EQ(6523U, request.dfid);
 				ASSERT_EQ("one-file", request.name);
-				ASSERT_EQ(3319, request.mode);
-				ASSERT_EQ(119, request.major);
-				ASSERT_EQ(8282, request.minor);
-				ASSERT_EQ(9911, request.gid);
+				ASSERT_EQ(3319U, request.mode);
+				ASSERT_EQ(119U, request.major);
+				ASSERT_EQ(8282U, request.minor);
+				ASSERT_EQ(9911U, request.gid);
 			});
 }
 
@@ -201,8 +201,8 @@ TEST_F(P92000L_Requests, rename) {
 
 	getRequestOrFail<_9P2000L::Request::Rename>()
 			.then([](_9P2000L::Request::Rename&& request) {
-				ASSERT_EQ(8193, request.fid);
-				ASSERT_EQ(434, request.dfid);
+				ASSERT_EQ(8193U, request.fid);
+				ASSERT_EQ(434U, request.dfid);
 				ASSERT_EQ("one-file", request.name);
 			});
 }
@@ -215,7 +215,7 @@ TEST_F(P92000L_Requests, readLink) {
 
 	getRequestOrFail<_9P2000L::Request::ReadLink>()
 			.then([](_9P2000L::Request::ReadLink&& request) {
-				ASSERT_EQ(8193, request.fid);
+				ASSERT_EQ(8193U, request.fid);
 			});
 }
 
@@ -226,8 +226,8 @@ TEST_F(P92000L_Requests, getAttr) {
 
 	getRequestOrFail<_9P2000L::Request::GetAttr>()
 			.then([](_9P2000L::Request::GetAttr&& request) {
-				ASSERT_EQ(8193, request.fid);
-				ASSERT_EQ(71641, request.request_mask);
+				ASSERT_EQ(8193U, request.fid);
+				ASSERT_EQ(71641U, request.request_mask);
 			});
 }
 
@@ -249,17 +249,17 @@ TEST_F(P92000L_Requests, setAttr) {
 
 	getRequestOrFail<_9P2000L::Request::SetAttr>()
 			.then([](_9P2000L::Request::SetAttr&& request) {
-				ASSERT_EQ(5324, request.fid);
-				ASSERT_EQ(8182773, request.valid);
-				ASSERT_EQ(54643, request.mode);
-				ASSERT_EQ(394732, request.uid);
-				ASSERT_EQ(721632, request.gid);
-				ASSERT_EQ(76, request.size);
+				ASSERT_EQ(5324U, request.fid);
+				ASSERT_EQ(8182773U, request.valid);
+				ASSERT_EQ(54643U, request.mode);
+				ASSERT_EQ(394732U, request.uid);
+				ASSERT_EQ(721632U, request.gid);
+				ASSERT_EQ(76U, request.size);
 
-				ASSERT_EQ(8593993, request.atime_sec);
-				ASSERT_EQ(123, request.atime_nsec);
-				ASSERT_EQ(936483264, request.mtime_sec);
-				ASSERT_EQ(1232, request.mtime_nsec);
+				ASSERT_EQ(8593993U, request.atime_sec);
+				ASSERT_EQ(123U, request.atime_nsec);
+				ASSERT_EQ(936483264U, request.mtime_sec);
+				ASSERT_EQ(1232U, request.mtime_nsec);
 			});
 }
 
@@ -270,8 +270,8 @@ TEST_F(P92000L_Requests, xAttrWalk) {
 
 	getRequestOrFail<_9P2000L::Request::XAttrWalk>()
 			.then([](_9P2000L::Request::XAttrWalk&& request) {
-				ASSERT_EQ(8193, request.fid);
-				ASSERT_EQ(732, request.newfid);
+				ASSERT_EQ(8193U, request.fid);
+				ASSERT_EQ(732U, request.newfid);
 				ASSERT_EQ("one-file", request.name);
 			});
 }
@@ -283,10 +283,10 @@ TEST_F(P92000L_Requests, xAttrCreate) {
 
 	getRequestOrFail<_9P2000L::Request::XAttrCreate>()
 			.then([](_9P2000L::Request::XAttrCreate&& request) {
-				ASSERT_EQ(8193, request.fid);
+				ASSERT_EQ(8193U, request.fid);
 				ASSERT_EQ("one-file", request.name);
-				ASSERT_EQ(3319, request.attr_size);
-				ASSERT_EQ(9172, request.flags);
+				ASSERT_EQ(3319U, request.attr_size);
+				ASSERT_EQ(9172U, request.flags);
 			});
 }
 
@@ -297,9 +297,9 @@ TEST_F(P92000L_Requests, readDir) {
 
 	getRequestOrFail<_9P2000L::Request::ReadDir>()
 			.then([](_9P2000L::Request::ReadDir&& request) {
-				ASSERT_EQ(8193, request.fid);
-				ASSERT_EQ(71632, request.offset);
-				ASSERT_EQ(2132, request.count);
+				ASSERT_EQ(8193U, request.fid);
+				ASSERT_EQ(71632U, request.offset);
+				ASSERT_EQ(2132U, request.count);
 			});
 }
 
@@ -310,7 +310,7 @@ TEST_F(P92000L_Requests, fSync) {
 
 	getRequestOrFail<_9P2000L::Request::FSync>()
 			.then([](_9P2000L::Request::FSync&& request) {
-				ASSERT_EQ(8193, request.fid);
+				ASSERT_EQ(8193U, request.fid);
 			});
 }
 
@@ -328,12 +328,12 @@ TEST_F(P92000L_Requests, lock) {
 
 	getRequestOrFail<_9P2000L::Request::Lock>()
 			.then([](_9P2000L::Request::Lock&& request) {
-				ASSERT_EQ(8193, request.fid);
-				ASSERT_EQ(123, request.type);
-				ASSERT_EQ(9818732, request.flags);
-				ASSERT_EQ(87123, request.start);
-				ASSERT_EQ(123, request.length);
-				ASSERT_EQ(98372498, request.proc_id);
+				ASSERT_EQ(8193U, request.fid);
+				ASSERT_EQ(123U, request.type);
+				ASSERT_EQ(9818732U, request.flags);
+				ASSERT_EQ(87123U, request.start);
+				ASSERT_EQ(123U, request.length);
+				ASSERT_EQ(98372498U, request.proc_id);
 				ASSERT_EQ("client_id", request.client_id);
 			});
 }
@@ -350,11 +350,11 @@ TEST_F(P92000L_Requests, getLock) {
 
 	getRequestOrFail<_9P2000L::Request::GetLock>()
 			.then([](_9P2000L::Request::GetLock&& request) {
-				ASSERT_EQ(8193, request.fid);
-				ASSERT_EQ(123, request.type);
-				ASSERT_EQ(87123, request.start);
-				ASSERT_EQ(123, request.length);
-				ASSERT_EQ(98372498, request.proc_id);
+				ASSERT_EQ(8193U, request.fid);
+				ASSERT_EQ(123U, request.type);
+				ASSERT_EQ(87123U, request.start);
+				ASSERT_EQ(123U, request.length);
+				ASSERT_EQ(98372498U, request.proc_id);
 				ASSERT_EQ("client_id", request.client_id);
 			});
 }
@@ -367,8 +367,8 @@ TEST_F(P92000L_Requests, link) {
 
 	getRequestOrFail<_9P2000L::Request::Link>()
 			.then([](_9P2000L::Request::Link&& request) {
-				ASSERT_EQ(9818732, request.dfid);
-				ASSERT_EQ(87123, request.fid);
+				ASSERT_EQ(9818732U, request.dfid);
+				ASSERT_EQ(87123U, request.fid);
 				ASSERT_EQ("named", request.name);
 			});
 }
@@ -380,10 +380,10 @@ TEST_F(P92000L_Requests, mkDir) {
 
 	getRequestOrFail<_9P2000L::Request::MkDir>()
 			.then([](_9P2000L::Request::MkDir&& request) {
-				ASSERT_EQ(9818732, request.dfid);
+				ASSERT_EQ(9818732U, request.dfid);
 				ASSERT_EQ("dirid", request.name);
-				ASSERT_EQ(87123, request.mode);
-				ASSERT_EQ(99911, request.gid);
+				ASSERT_EQ(87123U, request.mode);
+				ASSERT_EQ(99911U, request.gid);
 			});
 }
 
@@ -394,9 +394,9 @@ TEST_F(P92000L_Requests, renameAt) {
 
 	getRequestOrFail<_9P2000L::Request::RenameAt>()
 			.then([](_9P2000L::Request::RenameAt&& request) {
-				ASSERT_EQ(9818732, request.olddirfid);
+				ASSERT_EQ(9818732U, request.olddirfid);
 				ASSERT_EQ("badname", request.oldname);
-				ASSERT_EQ(87123, request.newdirfid);
+				ASSERT_EQ(87123U, request.newdirfid);
 				ASSERT_EQ("bettername", request.newname);
 			});
 }
@@ -408,9 +408,9 @@ TEST_F(P92000L_Requests, unlinkAt) {
 
 	getRequestOrFail<_9P2000L::Request::UnlinkAt>()
 			.then([](_9P2000L::Request::UnlinkAt&& request) {
-				ASSERT_EQ(9818732, request.dfid);
+				ASSERT_EQ(9818732U, request.dfid);
 				ASSERT_EQ("badname", request.name);
-				ASSERT_EQ(77187123, request.flags);
+				ASSERT_EQ(77187123U, request.flags);
 			});
 }
 
@@ -424,7 +424,7 @@ TEST_F(P92000L_Responses, lError) {
 
 	getResponseOrFail<_9P2000L::Response::LError>()
 			.then([] (_9P2000L::Response::LError const& response) {
-				ASSERT_EQ(9912, response.ecode);
+				ASSERT_EQ(9912U, response.ecode);
 			});
 }
 
@@ -444,15 +444,15 @@ TEST_F(P92000L_Responses, StatFS) {
 
 	getResponseOrFail<_9P2000L::Response::StatFS>()
 			.then([] (_9P2000L::Response::StatFS&& response) {
-				ASSERT_EQ(8216372, response.type);
-				ASSERT_EQ(6662, response.bsize);
-				ASSERT_EQ(28713, response.blocks);
-				ASSERT_EQ(21312, response.bfree);
-				ASSERT_EQ(213213, response.bavail);
-				ASSERT_EQ(12321, response.files);
-				ASSERT_EQ(4354, response.ffree);
-				ASSERT_EQ(79824397543957, response.fsid);
-				ASSERT_EQ(5431, response.namelen);
+				ASSERT_EQ(8216372U, response.type);
+				ASSERT_EQ(6662U, response.bsize);
+				ASSERT_EQ(28713U, response.blocks);
+				ASSERT_EQ(21312U, response.bfree);
+				ASSERT_EQ(213213U, response.bavail);
+				ASSERT_EQ(12321U, response.files);
+				ASSERT_EQ(4354U, response.ffree);
+				ASSERT_EQ(79824397543957U, response.fsid);
+				ASSERT_EQ(5431U, response.namelen);
 			});
 }
 
@@ -465,7 +465,7 @@ TEST_F(P92000L_Responses, open) {
 	getResponseOrFail<_9P2000L::Response::LOpen>()
 			.then([qid] (_9P2000L::Response::LOpen const& response) {
 				ASSERT_EQ(qid, response.qid);
-				ASSERT_EQ(8732874, response.iounit);
+				ASSERT_EQ(8732874U, response.iounit);
 			});
 }
 
@@ -477,7 +477,7 @@ TEST_F(P92000L_Responses, create) {
 	getResponseOrFail<_9P2000L::Response::LCreate>()
 			.then([qid] (_9P2000L::Response::LCreate const& response) {
 				ASSERT_EQ(qid, response.qid);
-				ASSERT_EQ(3123, response.iounit);
+				ASSERT_EQ(3123U, response.iounit);
 			});
 }
 
@@ -558,29 +558,29 @@ TEST_F(P92000L_Responses, getAttr) {
 			.then([qid] (_9P2000L::Response::GetAttr const& response) {
 				ASSERT_EQ(qid, response.qid);
 
-				ASSERT_EQ(123, response.valid);
-				ASSERT_EQ(654, response.mode);
-				ASSERT_EQ(234, response.uid);
-				ASSERT_EQ(435, response.gid);
-				ASSERT_EQ(12734, response.size);
+				ASSERT_EQ(123U, response.valid);
+				ASSERT_EQ(654U, response.mode);
+				ASSERT_EQ(234U, response.uid);
+				ASSERT_EQ(435U, response.gid);
+				ASSERT_EQ(12734U, response.size);
 
-				ASSERT_EQ(234141, response.atime_sec);
-				ASSERT_EQ(312, response.atime_nsec);
-				ASSERT_EQ(435, response.mtime_sec);
-				ASSERT_EQ(6345, response.mtime_nsec);
+				ASSERT_EQ(234141U, response.atime_sec);
+				ASSERT_EQ(312U, response.atime_nsec);
+				ASSERT_EQ(435U, response.mtime_sec);
+				ASSERT_EQ(6345U, response.mtime_nsec);
 
-				ASSERT_EQ(12341, response.ctime_sec);
-				ASSERT_EQ(452, response.ctime_nsec);
+				ASSERT_EQ(12341U, response.ctime_sec);
+				ASSERT_EQ(452U, response.ctime_nsec);
 
-				ASSERT_EQ(4, response.nlink);
-				ASSERT_EQ(145, response.rdev);
-				ASSERT_EQ(23452435, response.blksize);
-				ASSERT_EQ(5132, response.blocks);
+				ASSERT_EQ(4U, response.nlink);
+				ASSERT_EQ(145U, response.rdev);
+				ASSERT_EQ(23452435U, response.blksize);
+				ASSERT_EQ(5132U, response.blocks);
 
-				ASSERT_EQ(1324, response.btime_sec);
-				ASSERT_EQ(134, response.btime_nsec);
-				ASSERT_EQ(1234, response.gen);
-				ASSERT_EQ(7645, response.data_version);
+				ASSERT_EQ(1324U, response.btime_sec);
+				ASSERT_EQ(134U, response.btime_nsec);
+				ASSERT_EQ(1234U, response.gen);
+				ASSERT_EQ(7645U, response.data_version);
 			});
 }
 
@@ -600,7 +600,7 @@ TEST_F(P92000L_Responses, xAttrWalk) {
 
 	getResponseOrFail<_9P2000L::Response::XAttrWalk>()
 			.then([] (_9P2000L::Response::XAttrWalk const& response) {
-				ASSERT_EQ(98912, response.size);
+				ASSERT_EQ(98912U, response.size);
 			});
 }
 
@@ -663,9 +663,9 @@ TEST_F(P92000L_Responses, getLock) {
 	getResponseOrFail<_9P2000L::Response::GetLock>()
 			.then([] (_9P2000L::Response::GetLock const& response) {
 				ASSERT_EQ(87, response.type);
-				ASSERT_EQ(129836, response.start);
-				ASSERT_EQ(2132, response.length);
-				ASSERT_EQ(1231, response.proc_id);
+				ASSERT_EQ(129836U, response.start);
+				ASSERT_EQ(2132U, response.length);
+				ASSERT_EQ(1231U, response.proc_id);
 				ASSERT_EQ("Boo!", response.client_id);
 			});
 }
@@ -717,6 +717,6 @@ TEST_F(P92000L_Responses, parseLError) {
 
 	getResponseOrFail<_9P2000L::Response::LError>()
 			.then([](_9P2000L::Response::LError const& response) {
-				EXPECT_EQ(9913, response.ecode);
+				EXPECT_EQ(9913U, response.ecode);
 			});
 }

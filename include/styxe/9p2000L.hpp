@@ -97,24 +97,24 @@ bool operator!= (DirEntry const& lhs, DirEntry const& rhs) noexcept {
 
 /// Bitmask values to be used for GetAttr request and response. @see Response::GetAttr
 struct AttributesMask {
-	static constexpr Solace::uint64 const MODE = 0x00000001ULL;  //!< Bitmask for `mode`. @see Response::GetAttr::mode
-	static constexpr Solace::uint64 const NLINK = 0x00000002ULL;  //!<  Bitmask for `nlinks` attribute.
-	static constexpr Solace::uint64 const UID = 0x00000004ULL;  //!< Bitmask for `uid` attribute.
-	static constexpr Solace::uint64 const GID = 0x00000008ULL;  //!< Bitmask for `gid` attribute.
-	static constexpr Solace::uint64 const RDEV = 0x00000010ULL;  //!< Bitmask for `rdev` attribute.
-	static constexpr Solace::uint64 const ATIME = 0x00000020ULL;  //!< Bitmask for `atime` attribute.
-	static constexpr Solace::uint64 const MTIME = 0x00000040ULL;  //!< Bitmask for `mtime` attribute.
-	static constexpr Solace::uint64 const CTIME = 0x00000080ULL;  //!< Bitmask for `ctime` attribute.
-	static constexpr Solace::uint64 const INO = 0x00000100ULL;  //!< Bitmask for `ino` attribute.
-	static constexpr Solace::uint64 const SIZE = 0x00000200ULL;  //!< Bitmask for `size` attribute.
-	static constexpr Solace::uint64 const BLOCKS = 0x00000400ULL;  //!< Bitmask for `blocks` attribute.
+	static constexpr Solace::uint64 const GET_MODE = 0x00000001ULL;  //!< Bitmask for `mode.
+	static constexpr Solace::uint64 const GET_NLINK = 0x00000002ULL;  //!<  Bitmask for `nlinks` attribute.
+	static constexpr Solace::uint64 const GET_UID = 0x00000004ULL;  //!< Bitmask for `uid` attribute.
+	static constexpr Solace::uint64 const GET_GID = 0x00000008ULL;  //!< Bitmask for `gid` attribute.
+	static constexpr Solace::uint64 const GET_RDEV = 0x00000010ULL;  //!< Bitmask for `rdev` attribute.
+	static constexpr Solace::uint64 const GET_ATIME = 0x00000020ULL;  //!< Bitmask for `atime` attribute.
+	static constexpr Solace::uint64 const GET_MTIME = 0x00000040ULL;  //!< Bitmask for `mtime` attribute.
+	static constexpr Solace::uint64 const GET_CTIME = 0x00000080ULL;  //!< Bitmask for `ctime` attribute.
+	static constexpr Solace::uint64 const GET_INO = 0x00000100ULL;  //!< Bitmask for `ino` attribute.
+	static constexpr Solace::uint64 const GET_SIZE = 0x00000200ULL;  //!< Bitmask for `size` attribute.
+	static constexpr Solace::uint64 const GET_BLOCKS = 0x00000400ULL;  //!< Bitmask for `blocks` attribute.
 
-	static constexpr Solace::uint64 const BTIME = 0x00000800ULL;  //!< Bitmask for `btime` attribute.
-	static constexpr Solace::uint64 const GEN = 0x00001000ULL;  //!< Bitmask for `gen` attribute.
-	static constexpr Solace::uint64 const DATA_VERSION = 0x00002000ULL;  //!< Bitmask for `data_verison` attribute.
+	static constexpr Solace::uint64 const GET_BTIME = 0x00000800ULL;  //!< Bitmask for `btime` attribute.
+	static constexpr Solace::uint64 const GET_GEN = 0x00001000ULL;  //!< Bitmask for `gen` attribute.
+	static constexpr Solace::uint64 const GET_DATA_VERSION = 0x00002000ULL;  //!< Bitmask for `data_verison` attribute.
 
-	static constexpr Solace::uint64 const BASIC = 0x000007ffULL;  //!< Mask for fields up to BLOCKS
-	static constexpr Solace::uint64 const ALL = 0x00003fffULL;  //!< Mask for All fields above
+	static constexpr Solace::uint64 const GET_BASIC = 0x000007ffULL;  //!< Mask for fields up to BLOCKS
+	static constexpr Solace::uint64 const GET_ALL = 0x00003fffULL;  //!< Mask for All fields above
 };
 
 /// Bit mask of attributes to be used for SetAttr message request

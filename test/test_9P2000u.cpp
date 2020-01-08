@@ -163,10 +163,10 @@ TEST_F(P92000u_Requests, createSessionAuth) {
 
 	getRequestOrFail<_9P2000U::Request::Auth>()
 			.then([](_9P2000U::Request::Auth&& request) {
-				ASSERT_EQ(312, request.afid);
+				ASSERT_EQ(312U, request.afid);
 				ASSERT_EQ("User mcUsers", request.uname);
 				ASSERT_EQ("Somewhere near", request.aname);
-				ASSERT_EQ(7762, request.n_uname);
+				ASSERT_EQ(7762U, request.n_uname);
 			});
 }
 
@@ -176,11 +176,11 @@ TEST_F(P92000u_Requests, createAttachRequest) {
 
 	getRequestOrFail<_9P2000U::Request::Attach>()
 			.then([](_9P2000U::Request::Attach&& request) {
-				ASSERT_EQ(3310, request.fid);
-				ASSERT_EQ(1841, request.afid);
+				ASSERT_EQ(3310U, request.fid);
+				ASSERT_EQ(1841U, request.afid);
 				ASSERT_EQ("McFace", request.uname);
 				ASSERT_EQ("close to u", request.aname);
-				ASSERT_EQ(6277, request.n_uname);
+				ASSERT_EQ(6277U, request.n_uname);
 			});
 }
 
@@ -191,9 +191,9 @@ TEST_F(P92000u_Requests, createCreateRequest) {
 
 	getRequestOrFail<_9P2000U::Request::Create>()
 			.then([](_9P2000U::Request::Create&& request) {
-				ASSERT_EQ(1734, request.fid);
+				ASSERT_EQ(1734U, request.fid);
 				ASSERT_EQ("mcFance", request.name);
-				ASSERT_EQ(11, request.perm);
+				ASSERT_EQ(11U, request.perm);
 				ASSERT_EQ(OpenMode::EXEC, request.mode);
 				ASSERT_EQ("Extra ext", request.extension);
 			});
@@ -208,7 +208,7 @@ TEST_F(P92000u_Requests, createWStatRequest) {
 
 	getRequestOrFail<_9P2000U::Request::WStat>()
 			.then([stat](_9P2000U::Request::WStat&& request) {
-				ASSERT_EQ(8193, request.fid);
+				ASSERT_EQ(8193U, request.fid);
 				ASSERT_EQ(stat, request.stat);
 			});
 }
@@ -222,7 +222,7 @@ TEST_F(P92000u_Responses, createErrorResponse) {
 	getResponseOrFail<_9P2000U::Response::Error>()
 			.then([testError](_9P2000U::Response::Error&& response) {
 				ASSERT_EQ(testError, response.ename);
-				ASSERT_EQ(9912, response.errcode);
+				ASSERT_EQ(9912U, response.errcode);
 			});
 }
 
@@ -237,7 +237,7 @@ TEST_F(P92000u_Responses, parseErrorResponse) {
 	getResponseOrFail<_9P2000U::Response::Error>()
 			.then([expectedErrorMessage](_9P2000U::Response::Error&& response) {
 				EXPECT_EQ(expectedErrorMessage, response.ename);
-				EXPECT_EQ(9913, response.errcode);
+				EXPECT_EQ(9913U, response.errcode);
 			});
 }
 

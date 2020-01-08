@@ -190,8 +190,8 @@ TEST_F(P92000e_Requests, createShortReadRequest) {
 
 	getRequestOrFail<_9P2000E::Request::ShortRead>()
 		.then([](_9P2000E::Request::ShortRead&& request) {
-            ASSERT_EQ(32, request.fid);
-			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ(32U, request.fid);
+			ASSERT_EQ(3U, request.path.size());
 			ASSERT_EQ("some", *request.path.begin());
 		});
 }
@@ -206,8 +206,8 @@ TEST_F(P92000e_Requests, createPartialShortReadRequest) {
 
 	getRequestOrFail<_9P2000E::Request::ShortRead>()
 		.then([](_9P2000E::Request::ShortRead&& request) {
-			ASSERT_EQ(32, request.fid);
-			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ(32U, request.fid);
+			ASSERT_EQ(3U, request.path.size());
 			ASSERT_EQ("some", *request.path.begin());
 		});
 }
@@ -257,9 +257,9 @@ TEST_F(P92000e_Requests, createShortWriteRequest) {
 	_requestWriter << _9P2000E::Request::ShortWrite{32, WalkPath{3, wrapMemory(buffer)}, data};
 	getRequestOrFail<_9P2000E::Request::ShortWrite>()
 		.then([data](_9P2000E::Request::ShortWrite&& request) {
-            ASSERT_EQ(32, request.fid);
+			ASSERT_EQ(32U, request.fid);
             ASSERT_EQ(data, request.data);
-			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ(3U, request.path.size());
 			ASSERT_EQ("some", *request.path.begin());
 		});
 }
@@ -278,9 +278,9 @@ TEST_F(P92000e_Requests, createPartialShortWriteRequest) {
 
 	getRequestOrFail<_9P2000E::Request::ShortWrite>()
 		.then([data](_9P2000E::Request::ShortWrite&& request) {
-			ASSERT_EQ(32, request.fid);
+			ASSERT_EQ(32U, request.fid);
 			ASSERT_EQ(data, request.data);
-			ASSERT_EQ(3, request.path.size());
+			ASSERT_EQ(3U, request.path.size());
 			ASSERT_EQ("some", *request.path.begin());
 		});
 }
@@ -292,7 +292,7 @@ TEST_F(P92000e_Responses, createShortWriteResponse) {
 
 	getResponseOrFail<_9P2000E::Response::ShortWrite>()
 			.then([](_9P2000E::Response::ShortWrite&& response) {
-                EXPECT_EQ(100500, response.count);
+				EXPECT_EQ(100500U, response.count);
             });
 }
 
@@ -303,6 +303,6 @@ TEST_F(P92000e_Responses, parseShortWriteResponse) {
 
 	getResponseOrFail<_9P2000E::Response::ShortWrite>()
 			.then([](_9P2000E::Response::ShortWrite&& response) {
-                EXPECT_EQ(81177, response.count);
+				EXPECT_EQ(81177U, response.count);
             });
 }
