@@ -117,17 +117,17 @@ struct AttributesMask {
 	static constexpr Solace::uint64 const GET_ALL = 0x00003fffULL;  //!< Mask for All fields above
 };
 
-/// Bit mask of attributes to be used for SetAttr message request
+/// Bit mask of attributes to be used for SetAttr message request. @see Request::SetAttr
 struct SetAttributesMaks {
-	static constexpr Solace::uint32 const MODE = 0x00000001UL;  //!< Bitmask for `mode`. @see Request::SetAttr::mode
-	static constexpr Solace::uint32 const UID = 0x00000002UL;   //!< Bitmask for `uid`. @see Request::SetAttr::uid
-	static constexpr Solace::uint32 const GID = 0x00000004UL;   //!< Bitmask for `gid`. @see Request::SetAttr::gid
-	static constexpr Solace::uint32 const SIZE = 0x00000008UL;  //!< Bitmask for `size`. @see Request::SetAttr::size
-	static constexpr Solace::uint32 const ATIME = 0x00000010UL;  //!< Bitmask for `atime`. @see Request::SetAttr::atime
-	static constexpr Solace::uint32 const MTIME = 0x00000020UL;  //!< Bitmask for `mtime`. @see Request::SetAttr::mtime
-	static constexpr Solace::uint32 const CTIME = 0x00000040UL;  //!< Bitmask for `ctime`. @see Request::SetAttr::ctime
-	static constexpr Solace::uint32 const ATIME_SET = 0x00000080UL;  //!< Bitmask for `atime`. Use provided. value.
-	static constexpr Solace::uint32 const MTIME_SET = 0x00000100UL;  //!< Bitmask for `mtime`. Use provided. value.
+	static constexpr Solace::uint32 const SET_MODE = 0x00000001UL;  //!< Bitmask for `mode.
+	static constexpr Solace::uint32 const SET_UID = 0x00000002UL;   //!< Bitmask for `uid`.
+	static constexpr Solace::uint32 const SET_GID = 0x00000004UL;   //!< Bitmask for `gid`.
+	static constexpr Solace::uint32 const SET_SIZE = 0x00000008UL;  //!< Bitmask for `size.
+	static constexpr Solace::uint32 const SET_ATIME = 0x00000010UL;  //!< Bitmask for `atime.
+	static constexpr Solace::uint32 const SET_MTIME = 0x00000020UL;  //!< Bitmask for `mtime.
+	static constexpr Solace::uint32 const SET_CTIME = 0x00000040UL;  //!< Bitmask for `ctime.
+	static constexpr Solace::uint32 const SET_ATIME_SET = 0x00000080UL;  //!< Bitmask for `atime`. Use provided. value.
+	static constexpr Solace::uint32 const SET_MTIME_SET = 0x00000100UL;  //!< Bitmask for `mtime`. Use provided. value.
 };
 
 
