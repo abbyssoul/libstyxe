@@ -101,19 +101,19 @@ bool operator== (Solace::byte lhs, OpenMode rhs) noexcept { return (lhs == rhs.m
 
 /* bits in Stat.mode */
 enum class DirMode : Solace::uint32 {
-	DIR         = 0x80000000,	//!< mode bit for directories
-	APPEND      = 0x40000000,	//!< mode bit for append only files
-	EXCL        = 0x20000000,	//!< mode bit for exclusive use files
-	MOUNT       = 0x10000000,	//!< mode bit for mounted channel
-	AUTH        = 0x08000000,	//!< mode bit for authentication file
-	TMP         = 0x04000000,	//!< mode bit for non-backed-up file
+	DIR         = 0x80000000,  //!< mode bit for directories
+	APPEND      = 0x40000000,  //!< mode bit for append only files
+	EXCL        = 0x20000000,  //!< mode bit for exclusive use files
+	MOUNT       = 0x10000000,  //!< mode bit for mounted channel
+	AUTH        = 0x08000000,  //!< mode bit for authentication file
+	TMP         = 0x04000000,  //!< mode bit for non-backed-up file
 
-	SYMLINK     = 0x02000000,	//!< mode bit for symbolic link (Unix, 9P2000.u)
-	DEVICE      = 0x00800000,	//!< mode bit for device file (Unix, 9P2000.u)
-	NAMEDPIPE   = 0x00200000,	//!< mode bit for named pipe (Unix, 9P2000.u)
-	SOCKET      = 0x00100000,	//!< mode bit for socket (Unix, 9P2000.u)
-	SETUID      = 0x00080000,	//!< mode bit for setuid (Unix, 9P2000.u)
-	SETGID      = 0x00040000,	//!< mode bit for setgid (Unix, 9P2000.u)
+	SYMLINK     = 0x02000000,  //!< mode bit for symbolic link (Unix, 9P2000.u)
+	DEVICE      = 0x00800000,  //!< mode bit for device file (Unix, 9P2000.u)
+	NAMEDPIPE   = 0x00200000,  //!< mode bit for named pipe (Unix, 9P2000.u)
+	SOCKET      = 0x00100000,  //!< mode bit for socket (Unix, 9P2000.u)
+	SETUID      = 0x00080000,  //!< mode bit for setuid (Unix, 9P2000.u)
+	SETGID      = 0x00040000,  //!< mode bit for setgid (Unix, 9P2000.u)
 
 	READ        = 0x4,		//!< mode bit for read permission
 	WRITE       = 0x2,		//!< mode bit for write permission
