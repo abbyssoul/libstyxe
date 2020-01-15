@@ -118,5 +118,12 @@ template <typename T>
 constexpr Solace::byte messageCodeOf() noexcept = delete;
 
 
+static_assert(sizeof(size_type) == 4, "Protocol size type is uint32");
+static_assert(sizeof(Tag) == 2, "Tag is uint16");
+static_assert(sizeof(Fid) == 4, "Fid is uint32");
+static_assert(sizeof(var_datum_size_type) == 2, "Var datum size is uint16");
+static_assert(sizeof(MessageHeader::type) == 1,	"MessageType should be 1 byte");
+static_assert(headerSize() == 7,				"9P message header size is 7 bytes");
+
 }  // end of namespace styxe
 #endif  // STYXE_9P_HPP

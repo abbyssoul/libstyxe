@@ -101,23 +101,23 @@ bool operator== (Solace::byte lhs, OpenMode rhs) noexcept { return (lhs == rhs.m
 
 /* bits in Stat.mode */
 enum class DirMode : Solace::uint32 {
-	DIR         = 0x80000000,	/* mode bit for directories */
-	APPEND      = 0x40000000,	/* mode bit for append only files */
-	EXCL        = 0x20000000,	/* mode bit for exclusive use files */
-	MOUNT       = 0x10000000,	/* mode bit for mounted channel */
-	AUTH        = 0x08000000,	/* mode bit for authentication file */
-	TMP         = 0x04000000,	/* mode bit for non-backed-up file */
+	DIR         = 0x80000000,	//!< mode bit for directories
+	APPEND      = 0x40000000,	//!< mode bit for append only files
+	EXCL        = 0x20000000,	//!< mode bit for exclusive use files
+	MOUNT       = 0x10000000,	//!< mode bit for mounted channel
+	AUTH        = 0x08000000,	//!< mode bit for authentication file
+	TMP         = 0x04000000,	//!< mode bit for non-backed-up file
 
-	SYMLINK     = 0x02000000,	/* mode bit for symbolic link (Unix, 9P2000.u) */
-	DEVICE      = 0x00800000,	/* mode bit for device file (Unix, 9P2000.u) */
-	NAMEDPIPE   = 0x00200000,	/* mode bit for named pipe (Unix, 9P2000.u) */
-	SOCKET      = 0x00100000,	/* mode bit for socket (Unix, 9P2000.u) */
-	SETUID      = 0x00080000,	/* mode bit for setuid (Unix, 9P2000.u) */
-	SETGID      = 0x00040000,	/* mode bit for setgid (Unix, 9P2000.u) */
+	SYMLINK     = 0x02000000,	//!< mode bit for symbolic link (Unix, 9P2000.u)
+	DEVICE      = 0x00800000,	//!< mode bit for device file (Unix, 9P2000.u)
+	NAMEDPIPE   = 0x00200000,	//!< mode bit for named pipe (Unix, 9P2000.u)
+	SOCKET      = 0x00100000,	//!< mode bit for socket (Unix, 9P2000.u)
+	SETUID      = 0x00080000,	//!< mode bit for setuid (Unix, 9P2000.u)
+	SETGID      = 0x00040000,	//!< mode bit for setgid (Unix, 9P2000.u)
 
-	READ        = 0x4,		/* mode bit for read permission */
-	WRITE       = 0x2,		/* mode bit for write permission */
-	EXEC        = 0x1,		/* mode bit for execute permission */
+	READ        = 0x4,		//!< mode bit for read permission
+	WRITE       = 0x2,		//!< mode bit for write permission
+	EXEC        = 0x1,		//!< mode bit for execute permission
 };
 
 
@@ -255,14 +255,7 @@ struct Request {
 	struct Auth {
 		Fid                 afid;       //!< A new fid to be established for authentication.
 		Solace::StringView  uname;      //!< User identified by the message.
-		Solace::StringView  aname;      //!< file tree to access.
-	};
-
-	/**
-	 * Abort a message
-	 */
-	struct Flush {
-		Tag        oldtag;              //!< Tag of the message to abort.
+		Solace::StringView  aname;      //!< File tree/resource to access.
 	};
 
 	/**
@@ -274,6 +267,14 @@ struct Request {
 		Solace::StringView  uname;      //!< Idnetification of a user. All actions will be performed as this user.
 		Solace::StringView  aname;      //!< Selected file-tree to attach to.
 	};
+
+	/**
+	 * Abort a message
+	 */
+	struct Flush {
+		Tag        oldtag;              //!< Tag of the message to abort.
+	};
+
 
 	/**
 	 * A message to causes the server to change the current file
@@ -409,7 +410,7 @@ struct Response {
 
 	/// Create file response
 	struct Create {
-		Qid  qid;					//!< Qid of the created file
+		Qid  qid;				//!< Qid of the created file
 		size_type iounit;		//!< Hint numbed of bytes FS may read in a single op
 	};
 

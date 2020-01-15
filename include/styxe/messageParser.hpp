@@ -120,7 +120,6 @@ using ResponseMessage = std::variant<
 using RequestParseFunc = Solace::Result<RequestMessage, Error> (*)(Solace::ByteReader& );
 using ResponseParseFunc = Solace::Result<ResponseMessage, Error> (*)(Solace::ByteReader& );
 
-static_assert (sizeof(MessageHeader::type) == 1, "MessageType is expected to be 1 byte");
 using RequestParseTable = std::array<RequestParseFunc, 1 << 8*sizeof(MessageHeader::type)>;
 using ResponseParseTable = std::array<ResponseParseFunc, 1 << 8*sizeof(MessageHeader::type)>;
 
@@ -158,8 +157,9 @@ struct UnversionedParser {
 	 */
 	size_type maxMessageSize() const noexcept { return headerSize() + maxPayloadSize; }
 
-	size_type const         maxPayloadSize;		//!< Initial value of the maximum message payload size in bytes.
+	size_type          maxPayloadSize;		//!< Initial value of the maximum message payload size in bytes.
 };
+
 
 
 /**
@@ -194,10 +194,11 @@ struct ParserBase {
 	size_type maxMessageSize() const noexcept { return headerSize() + _maxPayloadSize; }
 
 private:
-	size_type const         _maxPayloadSize;		/// Initial value of the maximum message payload size in bytes.
+	size_type				_maxPayloadSize;		/// Initial value of the maximum message payload size in bytes.
 	VersionedNameMapper		_nameMapper;
 
 };
+
 
 /**
  * An implementation of 9p response message parser.
@@ -293,6 +294,7 @@ private:
 };
 
 
+
 /**
  * Create a new parser for a given protocol version and max message size.
  * @param version Version of the protocol to use.
@@ -311,6 +313,16 @@ createResponseParser(Solace::StringView version, size_type maxPayloadSize) noexc
  */
 Solace::Result<RequestParser, Error>
 createRequestParser(Solace::StringView version, size_type maxPayloadSize) noexcept;
+
+
+// Type constraints
+static_assert(std::is_move_assignable_v<UnversionedParser>,		"UnversionedParser should be movable");
+static_assert(std::is_move_assignable_v<ParserBase>,			"ParserBase should be movable");
+static_assert(std::is_move_assignable_v<ResponseParser>,		"ResponseParser should be movable");
+static_assert(std::is_move_assignable_v<RequestParser>,			"RequestParser should be movable");
+
+static_assert(std::is_move_assignable_v<RequestMessage>,		"RequestMessage should be movable");
+static_assert(std::is_move_assignable_v<ResponseMessage>,		"ResponseMessage should be movable");
 
 
 }  // end of namespace styxe
