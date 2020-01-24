@@ -177,7 +177,7 @@ ResponseWriter& operator<< (ResponseWriter& writer, _9P2000E::Response::ShortRea
 ResponseWriter& operator<< (ResponseWriter& writer, _9P2000E::Response::ShortWrite const& response);
 
 
-PathWriter operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortRead const& request);
+PartialPathWriter operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortRead const& request);
 PathDataWriter operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortWrite const& request);
 
 

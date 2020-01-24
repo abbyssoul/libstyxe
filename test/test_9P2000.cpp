@@ -450,15 +450,26 @@ TEST_F(P9Messages, createReadResponse) {
 
 
 TEST_F(P9Messages, createPartialReadResponse) {
-	char const content[] = "Good news no-one :)";
-	auto data = wrapMemory(content);
+	char const content1[] = {'h', 'e', 'l', 'l', 'o'};
+	char const content2[] = {'c', 'o', 'n', 't', 'e', 'n', 't'};
+	constexpr size_t const contentSize[] = {sizeof(content1), sizeof(content2)};
+	constexpr auto const kTotalContentSize = contentSize[0] + contentSize[1];
+
+
 	ResponseWriter writer{_writer, 1};
 	writer << Response::Partial::Read{}
-		   << data;
+		   << wrapMemory(content1)
+		   << wrapMemory(content2);
 
 	getResponseOrFail<Response::Read>()
-			.then([data](Response::Read&& response) {
-				ASSERT_EQ(data, response.data);
+			.then([=](Response::Read&& response) {
+				ASSERT_EQ(kTotalContentSize, response.data.size());
+
+				char contentBuf[kTotalContentSize + 1];
+				strncpy(contentBuf, content1, contentSize[0]);
+				strncpy(contentBuf + contentSize[0], content2, kTotalContentSize - contentSize[0]);
+
+				ASSERT_EQ(wrapMemory(contentBuf, kTotalContentSize), response.data);
 			});
 }
 

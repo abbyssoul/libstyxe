@@ -71,11 +71,16 @@ struct MessageWriterBase {
 
    /**
 	* Set message type and write newly formed message header to the output stream.
-	* @param type Message type byte-code. @see MessageHeader::type
+	* @param typeCode Message type byte-code. @see MessageHeader::type
 	* @return styxe::Encoder to write payload data to.
 	*/
-   Encoder& messageType(Solace::byte type) {
-	   return messageType(type, _header.tag);
+   Encoder& messageType(Solace::byte typeCode) {
+	   return messageType(typeCode, _header.tag);
+   }
+
+   template<typename MsgType>
+   Encoder& messageTypeOf() {
+	   return messageType(messageCodeOf<MsgType>());
    }
 
    /**
@@ -146,15 +151,57 @@ using RequestWriter = MessageWriter<RequestTag>;
 using ResponseWriter = MessageWriter<ResponseTag>;
 
 
+
+/// Message writer partial for messages that include trailing data segment.s
+struct PartialDataWriter {
+
+	/**
+	 * Construct a new DataWriter.
+	 * @param writer A byte stream to write the resulting message to.
+	 */
+	explicit PartialDataWriter(MessageWriterBase& writer) noexcept
+		: _writer{writer}  // Store a writer object
+		, _segmentsPos{writer.encoder().buffer().position()}  // Save postion in the output stream
+	{
+		_writer.encoder() << Solace::MemoryView{};  // Write empty data segment (to be overwritten later)
+	}
+
+	/**
+	 * Write data field to the output writer.
+	 * @param value Data buffer to write
+	 * @return Ref to request original request writer.
+	 */
+	MessageWriterBase& data(Solace::MemoryView value);
+
+private:
+	MessageWriterBase&						_writer;
+	Solace::ByteWriter::size_type const		_segmentsPos;   //!< A position in the output stream where path segments start.
+	size_type								_dataSize{0};   //!< Total size of data written so far
+};
+
+
+inline
+PartialDataWriter&& operator<< (PartialDataWriter&& writer, Solace::MemoryView segment) {
+	writer.data(segment);
+	return Solace::mv(writer);
+}
+
+inline
+PartialDataWriter& operator<< (PartialDataWriter& writer, Solace::MemoryView segment) {
+	writer.data(segment);
+	return writer;
+}
+
+
 /**
  * Message writer specialization for messages that include repeated path segments.
  */
-struct PathWriter {
+struct PartialPathWriter {
 	/**
 	 * Construct a new PathWriter.
 	 * @param writer A byte stream to write the resulting message to.
 	 */
-	PathWriter(RequestWriter& writer) noexcept
+	explicit PartialPathWriter(RequestWriter& writer) noexcept
 		: _writer{writer}
 		, _segmentsPos{writer.encoder().buffer().position()}
 	{
@@ -182,53 +229,18 @@ private:
 };
 
 
-PathWriter&& operator<< (PathWriter&& writer, Solace::StringView segment);
-
-
-
-/// Message writer partial for messages that include trailing data segment.s
-struct DataWriter {
-
-	/**
-	 * Construct a new DataWriter.
-	 * @param writer A byte stream to write the resulting message to.
-	 */
-	DataWriter(MessageWriterBase& writer) noexcept
-		: _writer{writer}  // Store a writer object
-		, _segmentsPos{writer.encoder().buffer().position()}  // Save postion in the output stream
-	{
-		_writer.encoder() << Solace::MemoryView{};  // Write empty data segment (to be overwritten later)
-	}
-
-	/**
-	 * Write data field to the output writer.
-	 * @param value Data buffer to write
-	 * @return Ref to request original request writer.
-	 */
-	MessageWriterBase& data(Solace::MemoryView value);
-
-private:
-	MessageWriterBase&						_writer;
-	Solace::ByteWriter::size_type const _segmentsPos;   //!< A position in the output stream where path segments start.
-};
-
-
-inline
-MessageWriterBase& operator<< (DataWriter&& writer, Solace::MemoryView segment) {
-	return writer.data(segment);
-}
-
+PartialPathWriter&& operator<< (PartialPathWriter&& writer, Solace::StringView segment);
 
 /**
  *  Message writer specialization to create partial messages that include repeated path segments followed by data.
  */
-struct PathDataWriter: public PathWriter {
+struct PathDataWriter final : public PartialPathWriter {
 	/**
 	 * Construct a new PathDataWriter.
 	 * @param writer A byte stream to write the resulting message to.
 	 */
-	PathDataWriter(RequestWriter& writer) noexcept
-		: PathWriter{writer}
+	explicit PathDataWriter(RequestWriter& writer) noexcept
+		: PartialPathWriter{writer}
 	{}
 
 	/**
@@ -247,6 +259,12 @@ PathDataWriter&& operator<< (PathDataWriter&& writer, Solace::StringView segment
 }
 
 inline
+PathDataWriter& operator<< (PathDataWriter& writer, Solace::StringView segment) {
+	writer.segment(segment);
+	return writer;
+}
+
+inline
 RequestWriter& operator<< (PathDataWriter&& writer, Solace::MemoryView segment) {
 	return writer.data(segment);
 }
@@ -260,7 +278,7 @@ struct PartialStringWriter {
 	 * Construct a new DataWriter.
 	 * @param writer A byte stream to write the resulting message to.
 	 */
-	PartialStringWriter(MessageWriterBase& writer) noexcept
+	explicit PartialStringWriter(MessageWriterBase& writer) noexcept
 		: _writer{writer}  // Store a writer object
 		, _segmentsPos{writer.encoder().buffer().position()}  // Save postion in the output stream
 	{
@@ -284,6 +302,12 @@ inline
 PartialStringWriter&& operator<< (PartialStringWriter&& writer, Solace::StringView segment) {
 	writer.string(segment);
 	return Solace::mv(writer);
+}
+
+inline
+PartialStringWriter& operator<< (PartialStringWriter& writer, Solace::StringView segment) {
+	writer.string(segment);
+	return writer;
 }
 
 

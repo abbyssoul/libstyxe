@@ -52,7 +52,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Attach const& message) {
 
 ResponseWriter&
 styxe::operator<< (ResponseWriter& writer, Response::Walk const& response) {
-	auto& e = writer.messageType(messageCodeOf<std::decay_t<decltype(response)>>());
+	auto& e = writer.messageTypeOf<std::decay_t<decltype(response)>>();
 	e << response.nqids;
 
 	for (size_t i = 0; i < response.nqids; ++i) {
@@ -195,36 +195,36 @@ styxe::operator<< (RequestWriter& writer, Request::WStat const& message) {
 
 
 
-PathWriter
+PartialPathWriter
 styxe::operator<< (RequestWriter& writer, Request::Partial::Walk const& response) {
-	writer.messageType(messageCodeOf<Request::Walk>())
+	writer.messageTypeOf<Request::Walk>()
 			<< response.fid
 			<< response.newfid;
 
-	return PathWriter{writer};
+	return PartialPathWriter{writer};
 }
 
-DataWriter
+PartialDataWriter
 styxe::operator<< (RequestWriter& writer, Request::Partial::Write const& message) {
-	writer.messageType(messageCodeOf<Request::Write>())
+	writer.messageTypeOf<Request::Write>()
 			<< message.fid
 			<< message.offset;
 
-	return DataWriter{writer};
+	return PartialDataWriter{writer};
 }
 
 
-DataWriter
+PartialDataWriter
 styxe::operator<< (ResponseWriter& writer, Response::Partial::Read const&) {
-	writer.messageType(messageCodeOf<Response::Read>());
+	writer.messageTypeOf<Response::Read>();
 
-	return DataWriter{writer};
+	return PartialDataWriter{writer};
 }
 
 
 PartialStringWriter
 styxe::operator<< (ResponseWriter& writer, Response::Partial::Error const&) {
-	writer.messageType(messageCodeOf<Response::Error>());
+	writer.messageTypeOf<Response::Error>();
 
 	return PartialStringWriter{writer};
 }

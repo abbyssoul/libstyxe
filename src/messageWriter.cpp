@@ -49,7 +49,9 @@ MessageWriterBase::build() {
 	return _encoder.buffer().flip();
 }
 
-void PathWriter::segment(Solace::StringView value) {
+
+void
+PartialPathWriter::segment(Solace::StringView value) {
 	auto& buffer = _writer.encoder().buffer();
 	auto const finalPos = buffer.position();
 	buffer.position(_segmentsPos);  // Reset output stream to the start position
@@ -64,10 +66,16 @@ void PathWriter::segment(Solace::StringView value) {
 
 
 MessageWriterBase&
-DataWriter::data(MemoryView value) {
+PartialDataWriter::data(MemoryView value) {
 	auto& buffer = _writer.encoder().buffer();
+
+	_dataSize += value.size();
+	buffer.write(value);
+	auto const finalPos = buffer.position();
+
 	buffer.position(_segmentsPos);  // Reset output stream to the start position
-	_writer.encoder() << value;
+	_writer.encoder() << _dataSize;
+	buffer.position(finalPos);
 	_writer.updateMessageSize();
 
 	return _writer;
@@ -85,12 +93,10 @@ PartialStringWriter::string(Solace::StringView value) {
 	buffer.position(_segmentsPos);  // Reset output stream to the start position
 	_writer.encoder() << _dataSize;
 	buffer.position(finalPos);
-
 	_writer.updateMessageSize();
 
 	return _writer;
 }
-
 
 
 RequestWriter&
@@ -103,8 +109,8 @@ PathDataWriter::data(Solace::MemoryView value) {
 
 
 
-PathWriter&&
-styxe::operator<< (PathWriter&& writer, StringView segment) {
+PartialPathWriter&&
+styxe::operator<< (PartialPathWriter&& writer, StringView segment) {
 	writer.segment(segment);
 	return mv(writer);
 }

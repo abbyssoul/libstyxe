@@ -416,7 +416,13 @@ struct Response {
 
 	/// Read resopose
 	struct Read : public Partial::Read {
-		Solace::MemoryView data;  /// View in to the response buffer where raw read data is.
+		Solace::MemoryView data{};  /// View in to the response buffer where raw read data is.
+
+		constexpr Read() noexcept {}
+
+		constexpr Read(Solace::MemoryView value) noexcept
+			: data{value}
+		{}
 	};
 
 	/// Write response
@@ -836,20 +842,20 @@ RequestWriter& operator<< (RequestWriter& writer, Request::Walk const& request);
  * Create partial Walk request.
  * @return partial writer.
  */
-PathWriter operator<< (RequestWriter& writer, Request::Partial::Walk const& request);
+PartialPathWriter operator<< (RequestWriter& writer, Request::Partial::Walk const& request);
 
 /**
  * Create partial Write request.
  * @return partial writer.
  */
-DataWriter operator<< (RequestWriter& writer, Request::Partial::Write const& request);
+PartialDataWriter operator<< (RequestWriter& writer, Request::Partial::Write const& request);
 
 
 /**
  * Create partial Read response.
  * @return Message builder.
  */
-DataWriter operator<< (ResponseWriter& writer, Response::Partial::Read const& response);
+PartialDataWriter operator<< (ResponseWriter& writer, Response::Partial::Read const& response);
 
 PartialStringWriter operator<< (ResponseWriter& writer, Response::Partial::Error const& response);
 

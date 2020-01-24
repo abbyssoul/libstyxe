@@ -115,7 +115,7 @@ struct MessageDump {
 		return *this;
 	}
 
-	MessageDump& operator() (PathWriter&& pw) {
+	MessageDump& operator() (PartialPathWriter&& pw) {
 		return operator() (pw.writer());
 	}
 

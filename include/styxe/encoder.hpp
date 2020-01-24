@@ -50,7 +50,7 @@ struct Encoder {
 	 * Get underlaying output stream.
 	 * @return Byte stream where data is being written.
 	 */
-	Solace::ByteWriter& buffer() noexcept { return _dest; }
+	constexpr Solace::ByteWriter& buffer() noexcept { return _dest; }
 
 private:
 

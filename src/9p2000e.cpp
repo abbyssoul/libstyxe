@@ -112,18 +112,18 @@ styxe::operator<< (RequestWriter& writer, _9P2000E::Request::ShortWrite const& m
 }
 
 
-PathWriter
+PartialPathWriter
 styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortRead const& message) {
-	writer.messageType(messageCodeOf<_9P2000E::Request::ShortRead>())
+	writer.messageTypeOf<_9P2000E::Request::ShortRead>()
 			<< message.fid;
 
-	return PathWriter{writer};
+	return PartialPathWriter{writer};
 }
 
 
 PathDataWriter
 styxe::operator<< (RequestWriter& writer, _9P2000E::Request::Partial::ShortWrite const& message) {
-	writer.messageType(messageCodeOf<_9P2000E::Request::ShortWrite>())
+	writer.messageTypeOf<_9P2000E::Request::ShortWrite>()
 			<< message.fid;
 
 	return PathDataWriter{writer};

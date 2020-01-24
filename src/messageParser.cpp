@@ -39,7 +39,8 @@ invalidResponseType(ByteReader& ) {
 template<typename T>
 Result<RequestMessage, Error>
 parseRequest(ByteReader& data) {
-	T msg{};
+	T msg{};  // This requires default constructor for all Response::* types
+
 	auto result = data >> msg;
 	if (!result) {
 		return result.moveError();
@@ -51,7 +52,8 @@ parseRequest(ByteReader& data) {
 template<typename T>
 Result<ResponseMessage, Error>
 parseResponse(ByteReader& data) {
-	T msg{};
+	T msg{};  // This requires default constructor for all Response::* types
+
 	auto result = data >> msg;
 	if (!result) {
 		return result.moveError();
