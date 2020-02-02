@@ -123,6 +123,9 @@ using ResponseParseFunc = Solace::Result<ResponseMessage, Error> (*)(Solace::Byt
 using RequestParseTable = std::array<RequestParseFunc, 1 << 8*sizeof(MessageHeader::type)>;
 using ResponseParseTable = std::array<ResponseParseFunc, 1 << 8*sizeof(MessageHeader::type)>;
 
+/// Type alias for messge code -> StringView mapping.
+using VersionedNameMapper = Solace::StringView (*)(Solace::byte);
+
 
 /**
  * 9p2000 message parser for unspecified protocol version.
@@ -133,6 +136,10 @@ using ResponseParseTable = std::array<ResponseParseFunc, 1 << 8*sizeof(MessageHe
  * @see createParser for details.
  */
 struct UnversionedParser {
+
+	constexpr UnversionedParser(size_type maxPayload) noexcept
+		: _maxPayloadSize{maxPayload}
+	{}
 
 	/**
 	 * Parse 9P message header from a byte buffer.
@@ -152,12 +159,22 @@ struct UnversionedParser {
 	parseVersionRequest(MessageHeader header, Solace::ByteReader& byteStream) const;
 
 	/**
-	 * Get maximum message size in bytes. That includes size of a message header and the payload.
-	 * @return
+	 * Get a string representation of the message name given the op-code.
+	 * @param messageType Message op-code to convert to a string.
+	 * @return A string representation of a given message code.
 	 */
-	size_type maxMessageSize() const noexcept { return headerSize() + maxPayloadSize; }
+	Solace::StringView messageName(Solace::byte messageType) const {
+		return messageTypeToString(messageType);
+	}
 
-	size_type          maxPayloadSize;		//!< Initial value of the maximum message payload size in bytes.
+	/**
+	 * Get maximum message size in bytes. That includes size of a message header and the payload.
+	 * @return max size of a message in bytes
+	 */
+	size_type maxMessageSize() const noexcept { return headerSize() + _maxPayloadSize; }
+
+private:
+	size_type				_maxPayloadSize;		//!< Initial value of the maximum message payload size in bytes.
 };
 
 
@@ -167,8 +184,6 @@ struct UnversionedParser {
  * This class incapsulate common parts between request and response parser.
  */
 struct ParserBase {
-	/// Type alias for messge code -> StringView mapping.
-	using VersionedNameMapper = Solace::StringView (*)(Solace::byte);
 
 	/**
 	 * Construct a new ParserBase
