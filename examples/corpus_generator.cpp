@@ -303,10 +303,30 @@ void dumpAllResponses(MemoryResource& memoryResource, std::string corpusDir, Str
 }
 
 
+int
+usage(const char* progname) {
+	std::cout << "Usage: " << progname
+			  << " DIRECTORY"
+			  << " [version]"
+			  << std::endl;
+
+	std::cout << "Generate a corpus of 9p messages, one file per message\n\n"
+			  << "Arguments: \n"
+			  << "  DIRECTORY  Directory to write messages to.\n"
+			  << "  version    9p protocol version ["
+			  << _9P2000E::kProtocolVersion << ", "
+			  << _9P2000U::kProtocolVersion << ", "
+			  << _9P2000L::kProtocolVersion << "], default: " << kProtocolVersion << '\n'
+			  << "\n"
+			  << std::endl;
+
+	return EXIT_SUCCESS;
+}
+
+
 int main(int argc, char const **argv) {
     if (argc < 2) {  // No-arg call: list ports and exit
-        std::cerr << "Usage: corpus_generator <DIRECTORY_NAME>" << std::endl;
-        return EXIT_FAILURE;
+		return usage("corpus_generator");
     }
 
     // Check if provided argument names a directory:
