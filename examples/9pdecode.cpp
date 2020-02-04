@@ -16,6 +16,7 @@
 
 #include <styxe/styxe.hpp>
 
+#include <solace/posixErrorDomain.hpp>
 #include <solace/output_utils.hpp>
 
 #include <iostream>
@@ -645,15 +646,31 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
     // Message header is fixed size - so it is safe to attempt to read it.
     in.read(buffer.view().dataAs<char>(), headerSize());
 
+	if (in.gcount() == 0) return;
+
+	if (in.gcount() > 0 && in.gcount() != headerSize()) {
+		std::cerr << "Error parsing message header: EOF" << std::endl;
+		return;
+	}
+
     auto reader = ByteReader{buffer};
-    reader.limit(in.gcount());
+	reader.limit(headerSize());
 
 	auto headerParser = UnversionedParser{narrow_cast<size_type>(buffer.size())};
 	headerParser.parseMessageHeader(reader)
-            .then([&](MessageHeader&& header) {
-                in.read(buffer.view().dataAs<char>(), header.payloadSize());
+			.then([&](MessageHeader&& header) -> Result<void, Error> {
+				// Check we have enough room in the buffer for the payload
+				if (header.payloadSize() > buffer.size())
+					return makeError(GenericError::IO, "Data overflow");
+
+				in.read(buffer.view().dataAs<char>(), header.payloadSize());
+
+				// Check we read all the data
+				if (in.gcount() != header.payloadSize())
+					return makeError(GenericError::IO, "unexpected EOF");
+
                 reader.rewind()
-                        .limit(in.gcount());
+						.limit(header.payloadSize());
 
 				bool const isRequest = (header.type % 2) == 0;
                 if (isRequest) {
@@ -678,6 +695,8 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
 				}
 
 				std::cout << std::endl;
+
+				return Ok();
             })
             .orElse([](Error&& err) {
                 std::cerr << "Error parsing message header: " << err.toString() << std::endl;
@@ -691,14 +710,14 @@ int usage(const char* progname, size_type defaultMessageSize, StringView default
               << "[-m <size>] "
               << "[-p <version>] "
               << "[-h] "
-              << " [FILE]..."
+			  << "[FILE...]"
               << std::endl;
 
-    std::cout << "Read 9P2000 message and display it\n\n"
+	std::cout << "Read 9P2000 messages and display it\n\n"
               << "Options: \n"
-			  << " -m <size> - Use maximum buffer size for messages [Default: " << defaultMessageSize << "]\n"
-			  << " -p <version> - Use specific protocol version [Default: " << defaultVersion<< "]\n"
-              << " -h - Display help and exit\n"
+			  << "  -m <size>                  " << "use maximum buffer size for messages [Default: " << defaultMessageSize << "]\n"
+			  << "  -p <version>               " << "use specific protocol version [Default: " << defaultVersion<< "]\n"
+			  << "  -h                         " << "display help and exit\n"
               << std::endl;
 
     return EXIT_SUCCESS;
@@ -709,7 +728,7 @@ int usage(const char* progname, size_type defaultMessageSize, StringView default
  */
 int main(int argc, char* const* argv) {
 	size_type maxMessageSize = kMaxMessageSize;
-	StringView requiredVersion = _9P2000U::kProtocolVersion;
+	StringView requiredVersion = kProtocolVersion;
 
     int c;
 	while ((c = getopt(argc, argv, "m:p:h")) != -1) {
@@ -764,10 +783,14 @@ int main(int argc, char* const* argv) {
                 return EXIT_FAILURE;
             }
 
-			readAndPrintMessage(input, buffer, tparser, rparser);
+			while (input && !input.eof()) {
+				readAndPrintMessage(input, buffer, tparser, rparser);
+			}
         }
     } else {
-		readAndPrintMessage(std::cin, buffer, tparser, rparser);
+		while (std::cin && !std::cin.eof()) {
+			readAndPrintMessage(std::cin, buffer, tparser, rparser);
+		}
     }
 
     return EXIT_SUCCESS;
