@@ -155,8 +155,6 @@ using ResponseWriter = MessageWriter<ResponseTag>;
 /// Message writer partial for messages that include trailing data segment.s
 struct PartialDataWriter {
 
-	struct End {};
-
 	/**
 	 * Construct a new DataWriter.
 	 * @param writer A byte stream to write the resulting message to.
@@ -168,7 +166,7 @@ struct PartialDataWriter {
 		_writer.encoder() << Solace::MemoryView{};  // Write empty data segment (to be overwritten later)
 	}
 
-	MessageWriterBase& update();
+	MessageWriterBase& update(size_type dataSize);
 
 	/**
 	 * Write data field to the output writer.
@@ -185,7 +183,6 @@ private:
 	size_type								_dataSize{0};   //!< Total size of data written so far
 };
 
-constexpr inline PartialDataWriter::End dataEnd;
 
 
 inline
@@ -197,18 +194,6 @@ PartialDataWriter&& operator<< (PartialDataWriter&& writer, Solace::MemoryView s
 inline
 PartialDataWriter& operator<< (PartialDataWriter& writer, Solace::MemoryView segment) {
 	writer.data(segment);
-	return writer;
-}
-
-inline
-PartialDataWriter&& operator<< (PartialDataWriter&& writer, PartialDataWriter::End) {
-	writer.update();
-	return Solace::mv(writer);
-}
-
-inline
-PartialDataWriter& operator<< (PartialDataWriter& writer, PartialDataWriter::End) {
-	writer.update();
 	return writer;
 }
 

@@ -73,13 +73,14 @@ PartialDataWriter::viewRemainder() {
 
 
 MessageWriterBase&
-PartialDataWriter::update() {
+PartialDataWriter::update(size_type dataSize) {
 	auto& buffer = _writer.encoder().buffer();
-	auto const finalPos = buffer.position();
+	_dataSize = dataSize;
 
 	buffer.position(_segmentsPos);  // Reset output stream to the start position
 	_writer.encoder() << _dataSize;
-	buffer.position(finalPos);
+	buffer.advance(_dataSize);  // TODO(abbyssoul): error check, new dataSize can be over the buffer capacity
+	// . position(finalPos);
 	_writer.updateMessageSize();
 
 	return _writer;
@@ -89,11 +90,9 @@ PartialDataWriter::update() {
 MessageWriterBase&
 PartialDataWriter::data(MemoryView value) {
 	auto& buffer = _writer.encoder().buffer();
-
-	_dataSize += value.size();
 	buffer.write(value);
 
-	return update();
+	return update(_dataSize + value.size());
 }
 
 
