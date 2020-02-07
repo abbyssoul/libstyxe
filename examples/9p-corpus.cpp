@@ -166,13 +166,13 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Stri
 	dump(requestWriter << Request::Stat{17});
 
 	if (version == _9P2000U::kProtocolVersion) {
-		dump(requestWriter << _9P2000U::Request::Auth{1, userName, "attachPoint", n_uname});
-		dump(requestWriter << _9P2000U::Request::Attach{3, 18, userName, "someFile", n_uname});
+		dump(requestWriter << _9P2000U::Request::Auth{21, userName, "attachPoint", n_uname});
+		dump(requestWriter << _9P2000U::Request::Attach{3, 21, userName, "someFile", n_uname});
 		dump(requestWriter << _9P2000U::Request::Create{42, "newFile", 0666, OpenMode::WRITE, "xtras"});
 		dump(requestWriter << _9P2000U::Request::WStat{17, genStatsExt(userName, userName)});
 	} else {
-		dump(requestWriter << Request::Auth{1, userName, "attachPoint"});
-		dump(requestWriter << Request::Attach{3, 18, userName, "someFile"});
+		dump(requestWriter << Request::Auth{18, userName, "attachPoint"});
+		dump(requestWriter << Request::Attach{3, 18, userName, "attachPoint"});
 		dump(requestWriter << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
 		dump(requestWriter << Request::WStat{17, dummyStat});
 	}
