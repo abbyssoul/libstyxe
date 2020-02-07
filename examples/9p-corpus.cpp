@@ -124,14 +124,24 @@ struct MessageDump {
 		std::stringstream sb;
 		sb << messageType;
 
-		std::ofstream output{corpusDirectory + "/" + sb.str()};
+		std::ofstream output{corpusDirectory + sb.str()};
 		if (!output) {
 			std::cerr << "Failed to open output file: '"
-					  << corpusDirectory << "/" << sb.str() << "'\n";
+					  << corpusDirectory << sb.str() << "'\n";
 			return;
 		}
 
 		output.write(buffer.dataAs<char>(), buffer.size());
+	}
+
+	MessageDump(MessageNameMapper codeToName, std::string const& directory)
+		: messageCodeToName{codeToName}
+		, corpusDirectory{directory}
+	{
+		// FIXE trailing slash:
+		if (corpusDirectory.back() != '/') {
+			corpusDirectory += '/';
+		}
 	}
 
 	MessageNameMapper	messageCodeToName;
@@ -146,6 +156,10 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Stri
 	Solace::uint32 const n_uname = 3213;
 	auto dummyStat = genStats(userName, userName);
 
+	Fid const afid = 21;
+	Fid const rootFid = 118;
+	Fid const dataFid = 42;
+
 	ByteWriter buffer{memoryResource};
 	RequestWriter requestWriter{buffer, 1};
 	MessageDump dump{messageCodeToName, corpusDir};
@@ -153,41 +167,39 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Stri
 	dump(requestWriter << Request::Version{kMaxMessageSize, version});
 	dump(requestWriter << Request::Flush{3});
 
-	dump(requestWriter << Request::Partial::Walk{18, 42}
-		 << StringView{"one"}
-		 << StringView{"two"}
-		 << StringView{"file"});
+	dump(requestWriter << Request::Partial::Walk{rootFid, dataFid}
+					   << StringView{"mock-1.ram"});
 
-	dump(requestWriter << Request::Open{42, OpenMode::READ});
-	dump(requestWriter << Request::Read{42, 12, 418});
-	dump(requestWriter << Request::Write{24, 12, payload});
-	dump(requestWriter << Request::Clunk{24});
-	dump(requestWriter << Request::Remove{42});
-	dump(requestWriter << Request::Stat{17});
+	dump(requestWriter << Request::Open{dataFid, OpenMode::READ});
+	dump(requestWriter << Request::Read{dataFid, 3, 512});
+	dump(requestWriter << Request::Write{dataFid, 12, payload});
+	dump(requestWriter << Request::Clunk{dataFid});
+	dump(requestWriter << Request::Remove{dataFid});
+	dump(requestWriter << Request::Stat{dataFid});
 
 	if (version == _9P2000U::kProtocolVersion) {
-		dump(requestWriter << _9P2000U::Request::Auth{21, userName, "attachPoint", n_uname});
-		dump(requestWriter << _9P2000U::Request::Attach{3, 21, userName, "someFile", n_uname});
-		dump(requestWriter << _9P2000U::Request::Create{42, "newFile", 0666, OpenMode::WRITE, "xtras"});
-		dump(requestWriter << _9P2000U::Request::WStat{17, genStatsExt(userName, userName)});
+		dump(requestWriter << _9P2000U::Request::Auth{afid, userName, "attachPoint", n_uname});
+		dump(requestWriter << _9P2000U::Request::Attach{rootFid, afid, userName, "someFile", n_uname});
+		dump(requestWriter << _9P2000U::Request::Create{dataFid, "newFile", 0666, OpenMode::WRITE, "xtras"});
+		dump(requestWriter << _9P2000U::Request::WStat{dataFid, genStatsExt(userName, userName)});
 	} else {
-		dump(requestWriter << Request::Auth{18, userName, "attachPoint"});
-		dump(requestWriter << Request::Attach{3, 18, userName, "attachPoint"});
-		dump(requestWriter << Request::Create{42, "newFile", 0666, OpenMode::WRITE});
-		dump(requestWriter << Request::WStat{17, dummyStat});
+		dump(requestWriter << Request::Auth{afid, userName, ""});
+		dump(requestWriter << Request::Attach{rootFid, afid, userName, ""});
+		dump(requestWriter << Request::Create{dataFid, "newFile", 0666, OpenMode::WRITE});
+		dump(requestWriter << Request::WStat{dataFid, dummyStat});
 	}
 
 	// Generate extra messages based on extention selected
 	if (version == _9P2000E::kProtocolVersion) {
 		dump(requestWriter << _9P2000E::Request::Session{{0x0F, 0xAF, 0x32, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF}});
 
-		dump(requestWriter << _9P2000E::Request::Partial::ShortRead{3}
+		dump(requestWriter << _9P2000E::Request::Partial::ShortRead{dataFid}
 			 << StringView{"some"}
 			 << StringView{"location"}
 			 << StringView{"where"}
 			 << StringView{"file"});
 
-		dump(requestWriter << _9P2000E::Request::Partial::ShortWrite{3}
+		dump(requestWriter << _9P2000E::Request::Partial::ShortWrite{dataFid}
 			 << StringView{"some"}
 			 << StringView{"location"}
 			 << StringView{"where"}
@@ -196,19 +208,19 @@ void dumpAllRequests(MemoryResource& memoryResource, std::string corpusDir, Stri
 	} else if (version == _9P2000L::kProtocolVersion) {
 		Solace::uint32 gid{45345};
 
-		dump(requestWriter << _9P2000L::Request::StatFS{3213});
-		dump(requestWriter << _9P2000L::Request::LOpen{1234, 1348763});
-		dump(requestWriter << _9P2000L::Request::LCreate{});
+		dump(requestWriter << _9P2000L::Request::StatFS{dataFid});
+		dump(requestWriter << _9P2000L::Request::LOpen{dataFid, 0});
+		dump(requestWriter << _9P2000L::Request::LCreate{dataFid, "newFile", 0, 0666, gid});
 		dump(requestWriter << _9P2000L::Request::Symlink{3123, "xfile", "yfile", gid});
 		dump(requestWriter << _9P2000L::Request::MkNode{21132, "nnode", 23432, 123, 3212, gid});
 		dump(requestWriter << _9P2000L::Request::Rename{123, 213, "xname"});
 		dump(requestWriter << _9P2000L::Request::ReadLink{213});
-		dump(requestWriter << _9P2000L::Request::GetAttr{123, 1232132});
+		dump(requestWriter << _9P2000L::Request::GetAttr{dataFid, 1232132});
 		dump(requestWriter << _9P2000L::Request::SetAttr{});
 		dump(requestWriter << _9P2000L::Request::XAttrWalk{3123, 3213, "attrx"});
 		dump(requestWriter << _9P2000L::Request::XAttrCreate{3123, "attrxy", 321, 896123});
 		dump(requestWriter << _9P2000L::Request::ReadDir{3213, 1, 432});
-		dump(requestWriter << _9P2000L::Request::FSync{3213});
+		dump(requestWriter << _9P2000L::Request::FSync{dataFid});
 		dump(requestWriter << _9P2000L::Request::Lock{3213, 1, 3213, 23, 2048, 3213, "Awesome"});
 		dump(requestWriter << _9P2000L::Request::GetLock{23123, 1, 1024, 2048, 3213, "Awesome"});
 		dump(requestWriter << _9P2000L::Request::Link{3213, 123, "linkx"});

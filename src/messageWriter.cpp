@@ -65,12 +65,16 @@ PartialPathWriter::segment(Solace::StringView value) {
 }
 
 
-MessageWriterBase&
-PartialDataWriter::data(MemoryView value) {
+MutableMemoryView
+PartialDataWriter::viewRemainder() {
 	auto& buffer = _writer.encoder().buffer();
+	return buffer.viewRemaining();
+}
 
-	_dataSize += value.size();
-	buffer.write(value);
+
+MessageWriterBase&
+PartialDataWriter::update() {
+	auto& buffer = _writer.encoder().buffer();
 	auto const finalPos = buffer.position();
 
 	buffer.position(_segmentsPos);  // Reset output stream to the start position
@@ -79,6 +83,17 @@ PartialDataWriter::data(MemoryView value) {
 	_writer.updateMessageSize();
 
 	return _writer;
+}
+
+
+MessageWriterBase&
+PartialDataWriter::data(MemoryView value) {
+	auto& buffer = _writer.encoder().buffer();
+
+	_dataSize += value.size();
+	buffer.write(value);
+
+	return update();
 }
 
 
