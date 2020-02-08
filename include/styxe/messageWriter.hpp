@@ -164,6 +164,7 @@ struct PartialDataWriter {
 		, _segmentsPos{writer.encoder().buffer().position()}  // Save postion in the output stream
 	{
 		_writer.encoder() << Solace::MemoryView{};  // Write empty data segment (to be overwritten later)
+		_writer.updateMessageSize();
 	}
 
 	MessageWriterBase& update(size_type dataSize);
@@ -211,6 +212,7 @@ struct PartialPathWriter {
 		, _segmentsPos{writer.encoder().buffer().position()}
 	{
 		_writer.encoder() << _nSegments;
+		_writer.updateMessageSize();
 	}
 
 	/**
@@ -288,6 +290,7 @@ struct PartialStringWriter {
 		, _segmentsPos{writer.encoder().buffer().position()}  // Save postion in the output stream
 	{
 		_writer.encoder() << Solace::StringView{};  // Write empty data segment (to be overwritten later)
+		_writer.updateMessageSize();
 	}
 
 	/**

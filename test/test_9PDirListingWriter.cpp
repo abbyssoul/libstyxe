@@ -82,6 +82,7 @@ TEST_F(P9DirListingWriter, directoryReadResponse) {
     }
 	ASSERT_EQ(dirWriter.bytesEncoded(), protocolSize(testStats[0]));
 
+	// Check response
 	auto maybeParser = createResponseParser(kProtocolVersion, 128);
 	ASSERT_TRUE(maybeParser.isOk());
 
@@ -99,7 +100,33 @@ TEST_F(P9DirListingWriter, directoryReadResponse) {
     auto& message = maybeMessage.unwrap();
     ASSERT_TRUE(std::holds_alternative<Response::Read>(message));
 
-    auto read = std::get<Response::Read>(message);
+	auto read = std::get<Response::Read>(message);
+	ASSERT_EQ(dirWriter.bytesEncoded(), read.data.size());
+}
 
+
+TEST_F(P9DirListingWriter, emptyDirectoryReadResponseOk) {
+	auto responseWriter = ResponseWriter{_buffer, 1};
+	auto dirWriter = DirListingWriter{responseWriter, 4096};
+	ASSERT_EQ(dirWriter.bytesEncoded(), 0U);
+
+	// Check response
+	auto maybeParser = createResponseParser(kProtocolVersion, 128);
+	ASSERT_TRUE(maybeParser.isOk());
+
+	auto& parser = *maybeParser;
+	ByteReader reader{_buffer.viewWritten()};
+	auto headerParser = UnversionedParser{kMaxMessageSize};
+
+	auto maybeHeader = headerParser.parseMessageHeader(reader);
+	ASSERT_TRUE(maybeHeader.isOk());
+
+	auto maybeMessage = parser.parseResponse(*maybeHeader, reader);
+	ASSERT_TRUE(maybeMessage.isOk());
+
+	auto& message = maybeMessage.unwrap();
+	ASSERT_TRUE(std::holds_alternative<Response::Read>(message));
+
+	auto read = std::get<Response::Read>(message);
 	ASSERT_EQ(dirWriter.bytesEncoded(), read.data.size());
 }

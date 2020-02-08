@@ -266,9 +266,10 @@ DirListingWriter::DirListingWriter(ResponseWriter& writer, Solace::uint32 maxByt
 		, _maxBytes{maxBytes}
 		, _writer{writer}
 {
-	auto& encoder = writer.messageType(asByte(MessageType::RRead));
+	auto& encoder = _writer.messageType(asByte(MessageType::RRead));
 	_dataPosition = encoder.buffer().position();
 	encoder << MemoryView{}; 	// Prime writer with 0 size read response
+	_writer.updateMessageSize();
 }
 
 
@@ -280,6 +281,7 @@ void DirListingWriter::updateDataSize() {
 	buffer.position(_dataPosition);  // Reset output stream to the start position
 	_writer.encoder() << dataSize;
 	buffer.position(finalPos);  // Reset output stream to the final position
+	_writer.updateMessageSize();
 }
 
 
@@ -301,7 +303,5 @@ bool DirListingWriter::encode(Stat const& stat) {
 	_writer.encoder() << stat;
 
 	updateDataSize();
-	_writer.updateMessageSize();
-
     return true;
 }
