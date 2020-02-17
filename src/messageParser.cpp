@@ -21,7 +21,8 @@ using namespace Solace;
 using namespace styxe;
 
 
-const size_type         styxe::kMaxMessageSize = 8*1024;      // 8k should be enough for everyone, am I right?
+const size_type styxe::kMaxMessageSize = 8*1024;      // 8k should be enough for everyone, am I right?
+const size_type styxe::kMinMessageSize = 4145;			/// Min space for TWalk of 16*256 long files.
 
 
 
