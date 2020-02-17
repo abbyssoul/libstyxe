@@ -34,11 +34,13 @@ using namespace styxe;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// 9P2000 Message parsing test suit
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace  {
+
 class P9Messages : public TestHarnes {
 protected:
 
     template<typename RequestType>
-    Result<RequestType, Error>
+	styxe::Result<RequestType>
 	getRequestOrFail() {
 		ByteReader reader{_writer.viewWritten()};
 
@@ -50,17 +52,16 @@ protected:
 
 		auto& proc = *maybeParser;
 		auto constexpr expectType = messageCodeOf<RequestType>();
-		auto headerParser = UnversionedParser{kMaxMessageSize};
-		return headerParser.parseMessageHeader(reader)
+		return parseMessageHeader(reader)
 				.then([](MessageHeader header) {
 					return (header.type != expectType)
-							? Result<MessageHeader, Error>{getCannedError(CannedError::UnsupportedMessageType)}
-							: Result<MessageHeader, Error>{types::okTag, std::move(header)};
+							? styxe::Result<MessageHeader>{getCannedError(CannedError::UnsupportedMessageType)}
+							: styxe::Result<MessageHeader>{types::okTag, std::move(header)};
                 })
 				.then([&reader, &proc](MessageHeader&& header) {
 					return proc.parseRequest(header, reader);
                 })
-				.then([](RequestMessage&& msg) -> Result<RequestType, Error> {
+				.then([](RequestMessage&& msg) -> styxe::Result<RequestType> {
 					bool const isType = std::holds_alternative<RequestType>(msg);
 
                     if (!isType) {
@@ -79,7 +80,7 @@ protected:
 
 
     template<typename ResponseType>
-    Result<ResponseType, Error>
+	styxe::Result<ResponseType>
 	getResponseOrFail() {
 		ByteReader reader{_writer.viewWritten()};
 
@@ -92,17 +93,16 @@ protected:
 		auto& proc = *maybeParser;
 
 		auto constexpr expectType = messageCodeOf<ResponseType>();
-		auto headerParser = UnversionedParser{kMaxMessageSize};
-		return headerParser.parseMessageHeader(reader)
+		return parseMessageHeader(reader)
 				.then([](MessageHeader header) {
 					return (header.type == expectType)
-							? Result<MessageHeader, Error>{types::okTag, std::move(header)}
-							: Result<MessageHeader, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};
+							? styxe::Result<MessageHeader>{types::okTag, std::move(header)}
+							: styxe::Result<MessageHeader>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};
                 })
 				.then([&reader, &proc](MessageHeader&& header) {
 					return proc.parseResponse(header, reader);
                 })
-				.then([](ResponseMessage&& msg) -> Result<ResponseType, Error> {
+				.then([](ResponseMessage&& msg) -> styxe::Result<ResponseType> {
 					bool const isType = std::holds_alternative<ResponseType>(msg);
 
                     if (!isType) {
@@ -121,7 +121,7 @@ protected:
 
 };
 
-
+}  // namespace
 
 
 TEST_F(P9Messages, createVersionRequest) {

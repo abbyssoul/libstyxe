@@ -16,6 +16,7 @@
 
 #include "styxe/9p2000.hpp"
 #include "styxe/messageParser.hpp"
+#include "styxe/version.hpp"
 
 #include "parse_helper.hpp"
 
@@ -26,6 +27,7 @@
 using namespace Solace;
 using namespace styxe;
 
+static const Version   kLibVersion{STYXE_VERSION_MAJOR, STYXE_VERSION_MINOR, STYXE_VERSION_BUILD};
 
 const StringLiteral     styxe::kUnknownProtocolVersion{"unknown"};
 const StringLiteral		styxe::kProtocolVersion{"9P2000"};
@@ -43,7 +45,14 @@ const byte OpenMode::CEXEC;
 const byte OpenMode::RCLOSE;
 
 
-Result<ByteReader&, Error>
+
+Version const&
+styxe::getVersion() noexcept {
+	return kLibVersion;
+}
+
+
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Walk& dest) {
 	Decoder decoder{data};
 
@@ -56,132 +65,132 @@ styxe::operator>> (ByteReader& data, Response::Walk& dest) {
 	if (!result)
 		return result.moveError();
 
-	return Result<ByteReader&, Error>{types::okTag, data};
+	return styxe::Result<ByteReader&>{types::okTag, data};
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Version& dest) {
 	return decode(data, dest.msize, dest.version);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Auth& dest) {
 	return decode(data, dest.qid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Attach& dest) {
 	return decode(data, dest.qid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Error& dest) {
 	return decode(data, dest.ename);
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Open& dest) {
 	return decode(data, dest.qid, dest.iounit);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Create& dest) {
 	return decode(data, dest.qid, dest.iounit);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Read& dest) {
 	return decode(data, dest.data);
 }
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Write& dest) {
 	return decode(data, dest.count);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Response::Stat& dest) {
 	return decode(data, dest.dummySize, dest.data);
 }
 
-Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, Response::Clunk& ) { return Result<ByteReader&, Error>{types::okTag, data}; }
+styxe::Result<ByteReader&>
+styxe::operator>> (ByteReader& data, Response::Clunk& ) { return styxe::Result<ByteReader&>{types::okTag, data}; }
 
-Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, Response::Remove& ) { return Result<ByteReader&, Error>{types::okTag, data}; }
+styxe::Result<ByteReader&>
+styxe::operator>> (ByteReader& data, Response::Remove& ) { return styxe::Result<ByteReader&>{types::okTag, data}; }
 
-Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, Response::Flush& ) { return Result<ByteReader&, Error>{types::okTag, data}; }
+styxe::Result<ByteReader&>
+styxe::operator>> (ByteReader& data, Response::Flush& ) { return styxe::Result<ByteReader&>{types::okTag, data}; }
 
-Result<ByteReader&, Error>
-styxe::operator>> (ByteReader& data, Response::WStat& ) { return Result<ByteReader&, Error>{types::okTag, data}; }
+styxe::Result<ByteReader&>
+styxe::operator>> (ByteReader& data, Response::WStat& ) { return styxe::Result<ByteReader&>{types::okTag, data}; }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Request parser
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Version& dest) {
 	return decode(data, dest.msize, dest.version);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Auth& dest) {
 	return decode(data, dest.afid, dest.uname, dest.aname);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Attach& dest) {
 	return decode(data, dest.fid, dest.afid, dest.uname, dest.aname);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Flush& dest) {
 	return decode(data, dest.oldtag);
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Walk& dest) {
 	return decode(data, dest.fid, dest.newfid, dest.path);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Open& dest) {
 	return decode(data, dest.fid, dest.mode.mode);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Create& dest) {
 	return decode(data, dest.fid, dest.name, dest.perm, dest.mode.mode);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Read& dest) {
 	return decode(data, dest.fid, dest.offset, dest.count);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Write& dest) {
 	return decode(data, dest.fid, dest.offset, dest.data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Clunk& dest) {
 	return decode(data, dest.fid);
 }
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Remove& dest) {
 	return decode(data, dest.fid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::Stat& dest) {
 	return decode(data, dest.fid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, Request::WStat& dest) {
 	return decode(data, dest.fid, dest.stat);
 }

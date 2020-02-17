@@ -331,47 +331,47 @@ ResponseWriter& styxe::operator<< (ResponseWriter& writer, _9P2000L::Response::U
 
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::StatFS& dest) {
 	return decode(data, dest.fid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::LOpen& dest) {
 	return decode(data, dest.fid, dest.flags);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::LCreate& dest) {
 	return decode(data, dest.fid, dest.name, dest.flags, dest.mode, dest.gid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::Symlink& dest) {
 	return decode(data, dest.fid, dest.name, dest.symtgt, dest.gid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::MkNode& dest) {
 	return decode(data, dest.dfid, dest.name, dest.mode, dest.major, dest.minor, dest.gid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::Rename& dest) {
 	return decode(data, dest.fid, dest.dfid, dest.name);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::ReadLink& dest) {
 	return decode(data, dest.fid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::GetAttr& dest) {
 	return decode(data, dest.fid, dest.request_mask);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::SetAttr& dest) {
 	return decode(data, dest.fid,
 				  dest.valid,
@@ -383,51 +383,51 @@ styxe::operator>> (ByteReader& data, _9P2000L::Request::SetAttr& dest) {
 				  dest.mtime_sec, dest.mtime_nsec);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::XAttrWalk& dest) {
 	return decode(data, dest.fid, dest.newfid, dest.name);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::XAttrCreate& dest) {
 	return decode(data, dest.fid, dest.name, dest.attr_size, dest.flags);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::ReadDir& dest) {
 	return decode(data, dest.fid, dest.offset, dest.count);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::FSync& dest) {
 	return decode(data, dest.fid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::Lock& dest) {
 	return decode(data, dest.fid, dest.type, dest.flags, dest.start, dest.length, dest.proc_id, dest.client_id);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::GetLock& dest) {
 	return decode(data, dest.fid, dest.type, dest.start, dest.length, dest.proc_id, dest.client_id);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::Link& dest) {
 	return decode(data, dest.dfid, dest.fid, dest.name);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::MkDir& dest) {
 	return decode(data, dest.dfid, dest.name, dest.mode, dest.gid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::RenameAt& dest) {
 	return decode(data, dest.olddirfid, dest.oldname, dest.newdirfid, dest.newname);
 }
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Request::UnlinkAt& dest) {
 	return decode(data, dest.dfid, dest.name, dest.flags);
 }
@@ -435,12 +435,12 @@ styxe::operator>> (ByteReader& data, _9P2000L::Request::UnlinkAt& dest) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::LError& dest) {
 	return decode(data, dest.ecode);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::StatFS& dest) {
 	return decode(data,
 				  dest.type,
@@ -454,37 +454,37 @@ styxe::operator>> (ByteReader& data, _9P2000L::Response::StatFS& dest) {
 				  dest.namelen);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::LOpen& dest) {
 	return decode(data, dest.qid, dest.iounit);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::LCreate& dest) {
 	return decode(data, dest.qid, dest.iounit);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::Symlink& dest) {
 	return decode(data, dest.qid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::MkNode& dest) {
 	return decode(data, dest.qid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::Rename&) {
 	return decode(data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::ReadLink& dest) {
 	return decode(data, dest.target);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::GetAttr& dest) {
 	return decode(data,
 				  dest.valid,
@@ -504,65 +504,66 @@ styxe::operator>> (ByteReader& data, _9P2000L::Response::GetAttr& dest) {
 				  dest.gen, dest.data_version);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::SetAttr&) {
 	return decode(data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::XAttrWalk& dest) {
 	return decode(data, dest.size);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::XAttrCreate&) {
 	return decode(data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::ReadDir& dest) {
 	return decode(data, dest.data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::FSync&) {
 	return decode(data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::Lock& dest) {
 	return decode(data, dest.status);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::GetLock& dest) {
 	return decode(data, dest.type, dest.start, dest.length, dest.proc_id, dest.client_id);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::Link&) {
 	return decode(data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::MkDir& dest) {
 	return decode(data, dest.qid);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::RenameAt& ) {
 	return decode(data);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000L::Response::UnlinkAt&) {
 	return decode(data);
 }
 
 
-Result<void, Error>
+styxe::Result<void>
 _9P2000L::DirEntryReader::Iterator::read() {
-	Decoder decoder{_reader};
+	auto decoder = Decoder{_reader};
+
 	auto readResult = decoder >> _value;
 	if(!readResult) {
 		return readResult.moveError();

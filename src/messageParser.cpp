@@ -25,19 +25,19 @@ const size_type         styxe::kMaxMessageSize = 8*1024;      // 8k should be en
 
 
 
-Result<RequestMessage, Error>
+styxe::Result<RequestMessage>
 invalidRequestType(ByteReader& ) {
-	return Result<RequestMessage, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType) };
+	return styxe::Result<RequestMessage>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};
 }
 
-Result<ResponseMessage, Error>
+styxe::Result<ResponseMessage>
 invalidResponseType(ByteReader& ) {
-	return Result<ResponseMessage, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType) };
+	return styxe::Result<ResponseMessage>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};
 }
 
 
 template<typename T>
-Result<RequestMessage, Error>
+styxe::Result<RequestMessage>
 parseRequest(ByteReader& data) {
 	T msg{};  // This requires default constructor for all Response::* types
 
@@ -46,11 +46,11 @@ parseRequest(ByteReader& data) {
 		return result.moveError();
 	}
 
-	return Result<RequestMessage, Error>{types::okTag, std::move(msg)};
+	return styxe::Result<RequestMessage>{types::okTag, in_place, mv(msg)};
 }
 
 template<typename T>
-Result<ResponseMessage, Error>
+styxe::Result<ResponseMessage>
 parseResponse(ByteReader& data) {
 	T msg{};  // This requires default constructor for all Response::* types
 
@@ -59,24 +59,22 @@ parseResponse(ByteReader& data) {
 		return result.moveError();
 	}
 
-	return Result<ResponseMessage, Error>{types::okTag, std::move(msg)};
+	return styxe::Result<ResponseMessage>{types::okTag, in_place, mv(msg)};
 }
 
 
-ResponseParseTable getBlankResponseParserTable() {
+ResponseParseTable
+getBlankResponseParserTable() noexcept {
 	ResponseParseTable table;
-	for (auto& i : table) {
-		i = invalidResponseType;
-	}
+	table.fill(invalidResponseType);
 
 	return table;
 }
 
-RequestParseTable getBlankRequestParserTable() {
+RequestParseTable
+getBlankRequestParserTable() noexcept {
 	RequestParseTable table;
-	for (auto& i : table) {
-		i = invalidRequestType;
-	}
+	table.fill(invalidRequestType);
 
 	return table;
 }
@@ -85,12 +83,12 @@ RequestParseTable getBlankRequestParserTable() {
 
 namespace styxe::_9P2000 {
 
-RequestParseTable getRequestParserTable() {
-	RequestParseTable table{getBlankRequestParserTable()};
+RequestParseTable
+getRequestParserTable() noexcept {
+	auto table = getBlankRequestParserTable();
 
 #define FILL_REQUEST(message) \
 	table[asByte(MessageType::T##message)] = parseRequest<Request::message>
-
 
 	FILL_REQUEST(Version);
 	FILL_REQUEST(Auth);
@@ -110,8 +108,9 @@ RequestParseTable getRequestParserTable() {
 	return table;
 }
 
-ResponseParseTable getResponseParserTable() {
-	ResponseParseTable table{getBlankResponseParserTable()};
+ResponseParseTable
+getResponseParserTable() noexcept {
+	auto table = getBlankResponseParserTable();
 
 #define FILL_RESPONSE(message) \
 	table[asByte(MessageType::R##message)] = parseResponse<Response::message>
@@ -141,9 +140,9 @@ ResponseParseTable getResponseParserTable() {
 
 namespace styxe::_9P2000U {
 
-RequestParseTable getRequestParserTable() {
+RequestParseTable
+getRequestParserTable() noexcept {
 	auto table = ::_9P2000::getRequestParserTable();
-
 
 	table[asByte(::styxe::MessageType::TAuth)] = parseRequest<_9P2000U::Request::Auth>;
 	table[asByte(::styxe::MessageType::TAttach)] = parseRequest<_9P2000U::Request::Attach>;
@@ -153,7 +152,8 @@ RequestParseTable getRequestParserTable() {
 	return table;
 }
 
-ResponseParseTable getResponseParserTable() {
+ResponseParseTable
+getResponseParserTable() noexcept {
 	auto table = ::_9P2000::getResponseParserTable();
 
 	table[asByte(::styxe::MessageType::RError)] = parseResponse<_9P2000U::Response::Error>;
@@ -170,7 +170,8 @@ ResponseParseTable getResponseParserTable() {
 //----------------------------------------------------------------------------------------------------------------------
 namespace styxe::_9P2000E {
 
-RequestParseTable getRequestParserTable() {
+RequestParseTable
+getRequestParserTable() noexcept {
 	auto table = ::_9P2000::getRequestParserTable();
 
 	table[asByte(MessageType::TSession)] = parseRequest<Request::Session>;
@@ -180,7 +181,8 @@ RequestParseTable getRequestParserTable() {
 	return table;
 }
 
-ResponseParseTable getResponseParserTable() {
+ResponseParseTable
+getResponseParserTable() noexcept {
 	auto table = ::_9P2000::getResponseParserTable();
 
 	table[asByte(MessageType::RSession)] = parseResponse<Response::Session>;
@@ -197,34 +199,36 @@ ResponseParseTable getResponseParserTable() {
 //----------------------------------------------------------------------------------------------------------------------
 namespace styxe::_9P2000L {
 
-RequestParseTable getRequestParserTable() {
+RequestParseTable
+getRequestParserTable() noexcept {
 	auto table = _9P2000U::getRequestParserTable();
 
-table[asByte(MessageType::Tstatfs)] = parseRequest<Request::StatFS>;
-table[asByte(MessageType::Tlopen)] = parseRequest<Request::LOpen>;
-table[asByte(MessageType::Tlcreate)] = parseRequest<Request::LCreate>;
-table[asByte(MessageType::Tsymlink)] = parseRequest<Request::Symlink>;
-table[asByte(MessageType::Tmknod)] = parseRequest<Request::MkNode>;
-table[asByte(MessageType::Trename)] = parseRequest<Request::Rename>;
-table[asByte(MessageType::Treadlink)] = parseRequest<Request::ReadLink>;
-table[asByte(MessageType::Tgetattr)] = parseRequest<Request::GetAttr>;
-table[asByte(MessageType::Tsetattr)] = parseRequest<Request::SetAttr>;
-table[asByte(MessageType::Txattrwalk)] = parseRequest<Request::XAttrWalk>;
-table[asByte(MessageType::Txattrcreate)] = parseRequest<Request::XAttrCreate>;
-table[asByte(MessageType::Treaddir)] = parseRequest<Request::ReadDir>;
-table[asByte(MessageType::Tfsync)] = parseRequest<Request::FSync>;
-table[asByte(MessageType::Tlock)] = parseRequest<Request::Lock>;
-table[asByte(MessageType::Tgetlock)] = parseRequest<Request::GetLock>;
-table[asByte(MessageType::Tlink)] = parseRequest<Request::Link>;
-table[asByte(MessageType::Tmkdir)] = parseRequest<Request::MkDir>;
-table[asByte(MessageType::Trenameat)] = parseRequest<Request::RenameAt>;
-table[asByte(MessageType::Tunlinkat)] = parseRequest<Request::UnlinkAt>;
-
+	table[asByte(MessageType::Tstatfs)] = parseRequest<Request::StatFS>;
+	table[asByte(MessageType::Tlopen)] = parseRequest<Request::LOpen>;
+	table[asByte(MessageType::Tlcreate)] = parseRequest<Request::LCreate>;
+	table[asByte(MessageType::Tsymlink)] = parseRequest<Request::Symlink>;
+	table[asByte(MessageType::Tmknod)] = parseRequest<Request::MkNode>;
+	table[asByte(MessageType::Trename)] = parseRequest<Request::Rename>;
+	table[asByte(MessageType::Treadlink)] = parseRequest<Request::ReadLink>;
+	table[asByte(MessageType::Tgetattr)] = parseRequest<Request::GetAttr>;
+	table[asByte(MessageType::Tsetattr)] = parseRequest<Request::SetAttr>;
+	table[asByte(MessageType::Txattrwalk)] = parseRequest<Request::XAttrWalk>;
+	table[asByte(MessageType::Txattrcreate)] = parseRequest<Request::XAttrCreate>;
+	table[asByte(MessageType::Treaddir)] = parseRequest<Request::ReadDir>;
+	table[asByte(MessageType::Tfsync)] = parseRequest<Request::FSync>;
+	table[asByte(MessageType::Tlock)] = parseRequest<Request::Lock>;
+	table[asByte(MessageType::Tgetlock)] = parseRequest<Request::GetLock>;
+	table[asByte(MessageType::Tlink)] = parseRequest<Request::Link>;
+	table[asByte(MessageType::Tmkdir)] = parseRequest<Request::MkDir>;
+	table[asByte(MessageType::Trenameat)] = parseRequest<Request::RenameAt>;
+	table[asByte(MessageType::Tunlinkat)] = parseRequest<Request::UnlinkAt>;
 
 	return table;
 }
 
-ResponseParseTable getResponseParserTable() {
+
+ResponseParseTable
+getResponseParserTable() noexcept {
 	auto table = _9P2000U::getResponseParserTable();
 
 	table[asByte(MessageType::Rlerror)] = parseResponse<Response::LError>;
@@ -259,9 +263,15 @@ ResponseParseTable getResponseParserTable() {
 //----------------------------------------------------------------------------------------------------------------------
 
 Solace::Result<void, Error>
-validateHeader(MessageHeader header, ByteReader::size_type dataAvailible, size_type maxMessageSize) {
-	// Message data sanity check
-	// Just paranoid about huge messages exciding frame size getting through.
+styxe::validateHeader(MessageHeader header, ByteReader::size_type dataAvailible, size_type maxMessageSize) noexcept {
+	auto const mandatoryHeaderSize = headerSize();
+
+	// Message data sanity checks:
+	if (header.messageSize < mandatoryHeaderSize) {
+		return getCannedError(CannedError::IllFormedHeader_FrameTooShort);
+	}
+
+	// Just paranoid about huge messages exciding frame size.
 	if (header.messageSize > maxMessageSize) {
 		return getCannedError(CannedError::IllFormedHeader_TooBig);
 	}
@@ -278,15 +288,12 @@ validateHeader(MessageHeader header, ByteReader::size_type dataAvailible, size_t
 		return getCannedError(CannedError::MoreThenExpectedData);
 	}
 
-
 	return Ok();
 }
 
 
-Result<MessageHeader, Error>
-UnversionedParser::parseMessageHeader(ByteReader& src) const {
-	auto const mandatoryHeaderSize = headerSize();
-
+styxe::Result<MessageHeader>
+styxe::parseMessageHeader(ByteReader& src) {
 	Decoder decoder{src};
 	MessageHeader header;
 
@@ -295,15 +302,11 @@ UnversionedParser::parseMessageHeader(ByteReader& src) const {
 						  >> header.tag;  // Tags are provided by aclient and can not be validated at this stage.
 
 	if (!result) {
-		return result.moveError();  // getCannedError(CannedError::IllFormedHeader);
+		return result.moveError();
 	}
 
-	// Sanity checks:
-	if (header.messageSize < mandatoryHeaderSize) {
-		return getCannedError(CannedError::IllFormedHeader_FrameTooShort);
-	}
-
-	if (header.messageSize > maxMessageSize()) {
+	// Sanity check:
+	if (header.messageSize < headerSize()) {
 		return getCannedError(CannedError::IllFormedHeader_FrameTooShort);
 	}
 
@@ -311,27 +314,27 @@ UnversionedParser::parseMessageHeader(ByteReader& src) const {
 }
 
 
-Result<Request::Version, Error>
-UnversionedParser::parseVersionRequest(MessageHeader header, ByteReader& data) const {
-	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
+styxe::Result<Request::Version>
+styxe::parseVersionRequest(MessageHeader header, ByteReader& data, size_type maxMessageSize) {
+	auto isValid = validateHeader(header, data.remaining(), maxMessageSize);
 	if (!isValid)
 		return isValid.moveError();
 
 	if (header.type != asByte(MessageType::TVersion))
-		return Result<Request::Version, Error>{types::errTag, getCannedError(CannedError::UnsupportedMessageType) };
+		return styxe::Result<Request::Version>{types::errTag, getCannedError(CannedError::UnsupportedMessageType)};
 
 	Request::Version version;
 	auto result = data >> version;
 	if (!result)
 		return result.moveError();
 
-	return Result<Request::Version, Error>{types::okTag, std::move(version)};
+	return styxe::Result<Request::Version>{types::okTag, in_place, mv(version)};
 }
 
 
 
-Result<ResponseMessage, Error>
-ResponseParser::parseResponse(MessageHeader const& header, ByteReader& data) const {
+styxe::Result<ResponseMessage>
+ResponseParser::parseResponse(MessageHeader header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
 		return isValid.moveError();
@@ -341,8 +344,8 @@ ResponseParser::parseResponse(MessageHeader const& header, ByteReader& data) con
 }
 
 
-Result<RequestMessage, Error>
-RequestParser::parseRequest(MessageHeader const& header, ByteReader& data) const {
+styxe::Result<RequestMessage>
+RequestParser::parseRequest(MessageHeader header, ByteReader& data) const {
 	auto isValid = validateHeader(header, data.remaining(), maxMessageSize());
 	if (!isValid)
 		return isValid.moveError();
@@ -353,63 +356,57 @@ RequestParser::parseRequest(MessageHeader const& header, ByteReader& data) const
 
 
 StringView
-ParserBase::messageName(byte messageType) const {
+ParserBase::messageName(byte messageType) const noexcept {
 	return _nameMapper(messageType);
 }
 
 
 
-
-Result<ResponseParser, Error>
+styxe::Result<ResponseParser>
 styxe::createResponseParser(Solace::StringView version, size_type maxPayloadSize) noexcept {
 	if (version == kProtocolVersion) {
-		return Result<ResponseParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<ResponseParser>{types::okTag, in_place, maxPayloadSize,
 					messageTypeToString,
-					_9P2000::getResponseParserTable() };
+					_9P2000::getResponseParserTable()};
 	} else if (version == _9P2000U::kProtocolVersion) {
-		return Result<ResponseParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<ResponseParser>{types::okTag, in_place, maxPayloadSize,
 					_9P2000U::messageTypeToString,
-					_9P2000U::getResponseParserTable() };
+					_9P2000U::getResponseParserTable()};
 	} else if (version == _9P2000E::kProtocolVersion) {
-		return Result<ResponseParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<ResponseParser>{types::okTag, in_place, maxPayloadSize,
 					_9P2000E::messageTypeToString,
-					_9P2000E::getResponseParserTable() };
+					_9P2000E::getResponseParserTable()};
 	} else if (version == _9P2000L::kProtocolVersion) {
-		return Result<ResponseParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<ResponseParser>{types::okTag, in_place, maxPayloadSize,
 					_9P2000L::messageTypeToString,
-					_9P2000L::getResponseParserTable() };
+					_9P2000L::getResponseParserTable()};
 	}
 
-	return Result<ResponseParser, Error>{types::errTag, getCannedError(CannedError::UnsupportedProtocolVersion) };
+	return styxe::Result<ResponseParser>{types::errTag, in_place,
+				getCannedError(CannedError::UnsupportedProtocolVersion)};
 }
 
-Result<RequestParser, Error>
+
+styxe::Result<RequestParser>
 styxe::createRequestParser(StringView version, size_type maxPayloadSize) noexcept {
 	if (version == kProtocolVersion) {
-		return Result<RequestParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<RequestParser>{types::okTag, in_place, maxPayloadSize,
 					messageTypeToString,
 					_9P2000::getRequestParserTable()};
 	} else if (version == _9P2000U::kProtocolVersion) {
-		return Result<RequestParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<RequestParser>{types::okTag, in_place, maxPayloadSize,
 					_9P2000U::messageTypeToString,
 					_9P2000U::getRequestParserTable()};
 	} else if (version == _9P2000E::kProtocolVersion) {
-		return Result<RequestParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<RequestParser>{types::okTag, in_place, maxPayloadSize,
 					_9P2000E::messageTypeToString,
 					_9P2000E::getRequestParserTable()};
 	} else if (version == _9P2000L::kProtocolVersion) {
-		return Result<RequestParser, Error>{types::okTag, in_place,
-					maxPayloadSize,
+		return styxe::Result<RequestParser>{types::okTag, in_place, maxPayloadSize,
 					_9P2000L::messageTypeToString,
 					_9P2000L::getRequestParserTable()};
 	}
 
-	return Result<RequestParser, Error>{types::errTag, getCannedError(CannedError::UnsupportedProtocolVersion) };
+	return styxe::Result<RequestParser>{types::errTag, in_place,
+				getCannedError(CannedError::UnsupportedProtocolVersion)};
 }

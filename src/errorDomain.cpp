@@ -15,15 +15,10 @@
 */
 
 #include "styxe/errorDomain.hpp"
-#include "styxe/version.hpp"
-
 
 
 using namespace Solace;
 using namespace styxe;
-
-
-static const Version   kLibVersion{STYXE_VERSION_MAJOR, STYXE_VERSION_MINOR, STYXE_VERSION_BUILD};
 
 
 AtomValue const
@@ -49,8 +44,4 @@ static Error const kCannedErrors[] = {
 Error
 styxe::getCannedError(CannedError errorId) noexcept {
 	return kCannedErrors[static_cast<int>(errorId)];
-}
-
-Version const& styxe::getVersion() noexcept {
-	return kLibVersion;
 }

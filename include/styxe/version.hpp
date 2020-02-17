@@ -21,8 +21,8 @@
 
 
 #define STYXE_VERSION_MAJOR 0
-#define STYXE_VERSION_MINOR 2
-#define STYXE_VERSION_BUILD 0
+#define STYXE_VERSION_MINOR 7
+#define STYXE_VERSION_BUILD 9
 
 
 namespace styxe {

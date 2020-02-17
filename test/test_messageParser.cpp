@@ -43,8 +43,7 @@ TEST(P9, canParsingValidMessageHeader) {
 	encoder << makeHeaderWithPayload(asByte(MessageType::TVersion), 1, 0);
 
 	auto reader = ByteReader{byteStream.viewWritten()};
-	auto res = UnversionedParser{127}
-			.parseMessageHeader(reader);
+	auto res = parseMessageHeader(reader);
 	ASSERT_TRUE(res.isOk());
 
 	auto header = res.unwrap();
@@ -62,7 +61,7 @@ TEST(P9, parsingMessageHeaderWithUnknownMessageType) {
 	encoder << makeHeaderWithPayload(255, 1, 0);
 
 	auto reader = ByteReader{byteStream.viewWritten()};
-	ASSERT_TRUE(UnversionedParser{32}.parseMessageHeader(reader).isOk());
+	ASSERT_TRUE(parseMessageHeader(reader).isOk());
 }
 
 
@@ -74,7 +73,7 @@ TEST(P9, failParsingHeaderWithInsufficientData) {
 	byteStream.writeLE(headerSize());  // type and tag are not written deliberately
 
 	auto reader = ByteReader{byteStream.viewWritten()};
-	auto maybeHeader = UnversionedParser{16}.parseMessageHeader(reader);
+	auto maybeHeader = parseMessageHeader(reader);
 	ASSERT_TRUE(maybeHeader.isError());
 }
 
@@ -88,7 +87,7 @@ TEST(P9, testParsingIllformedMessageHeader) {
 	byteStream.writeLE(Tag{1});
 
 	auto reader = ByteReader{byteStream.viewWritten()};
-	ASSERT_TRUE(UnversionedParser{32}.parseMessageHeader(reader).isError());
+	ASSERT_TRUE(parseMessageHeader(reader).isError());
 }
 
 
@@ -96,14 +95,15 @@ TEST(P9, parsingIllFormedHeaderForMessagesLargerMTUShouldError) {
 	byte buffer[16];
 	auto byteStream = ByteWriter{wrapMemory(buffer)};
 
-	UnversionedParser proc{12};
-
 	styxe::Encoder encoder{byteStream};
 	// Set declared message size to be more then negotiated message size
-	encoder << makeHeaderWithPayload(asByte(MessageType::TVersion), 1, proc.maxMessageSize() + 100);
+	encoder << makeHeaderWithPayload(asByte(MessageType::TVersion), 1, 100);
 
 	auto reader = ByteReader{byteStream.viewWritten()};
-	ASSERT_TRUE(proc.parseMessageHeader(reader).isError());
+	auto maybeHeader = parseMessageHeader(reader);
+	ASSERT_TRUE(maybeHeader.isOk());
+
+	EXPECT_FALSE(validateHeader(*maybeHeader, 16, 128));
 }
 
 
@@ -118,11 +118,10 @@ TEST(P9, parseIncorrectlySizedSmallerResponse) {
 			<< byte{3};  // The payload is just 1 byte and not 4 as declared by the header.
 
 	auto reader = ByteReader{byteStream.viewWritten()};
-	UnversionedParser parser{12};
-	auto header = parser.parseMessageHeader(reader);
+	auto header = parseMessageHeader(reader);
 	ASSERT_TRUE(header.isOk());
 
-	auto message = parser.parseVersionRequest(*header, reader);
+	auto message = parseVersionRequest(*header, reader, 12);
 	ASSERT_TRUE(message.isError());
 }
 
@@ -137,11 +136,10 @@ TEST(P9, parseIncorrectlySizedLargerResponse) {
 			<< uint64{999999};  // The payload is 8 bytes and not 4 as declared by the header.
 
 	auto reader = ByteReader{byteStream.viewWritten()};
-	UnversionedParser parser{12};
-	auto header = parser.parseMessageHeader(reader);
+	auto header = parseMessageHeader(reader);
 	ASSERT_TRUE(header.isOk());
 
-	auto message = parser.parseVersionRequest(*header, reader);
+	auto message = parseVersionRequest(*header, reader, 12);
 	ASSERT_TRUE(message.isError());
 }
 

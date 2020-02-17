@@ -27,7 +27,7 @@ using namespace styxe;
 const StringLiteral _9P2000E::kProtocolVersion{"9P2000.e"};
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000E::Request::Session& dest) {
 	return decode(data,
 				dest.key[0],
@@ -41,30 +41,30 @@ styxe::operator>> (ByteReader& data, _9P2000E::Request::Session& dest) {
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000E::Request::ShortRead& dest) {
 	return decode(data, dest.fid, dest.path);
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000E::Request::ShortWrite& dest) {
 	return decode(data, dest.fid, dest.path, dest.data);
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000E::Response::Session& ) {
-	return Result<ByteReader&, Error>{types::okTag, data};
+	return styxe::Result<ByteReader&>{types::okTag, data};
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000E::Response::ShortRead& dest) {
 	return decode(data, dest.data);
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000E::Response::ShortWrite& dest) {
 	return decode(data, dest.count);
 }

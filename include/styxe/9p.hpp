@@ -68,13 +68,15 @@ struct MessageHeader {
  * @see MessageHeader
  * @return Size in bytes of the mandatory protocol message header.
  */
-inline constexpr size_type headerSize() noexcept {
+inline
+constexpr size_type headerSize() noexcept {
 	// Note: don't use sizeof(MessageHeader) due to possible padding
 	return sizeof(MessageHeader::messageSize) +
 			sizeof(MessageHeader::type) +
 			sizeof(MessageHeader::tag);
 }
 
+inline
 constexpr size_type MessageHeader::payloadSize() const noexcept {
 	// Do we care about negative sizes?
 	return messageSize - headerSize();

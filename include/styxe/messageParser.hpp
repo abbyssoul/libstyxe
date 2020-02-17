@@ -123,60 +123,37 @@ using ResponseParseFunc = Solace::Result<ResponseMessage, Error> (*)(Solace::Byt
 using RequestParseTable = std::array<RequestParseFunc, 1 << 8*sizeof(MessageHeader::type)>;
 using ResponseParseTable = std::array<ResponseParseFunc, 1 << 8*sizeof(MessageHeader::type)>;
 
-/// Type alias for messge code -> StringView mapping.
-using VersionedNameMapper = Solace::StringView (*)(Solace::byte);
+/// Type alias for message code -> StringView mapping.
+using VersionedNameMapper = Solace::StringView (*)(Solace::byte) noexcept;
 
 
 /**
- * 9p2000 message parser for unspecified protocol version.
- * Note: this parser only able to parse basic messages of the protocol.
- * In practice it means Version negotiation request.
- *
- * Once protocol version is negotiated - create a Parser instance for that version.
- * @see createParser for details.
+ * Check that message heared is valid for given parser configuration
+ * @param header Header to check
+ * @param dataAvailible number of bytes avaliable in the message buffer.
+ * @param maxMessageSize Maximun message size
+ * @return Error if header is not valid or none.
  */
-struct UnversionedParser {
+Result<void>
+validateHeader(MessageHeader header, Solace::ByteReader::size_type dataAvailible, size_type maxMessageSize) noexcept;
 
-	constexpr UnversionedParser(size_type maxPayload) noexcept
-		: _maxPayloadSize{maxPayload}
-	{}
 
-	/**
-	 * Parse 9P message header from a byte buffer.
-	 * @param byteStream Byte buffer to read message header from.
-	 * @return Resulting message header if parsed successfully or an error otherwise.
-	 */
-	Solace::Result<MessageHeader, Error>
-	parseMessageHeader(Solace::ByteReader& byteStream) const;
+/**
+ * Parse 9P message header from a byte buffer.
+ * @param byteStream Byte buffer to read message header from.
+ * @return Resulting message header if parsed successfully or an error otherwise.
+ */
+Result<MessageHeader>
+parseMessageHeader(Solace::ByteReader& byteStream);
 
-	/**
-	 * Parse a version request message from a byte stream.
-	 * @param header Fixed-size message header.
-	 * @param byteStream A byte stream to parse a request from.
-	 * @return Either a parsed request message or an error.
-	 */
-	Solace::Result<Request::Version, Error>
-	parseVersionRequest(MessageHeader header, Solace::ByteReader& byteStream) const;
-
-	/**
-	 * Get a string representation of the message name given the op-code.
-	 * @param messageType Message op-code to convert to a string.
-	 * @return A string representation of a given message code.
-	 */
-	Solace::StringView messageName(Solace::byte messageType) const {
-		return messageTypeToString(messageType);
-	}
-
-	/**
-	 * Get maximum message size in bytes. That includes size of a message header and the payload.
-	 * @return max size of a message in bytes
-	 */
-	size_type maxMessageSize() const noexcept { return headerSize() + _maxPayloadSize; }
-
-private:
-	size_type				_maxPayloadSize;		//!< Initial value of the maximum message payload size in bytes.
-};
-
+/**
+ * Parse a version request message from a byte stream.
+ * @param header Fixed-size message header.
+ * @param byteStream A byte stream to parse a request from.
+ * @return Either a parsed request message or an error.
+ */
+Result<Request::Version>
+parseVersionRequest(MessageHeader header, Solace::ByteReader& byteStream, size_type maxMessageSize);
 
 
 /**
@@ -190,7 +167,7 @@ struct ParserBase {
 	 * @param payloadSize Maximum negoriated payload size in bytes. Note: message size is payload + header..
 	 * @param nameMapper A function to convert message code to strings. It depends on selected protocol version.
 	 */
-	ParserBase(size_type payloadSize, VersionedNameMapper nameMapper) noexcept
+	constexpr ParserBase(size_type payloadSize, VersionedNameMapper nameMapper) noexcept
 		: _maxPayloadSize{payloadSize}
 		, _nameMapper{nameMapper}
 	{}
@@ -200,7 +177,7 @@ struct ParserBase {
 	 * @param messageType Message op-code to convert to a string.
 	 * @return A string representation of a given message code.
 	 */
-	Solace::StringView messageName(Solace::byte messageType) const;
+	Solace::StringView messageName(Solace::byte messageType) const noexcept;
 
 	/**
 	 * Get maximum message size in bytes. That includes size of a message header and the payload.
@@ -231,7 +208,7 @@ private:
  *
  * In order to create 9P2000 messages please @see MessageWriter.
  */
-struct ResponseParser :
+struct ResponseParser final :
 		public ParserBase {
 
 	/**
@@ -253,8 +230,8 @@ struct ResponseParser :
 	 * @param data Byte buffer to read message content from.
 	 * @return Resulting message if parsed successfully or an error otherwise.
 	 */
-	Solace::Result<ResponseMessage, Error>
-	parseResponse(MessageHeader const& header, Solace::ByteReader& data) const;
+	Result<ResponseMessage>
+	parseResponse(MessageHeader header, Solace::ByteReader& data) const;
 
 private:
 	ResponseParseTable	_versionedResponseParser;  /// Parser V-table.
@@ -278,7 +255,7 @@ private:
  *
  * In order to create 9P2000 messages please @see RequestWriter.
  */
-struct RequestParser :
+struct RequestParser final :
 		public ParserBase {
 
 	/**
@@ -300,38 +277,38 @@ struct RequestParser :
 	 * @param data Byte buffer to read message content from.
 	 * @return Resulting message if parsed successfully or an error otherwise.
 	 */
-	Solace::Result<RequestMessage, Error>
-	parseRequest(MessageHeader const& header, Solace::ByteReader& data) const;
+	Result<RequestMessage>
+	parseRequest(MessageHeader header, Solace::ByteReader& data) const;
 
 private:
-
-	RequestParseTable	_versionedRequestParser;   /// Parser V-table.
+	RequestParseTable	_versionedRequestParser;   /// Parser 'V-table'.
 };
 
 
 
 /**
  * Create a new parser for a given protocol version and max message size.
+ *
  * @param version Version of the protocol to use.
  * @param maxPayloadSize Maximum size of a message in bytes as negotioated with Request::Version
  * @return Either a valid parser or an error if invalid version of maxMessageSize are requested.
  */
-Solace::Result<ResponseParser, Error>
+Result<ResponseParser>
 createResponseParser(Solace::StringView version, size_type maxPayloadSize) noexcept;
 
 
 /**
  * Create a new request message parser for a given protocol version.
+ *
  * @param version Version of the protocol to use.
  * @param maxPayloadSize Maximum size of a message in bytes as negotioated with Request::Version
  * @return Either a valid parser or an error if invalid version of maxMessageSize are requested.
  */
-Solace::Result<RequestParser, Error>
+Result<RequestParser>
 createRequestParser(Solace::StringView version, size_type maxPayloadSize) noexcept;
 
 
 // Type constraints
-static_assert(std::is_move_assignable_v<UnversionedParser>,		"UnversionedParser should be movable");
 static_assert(std::is_move_assignable_v<ParserBase>,			"ParserBase should be movable");
 static_assert(std::is_move_assignable_v<ResponseParser>,		"ResponseParser should be movable");
 static_assert(std::is_move_assignable_v<RequestParser>,			"RequestParser should be movable");

@@ -656,9 +656,8 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
     auto reader = ByteReader{buffer};
 	reader.limit(headerSize());
 
-	auto headerParser = UnversionedParser{narrow_cast<size_type>(buffer.size())};
-	headerParser.parseMessageHeader(reader)
-			.then([&](MessageHeader&& header) -> Result<void, Error> {
+	parseMessageHeader(reader)
+			.then([&](MessageHeader&& header) -> styxe::Result<void> {
 				// Check we have enough room in the buffer for the payload
 				if (header.payloadSize() > buffer.size())
 					return makeError(GenericError::IO, "Data overflow");
@@ -705,7 +704,8 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
 
 
 /// Print app usage
-int usage(const char* progname, size_type defaultMessageSize, StringView defaultVersion) {
+int
+usage(const char* progname, size_type defaultMessageSize, StringView defaultVersion) {
     std::cout << "Usage: " << progname
               << "[-m <size>] "
               << "[-p <version>] "

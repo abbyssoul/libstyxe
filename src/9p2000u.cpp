@@ -72,7 +72,7 @@ styxe::operator<< (ResponseWriter& writer, _9P2000U::Response::Stat const& messa
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000U::Request::Auth& dest) {
 	return (data >> static_cast<Request::Auth&>(dest))
 			.then([&](ByteReader& reader) {
@@ -81,7 +81,7 @@ styxe::operator>> (ByteReader& data, _9P2000U::Request::Auth& dest) {
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000U::Request::Attach& dest) {
 	return (data >> static_cast<Request::Attach&>(dest))
 			.then([&](ByteReader& reader) {
@@ -89,7 +89,7 @@ styxe::operator>> (ByteReader& data, _9P2000U::Request::Attach& dest) {
 			});
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000U::Request::Create& dest) {
 	return (data >> static_cast<Request::Create&>(dest))
 			.then([&](ByteReader& reader) {
@@ -98,13 +98,13 @@ styxe::operator>> (ByteReader& data, _9P2000U::Request::Create& dest) {
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000U::Request::WStat& dest) {
 	return decode(data, dest.fid, dest.stat);
 }
 
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000U::Response::Error& dest) {
 	return (data >> static_cast<Response::Error&>(dest))
 			.then([&](ByteReader& reader) {
@@ -112,7 +112,7 @@ styxe::operator>> (ByteReader& data, _9P2000U::Response::Error& dest) {
 			});
 }
 
-Result<ByteReader&, Error>
+styxe::Result<ByteReader&>
 styxe::operator>> (ByteReader& data, _9P2000U::Response::Stat& dest) {
 	return decode(data, dest.dummySize, dest.data);
 }

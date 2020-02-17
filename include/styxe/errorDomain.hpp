@@ -26,6 +26,11 @@ namespace styxe {
 /** Error type used to represent runtime error by the library */
 using Error = Solace::Error;
 
+/// Result type shortrhand
+template<typename T>
+using Result = Solace::Result<T, Error>;
+
+
 /** Error category for protocol specific errors */
 extern Solace::AtomValue const kProtocolErrorCatergory;
 
@@ -47,7 +52,8 @@ enum class CannedError : int {
  * @param errorId Error code of the canned error.
  * @return Error object for the error category
  */
-Solace::Error getCannedError(CannedError errorId) noexcept;
+Error
+getCannedError(CannedError errorId) noexcept;
 
 
 }  // end of namespace styxe

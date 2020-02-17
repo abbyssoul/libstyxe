@@ -29,11 +29,12 @@
 using namespace Solace;
 using namespace styxe;
 
+namespace  {
 
 class P9DirListingWriter : public ::testing::Test {
 public:
 
-	P9DirListingWriter()
+	P9DirListingWriter() noexcept
 		: _memManager{kMaxMessageSize}
     {}
 
@@ -48,6 +49,8 @@ protected:
     MemoryManager   _memManager;
     ByteWriter     _buffer;
 };
+
+}  // namespace
 
 
 TEST_F(P9DirListingWriter, directoryReadResponse) {
@@ -89,9 +92,8 @@ TEST_F(P9DirListingWriter, directoryReadResponse) {
 	auto& parser = *maybeParser;
 
 	ByteReader reader{_buffer.viewWritten()};
-	auto headerParser = UnversionedParser{kMaxMessageSize};
 
-	auto maybeHeader = headerParser.parseMessageHeader(reader);
+	auto maybeHeader = parseMessageHeader(reader);
     ASSERT_TRUE(maybeHeader.isOk());
 
 	auto maybeMessage = parser.parseResponse(*maybeHeader, reader);
@@ -116,9 +118,8 @@ TEST_F(P9DirListingWriter, emptyDirectoryReadResponseOk) {
 
 	auto& parser = *maybeParser;
 	ByteReader reader{_buffer.viewWritten()};
-	auto headerParser = UnversionedParser{kMaxMessageSize};
 
-	auto maybeHeader = headerParser.parseMessageHeader(reader);
+	auto maybeHeader = parseMessageHeader(reader);
 	ASSERT_TRUE(maybeHeader.isOk());
 
 	auto maybeMessage = parser.parseResponse(*maybeHeader, reader);

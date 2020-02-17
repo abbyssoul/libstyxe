@@ -80,7 +80,6 @@ PartialDataWriter::update(size_type dataSize) {
 	buffer.position(_segmentsPos);  // Reset output stream to the start position
 	_writer.encoder() << _dataSize;
 	buffer.advance(_dataSize);  // TODO(abbyssoul): error check, new dataSize can be over the buffer capacity
-	// . position(finalPos);
 	_writer.updateMessageSize();
 
 	return _writer;
