@@ -99,7 +99,7 @@ jobs:
           python-version: '3.7'
       - name: Generating conan user directory
         run: |
-          python -m pip install conan conan_package_tools -U
+          python3 -m pip install conan conan_package_tools -U
           conan profile new default --detect
           conan remote add abyss "${CONAN_UPLOAD}"
           conan user

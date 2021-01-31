@@ -15,19 +15,22 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
 
     runs-on: ${{ matrix.os }}
+    env:
+        CONAN_UPLOAD: "https://api.bintray.com/conan/abbyssoul/public-conan"
+
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-python@master
         with:
           python-version: '3.7'
+      - uses: seanmiddleditch/gha-setup-ninja@master
       - run: |
           python3 -m pip install cpplint conan -U
           conan profile new default --detect
+          conan remote add abyss "${CONAN_UPLOAD}"
       - name: Set conan C++ ABI to 11
         if: runner.os != 'macOS'
         run: conan profile update settings.compiler.libcxx=libstdc++11 default
-
-      - uses: seanmiddleditch/gha-setup-ninja@master
 
       - name: configure
         run: ./configure --enable-sanitizer
