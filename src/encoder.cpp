@@ -57,11 +57,12 @@ styxe::protocolSize(StringView const& value) noexcept {
 
 size_type
 styxe::protocolSize(MemoryView const& value) noexcept {
-	assertIndexInRange(value.size(), 0,
-                       static_cast<MemoryView::size_type>(std::numeric_limits<size_type>::max()));
+	constexpr auto const maxSize = static_cast<MemoryView::size_type>(std::numeric_limits<size_type>::max());
+	auto const valueSize = value.size();
+	assertIndexInRange(valueSize, maxSize, "protocolSize(:MemoryView)");
 
     return sizeof(size_type) +  // Var number of elements
-			narrow_cast<size_type>(value.size());
+			narrow_cast<size_type>(valueSize);
 }
 
 

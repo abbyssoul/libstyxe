@@ -7,7 +7,7 @@
 [![LGTM][LGTM-shield]][LGTM-link]
 
 
-[c++-standard-shield]: https://img.shields.io/badge/c%2B%2B-14/17/20-blue.svg
+[c++-standard-shield]: https://img.shields.io/badge/c%2B%2B-17%2F20-blue
 [c++-standard-link]: https://en.wikipedia.org/wiki/C%2B%2B#Standardization
 [license-shield]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [license-link]: https://opensource.org/licenses/Apache-2.0

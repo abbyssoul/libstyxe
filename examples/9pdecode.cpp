@@ -460,8 +460,8 @@ struct VisitResponse {
 				  << resp.nqids
                   << " [";
 
-		const auto nqids = resp.nqids;
-		size_t i = 0;
+		auto const nqids = resp.nqids;
+		decltype (resp.nqids) i = 0;
 		for (auto const& qid : resp.qids) {
 			std::cout << qid;
 			if (i + 1 != nqids)
@@ -644,7 +644,7 @@ struct VisitResponse {
 
 void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser& tparser, ResponseParser& rparser) {
     // Message header is fixed size - so it is safe to attempt to read it.
-    in.read(buffer.view().dataAs<char>(), headerSize());
+	in.read(&(buffer.view().dataAs<char>()), headerSize());
 
 	if (in.gcount() == 0) return;
 
@@ -662,7 +662,7 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
 				if (header.payloadSize() > buffer.size())
 					return makeError(GenericError::IO, "Data overflow");
 
-				in.read(buffer.view().dataAs<char>(), header.payloadSize());
+				in.read(&(buffer.view().dataAs<char>()), header.payloadSize());
 
 				// Check we read all the data
 				if (in.gcount() != header.payloadSize())

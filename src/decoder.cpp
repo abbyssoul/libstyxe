@@ -60,10 +60,14 @@ styxe::operator>> (Decoder& decoder, StringView& dest) {
 
 	uint16 dataSize = 0;
 	auto result = buffer.readLE(dataSize)
-			.then([&]() {
-				StringView view{buffer.viewRemaining().dataAs<char const>(), dataSize};
+			.then([&]() -> Result<void, Error> {
+				auto b = reinterpret_cast<const char* >(buffer.viewRemaining().begin());
+				// Note: it is possible there is actully less then `dataSize` data in the buffer
+				StringView view{b, dataSize};
+
 				return buffer.advance(dataSize)
 						.then([&dest, &view]() {
+							// Note: only assign if advanced by `dataSize` bytes succesfully
 							dest = view;
                         });
             });

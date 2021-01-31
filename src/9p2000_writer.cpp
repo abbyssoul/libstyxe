@@ -55,7 +55,7 @@ styxe::operator<< (ResponseWriter& writer, Response::Walk const& response) {
 	auto& e = writer.messageTypeOf<std::decay_t<decltype(response)>>();
 	e << response.nqids;
 
-	for (size_t i = 0; i < response.nqids; ++i) {
+	for (decltype(response.nqids) i = 0; i < response.nqids; ++i) {
 			e << response.qids[i];
 	}
 	writer.updateMessageSize();

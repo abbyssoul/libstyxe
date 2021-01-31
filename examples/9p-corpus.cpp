@@ -131,7 +131,7 @@ struct MessageDump {
 			return;
 		}
 
-		output.write(buffer.dataAs<char>(), buffer.size());
+		output.write(&(buffer.dataAs<char>()), buffer.size());
 	}
 
 	MessageDump(MessageNameMapper codeToName, std::string const& directory)
