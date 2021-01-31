@@ -1,0 +1,37 @@
+name: "Unit tests (Linux/MacOS)"
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # TODO: -- windows-latest
+        os: [ubuntu-latest, macOS-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@master
+        with:
+          python-version: '3.7'
+      - run: |
+          python3 -m pip install cpplint conan -U
+          conan profile new default --detect
+      - name: Set conan C++ ABI to 11
+        if: runner.os != 'macOS'
+        run: conan profile update settings.compiler.libcxx=libstdc++11 default
+
+      - uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: configure
+        run: ./configure --enable-sanitizer
+      - name: Build tests
+        run: make tests
+      - name: Run unit tests
+        run: make test
