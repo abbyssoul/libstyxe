@@ -101,6 +101,7 @@ jobs:
         run: |
           python -m pip install conan conan_package_tools -U
           conan profile new default --detect
+          conan remote add abyss "${CONAN_UPLOAD}"
           conan user
       - name: Deduce package version from tag
         run: |
@@ -131,6 +132,7 @@ jobs:
         run: |
           python -m pip install conan conan_package_tools -U
           conan profile new default --detect
+          conan remote add abyss "${CONAN_UPLOAD}"
           conan user
       - name: Deduce package version from tag
         run: |
