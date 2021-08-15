@@ -33,30 +33,30 @@ using namespace styxe;
 template<typename T>
 struct Quoted {
 	constexpr Quoted(T const& t, char quote) noexcept
-        : _quote(quote)
-        , _t(t)
-    {}
+		: _quote(quote)
+		, _t(t)
+	{}
 
-    friend std::ostream& operator<< (std::ostream& ostr, Quoted<T> const& q) {
-        return ostr << q._quote << q._t << q._quote;
-    }
-
-    char const _quote;
-    T const& _t;
+	char const _quote;
+	T const& _t;
 };
+
+template<typename T>
+std::ostream& operator<< (std::ostream& ostr, Quoted<T> const& q) {
+	return ostr << q._quote << q._t << q._quote;
+}
 
 template<typename T>
 constexpr Quoted<T> quote(T const& t, char q='\"') noexcept { return Quoted<T>(t, q); }
 
 
-struct NamedField {
-	const char* name;
+/// A struct to 'tag' a string as a field
+struct NamedField {	const char* name; };
 
-	friend std::ostream& operator<< (std::ostream& ostr, NamedField const& q) {
-		return ostr << ' ' << q.name << '=';
-	}
-};
-
+/// NamedField output format:
+std::ostream& operator<< (std::ostream& ostr, NamedField const& q) {
+	return ostr << ' ' << q.name << '=';
+}
 
 /// IO manipulator
 constexpr NamedField field(const char* name) noexcept {
@@ -65,41 +65,47 @@ constexpr NamedField field(const char* name) noexcept {
 
 
 std::ostream& operator<< (std::ostream& ostr, OpenMode mode) {
-    byte const op = (mode.mode & 0x03);
-    switch (op) {
-    case OpenMode::READ:  ostr << "READ"; break;
-    case OpenMode::WRITE: ostr << "WRITE"; break;
-    case OpenMode::RDWR:  ostr << "RDWR"; break;
-    case OpenMode::EXEC:  ostr << "EXEC"; break;
-    }
+	byte const op = (mode.mode & 0x03);
+	switch (op) {
+	case OpenMode::READ:  ostr << "READ"; break;
+	case OpenMode::WRITE: ostr << "WRITE"; break;
+	case OpenMode::RDWR:  ostr << "RDWR"; break;
+	case OpenMode::EXEC:  ostr << "EXEC"; break;
+	}
 
-    // Extra modes:
-    if (mode.mode & OpenMode::TRUNC)
-        ostr << "(TRUNC)";
-    if (mode.mode & OpenMode::CEXEC)
-        ostr << "(CEXEC)";
-    if (mode.mode & OpenMode::RCLOSE)
-        ostr << "(RCLOSE)";
+	// Extra modes:
+	if (mode.mode & OpenMode::TRUNC)
+		ostr << "(TRUNC)";
+	if (mode.mode & OpenMode::CEXEC)
+		ostr << "(CEXEC)";
+	if (mode.mode & OpenMode::RCLOSE)
+		ostr << "(RCLOSE)";
 
-    return ostr;
+	return ostr;
 }
 
 
 std::ostream& operator<< (std::ostream& ostr, Qid const& qid) {
-    return ostr << '{'
-                << "type: " << static_cast<int>(qid.type) << ", "
-                << "ver: "  << qid.version << ", "
-                << "path: " << qid.path
-                << '}';
+	return ostr << '{'
+				<< "type: " << static_cast<int>(qid.type) << ", "
+				<< "ver: "  << qid.version << ", "
+				<< "path: " << qid.path
+				<< '}';
 }
 
 std::ostream& operator<< (std::ostream& ostr, WalkPath const& path) {
+	WalkPath::size_type const count = path.size() - 1;
 	WalkPath::size_type i = 0;
-	WalkPath::size_type const count = path.size();
 	for (auto pathSegment : path) {
+
+		// Print path segment
 		ostr << pathSegment;
-		if (i + 1 != count)
+
+		// If it's the last segment - add path separator
+		if (i != count) {
 			ostr << '/';
+		}
+
 		++i;
 	}
 
@@ -108,20 +114,20 @@ std::ostream& operator<< (std::ostream& ostr, WalkPath const& path) {
 
 
 std::ostream& operator<< (std::ostream& ostr, Stat const& stat) {
-    return ostr << '{'
-         << "size: "    << stat.size    << ", "
-         << "type: "    << stat.type    << ", "
-         << "dev: "     << stat.dev     << ", "
-         << "qid: "     << stat.qid     << ", "
-         << "mode: "    << stat.mode    << ", "
-         << "atime: "   << stat.atime   << ", "
-         << "mtime: "   << stat.mtime   << ", "
-         << "length: "  << stat.length  << ", "
-         << "name: \""  << stat.name    << "\", "
-         << "uid: \""   << stat.uid     << "\", "
-         << "gid: \""   << stat.gid     << "\", "
-         << "muid: \""  << stat.muid    << "\""
-         << '}';
+	return ostr << '{'
+				<< "size: "    << stat.size    << ", "
+				<< "type: "    << stat.type    << ", "
+				<< "dev: "     << stat.dev     << ", "
+				<< "qid: "     << stat.qid     << ", "
+				<< "mode: "    << stat.mode    << ", "
+				<< "atime: "   << stat.atime   << ", "
+				<< "mtime: "   << stat.mtime   << ", "
+				<< "length: "  << stat.length  << ", "
+				<< "name: \""  << stat.name    << "\", "
+				<< "uid: \""   << stat.uid     << "\", "
+				<< "gid: \""   << stat.gid     << "\", "
+				<< "muid: \""  << stat.muid    << "\""
+				<< '}';
 }
 
 std::ostream& operator<< (std::ostream& ostr, _9P2000L::DirEntry const& ent) {
@@ -137,8 +143,7 @@ std::ostream& operator<< (std::ostream& ostr, _9P2000L::DirEntry const& ent) {
 void
 printHeader(std::ostream& ostr, ParserBase const& parser, MessageHeader const& header) {
 	bool const isRequest = ((header.type % 2) == 0);
-    ostr  << (isRequest ? "→" : "←");
-
+	ostr << (isRequest ? "→" : "←");
 	ostr << " ["
 		 << std::setw(5) << header.messageSize
 		 << "] <" << header.tag << "> "
@@ -458,42 +463,44 @@ struct VisitResponse {
     void operator()(Response::Walk const& resp) {
 		std::cout << ':'
 				  << resp.nqids
-                  << " [";
+				  << " [";
 
 		auto const nqids = resp.nqids;
-		decltype (resp.nqids) i = 0;
-		for (auto const& qid : resp.qids) {
+		for (decltype (resp.nqids) i = 0; i < resp.nqids; ++i) {
+			auto const& qid = resp.qids[i];
 			std::cout << qid;
-			if (i + 1 != nqids)
-			std::cout << ", ";
+			if (i + 1 != nqids) {
+				std::cout << ", ";
+			}
 		}
-		 std::cout << ']';
-    }
 
-    void operator()(Response::Open const& resp) {
+		std::cout << ']';
+	}
+
+	void operator()(Response::Open const& resp) {
 		std::cout << ':'
 				  << field("qid") << resp.qid
 				  << field("iounit") << resp.iounit;
 	}
 
-    void operator()(Response::Create const& resp) {
+	void operator()(Response::Create const& resp) {
 		std::cout << ':'
 				  << field("qid") << resp.qid
 				  << field("iounit") << resp.iounit;
 	}
 
 
-    void operator()(Response::Read const& resp) {
+	void operator()(Response::Read const& resp) {
 		std::cout << ':'
 				  << field("data") << resp.data;
-    }
-    void operator()(Response::Write const& resp) {
+	}
+	void operator()(Response::Write const& resp) {
 		std::cout << ':'
 				  << field("count") << resp.count;
-    }
+	}
 
-	void operator()(Response::Clunk& /*res*/) noexcept {  }
-	void operator()(Response::Remove& /*res*/) noexcept { }
+	void operator()(Response::Clunk& /*res*/) noexcept {}
+	void operator()(Response::Remove& /*res*/) noexcept {}
 
 	void operator()(Response::Stat const& resp) {
 		std::cout << ':'
@@ -513,7 +520,6 @@ struct VisitResponse {
 		std::cout << ':'
 				  << field("size") << resp.dummySize
 				  << field("data") << resp.data;
-
 	}
 
 	void operator()(_9P2000E::Response::Session const& /*res*/) noexcept { }
@@ -604,9 +610,8 @@ struct VisitResponse {
 	void operator()(_9P2000L::Response::ReadDir const& resp) {
 		std::cout << ':'
 				  << '[';
-//				  << field("data") << resp.data;
 
-		_9P2000L::DirEntryReader dirReader{resp.data};
+		auto dirReader = _9P2000L::DirEntryReader{resp.data};
 		for (auto const& ent : dirReader) {
 			std::cout << ent;
 		}
@@ -634,11 +639,11 @@ struct VisitResponse {
 
 	void operator()(_9P2000L::Response::MkDir const& resp) {
 		std::cout << ':'
-					 << field("qid") << resp.qid;
+				  << field("qid") << resp.qid;
 	}
-	void operator()(_9P2000L::Response::RenameAt const&) noexcept { }
-	void operator()(_9P2000L::Response::UnlinkAt const&) noexcept { }
 
+	void operator()(_9P2000L::Response::RenameAt const&) noexcept {}
+	void operator()(_9P2000L::Response::UnlinkAt const&) noexcept {}
 };
 
 
@@ -697,8 +702,8 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
 
 				return Ok();
             })
-            .orElse([](Error&& err) {
-                std::cerr << "Error parsing message header: " << err.toString() << std::endl;
+			.orElse([](Error&& err) {
+				std::cerr << "Error parsing message header: " << err.toString() << std::endl;
             });
 }
 
@@ -706,31 +711,31 @@ void readAndPrintMessage(std::istream& in, MemoryResource& buffer, RequestParser
 /// Print app usage
 int
 usage(const char* progname, size_type defaultMessageSize, StringView defaultVersion) {
-    std::cout << "Usage: " << progname
-              << "[-m <size>] "
-              << "[-p <version>] "
-              << "[-h] "
+	std::cout << "Usage: " << progname
+			  << "[-m <size>] "<< "[-p <version>] "
+			  << "[-h] "
 			  << "[FILE...]"
-              << std::endl;
+			  << std::endl;
 
 	std::cout << "Read 9P2000 messages and display it\n\n"
-              << "Options: \n"
+			  << "Options: \n"
 			  << "  -m <size>                  " << "use maximum buffer size for messages [Default: " << defaultMessageSize << "]\n"
 			  << "  -p <version>               " << "use specific protocol version [Default: " << defaultVersion<< "]\n"
 			  << "  -h                         " << "display help and exit\n"
-              << std::endl;
+			  << std::endl;
 
-    return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
 
+
 /**
- * A simple example of decoding a 9P message from a file / stdin and printing it in a human readable format.
+ * An example of decoding a 9P message from a file / stdin and printing it in a human readable format.
  */
 int main(int argc, char* const* argv) {
 	size_type maxMessageSize = kMaxMessageSize;
 	StringView requiredVersion = kProtocolVersion;
 
-    int c;
+	int c;
 	while ((c = getopt(argc, argv, "m:p:h")) != -1) {
 		switch (c) {
 		case 'm': {
@@ -775,23 +780,23 @@ int main(int argc, char* const* argv) {
 	}
 
 	auto& buffer = memoryResource.unwrap();
-    if (optind < argc) {
-        for (int i = optind; i < argc; ++i) {
-            std::ifstream input(argv[i]);
-            if (!input) {
-                std::cerr << "Failed to open file: " << std::quoted(argv[i]) << std::endl;
-                return EXIT_FAILURE;
-            }
+	if (optind < argc) {
+		for (int i = optind; i < argc; ++i) {
+			std::ifstream input(argv[i]);
+			if (!input) {
+				std::cerr << "Failed to open file: " << std::quoted(argv[i]) << std::endl;
+				return EXIT_FAILURE;
+			}
 
 			while (input && !input.eof()) {
 				readAndPrintMessage(input, buffer, tparser, rparser);
 			}
-        }
-    } else {
+		}
+	} else {
 		while (std::cin && !std::cin.eof()) {
 			readAndPrintMessage(std::cin, buffer, tparser, rparser);
 		}
-    }
+	}
 
-    return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }

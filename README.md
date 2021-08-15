@@ -26,7 +26,20 @@
 A _library_ for parsing 9P2000 protocol messages.
 > library: a collection of types, functions, classes, etc. implementing a set of facilities (abstractions) meant to be potentially used as part of more that one program. From [Cpp Code guidelines gloassay](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#glossary)
 
-It also includes 9P2000.e extension. To learn more about the extension please see http://erlangonxen.org/more/9p2000e
+[9P](http://man.cat-v.org/plan_9/5/intro) is a distributed resource sharing protocol developed as part of the Plan 9 research operating system at AT&T Bell Laboratories (now a part of Lucent Technologies) by the Computer Science Research Center. It can be used to distributed file systems, devices, and application services. It was designed as an interface to both local and remote resources, making the transition from local to cluster to grid resources transparent.
+[From RFC 9P2000](https://ericvh.github.io/9p-rfc/rfc9p2000.u.html)
+
+This library contains C++17 implementation of 9P message parser and writer. It is not a complete 9P server as no IO capabilities is included.
+For an example implementation of a 9P server using ASIO please check hello world of 9p servers - serving json over 9P: [mjstyxfs](https://github.com/abbyssoul/mjstyxfs).
+For ASIO base IO and async event look please consider using [libapsio](https://github.com/abbyssoul/libapsio) library that take care of networking.
+
+
+Parser implementation is based on [9P documentation](http://man.cat-v.org/plan_9/5/intro).
+Also following extensions are supported
+ - [9P2000.u](https://ericvh.github.io/9p-rfc/rfc9p2000.u.html) - Unix extension.
+ - [9P2000.L](https://github.com/chaos/diod/blob/master/protocol.md) - Linux extension.
+ - [9P2000.e](http://erlangonxen.org/more/9p2000e) extension.
+
 
 # Using this library
 
